@@ -127,6 +127,10 @@ azov-resort/
 
 ## 🛠️ Управление
 
+docker compose build --no-cache --progress=plain app 2>&1 | tee logs-build-app.log 
+
+docker compose up -d 2>&1 | tee logs-up.log
+
 ### Просмотр логов
 ```bash
 docker compose logs -f          # Все логи
