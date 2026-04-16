@@ -27,23 +27,37 @@ fail() {
   exit 1
 }
 
-on_error() {
-  local exit_code=$?
-  warn "Deployment failed. Recent container status:"
-  docker compose "${COMPOSE_ARGS[@]}" ps || true
-  warn "Recent logs:"
-  docker compose "${COMPOSE_ARGS[@]}" logs --tail=100 "${LOG_SERVICES[@]}" || true
-  exit "$exit_code"
-}
-
-trap on_error ERR
+trap 'warn "Deployment failed. Check logs in ./logs"; exit 1' ERR
 
 COMPOSE_ARGS=()
 LOG_SERVICES=(postgres app)
+LOG_DIR="$ROOT_DIR/logs"
+BUILD_LOG="$LOG_DIR/logs-build-app.log"
+UP_LOG="$LOG_DIR/logs-up.log"
+MIGRATE_LOG="$LOG_DIR/logs-migrate.log"
+SEED_LOG="$LOG_DIR/logs-seed.log"
+STATUS_LOG="$LOG_DIR/logs-status.log"
+RUNTIME_LOG="$LOG_DIR/logs-runtime.log"
 
 print_banner() {
   echo "Azov Resort deployment"
   echo "======================"
+}
+
+ensure_log_dir() {
+  mkdir -p "$LOG_DIR"
+  log "Logs directory: $LOG_DIR"
+}
+
+run_logged() {
+  local log_file="$1"
+  shift
+
+  info "Running: $*"
+  (
+    set -o pipefail
+    "$@" 2>&1 | tee "$log_file"
+  )
 }
 
 ensure_env_file() {
@@ -163,11 +177,11 @@ rebuild_stack() {
     docker compose "${COMPOSE_ARGS[@]}" pull cloudflared || true
   fi
 
-  info "Building app image..."
-  docker compose "${COMPOSE_ARGS[@]}" build --pull app
+  info "Building app image with plain progress output..."
+  run_logged "$BUILD_LOG" docker compose "${COMPOSE_ARGS[@]}" build --no-cache --progress=plain app
 
   info "Starting containers..."
-  docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans
+  run_logged "$UP_LOG" docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans
 
   log "Containers started"
 }
@@ -189,7 +203,7 @@ wait_for_postgres() {
 
 run_migrations() {
   info "Running Prisma migrations..."
-  docker compose "${COMPOSE_ARGS[@]}" exec -T app npx prisma migrate deploy
+  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app npx prisma migrate deploy
   log "Prisma migrations applied"
 }
 
@@ -223,8 +237,12 @@ seed_if_needed() {
   fi
 
   info "Running seed..."
-  docker compose "${COMPOSE_ARGS[@]}" exec -T app npx tsx prisma/seed.ts
+  run_logged "$SEED_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app npx tsx prisma/seed.ts
   log "Seed completed"
+}
+
+show_status() {
+  run_logged "$STATUS_LOG" docker compose "${COMPOSE_ARGS[@]}" ps
 }
 
 show_summary() {
@@ -238,21 +256,31 @@ show_summary() {
   echo "Admin email: ${ADMIN_EMAIL}"
   echo
   echo "Useful commands:"
-  echo "  docker compose logs -f app"
-  echo "  docker compose logs -f"
-  echo "  docker compose restart app"
-  echo "  docker compose exec app npx prisma studio"
+  echo "  docker compose build --no-cache --progress=plain app 2>&1 | tee logs/logs-build-app.log"
+  echo "  docker compose up -d 2>&1 | tee logs/logs-up.log"
+  echo "  docker compose logs -f app 2>&1 | tee logs/logs-runtime.log"
+  echo
+  echo "Log files:"
+  echo "  $BUILD_LOG"
+  echo "  $UP_LOG"
+  echo "  $MIGRATE_LOG"
+  echo "  $SEED_LOG"
+  echo "  $STATUS_LOG"
+  echo "  $RUNTIME_LOG"
 }
 
 stream_logs() {
   echo
   info "Streaming container logs. Press Ctrl+C to stop watching; containers will keep running."
-  trap 'echo; log "Log streaming stopped. Containers are still running."; exit 0' INT
-  docker compose "${COMPOSE_ARGS[@]}" logs -f --tail=100 "${LOG_SERVICES[@]}"
+  (
+    set -o pipefail
+    docker compose "${COMPOSE_ARGS[@]}" logs -f --tail=100 "${LOG_SERVICES[@]}" 2>&1 | tee "$RUNTIME_LOG"
+  )
 }
 
 main() {
   print_banner
+  ensure_log_dir
   ensure_root
   ensure_env_file
   ensure_docker
@@ -265,6 +293,7 @@ main() {
   wait_for_postgres
   run_migrations
   seed_if_needed
+  show_status
   show_summary
   stream_logs
 }
