@@ -52,7 +52,7 @@ chmod +x deploy.sh
 2. Перейдите в **Access → Tunnels → Create Tunnel**
 3. Скопируйте токен в `.env` → `CLOUDFLARE_TUNNEL_TOKEN`
 4. В конфигурации туннеля добавьте роут:
-   - **Service**: `http://app:3000`
+   - **Service**: `http://app:3002`
    - **Domain**: ваш домен
 
 ### ЮКасса
