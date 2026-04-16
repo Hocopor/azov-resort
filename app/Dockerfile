@@ -23,6 +23,7 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+RUN mkdir -p public
 COPY . .
 
 RUN npx prisma generate

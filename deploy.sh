@@ -10,6 +10,17 @@ RED='\033[0;31m'
 BLUE='\033[0;34m'
 NC='\033[0m'
 
+FAILED=0
+COMPOSE_ARGS=()
+LOG_SERVICES=(postgres app)
+LOG_DIR="$ROOT_DIR/logs"
+BUILD_LOG="$LOG_DIR/logs-build-app.log"
+UP_LOG="$LOG_DIR/logs-up.log"
+MIGRATE_LOG="$LOG_DIR/logs-migrate.log"
+SEED_LOG="$LOG_DIR/logs-seed.log"
+STATUS_LOG="$LOG_DIR/logs-status.log"
+RUNTIME_LOG="$LOG_DIR/logs-runtime.log"
+
 log() {
   printf "%b[ok]%b %s\n" "$GREEN" "$NC" "$1"
 }
@@ -27,17 +38,19 @@ fail() {
   exit 1
 }
 
-trap 'warn "Deployment failed. Check logs in ./logs"; exit 1' ERR
+on_error() {
+  local exit_code=$?
 
-COMPOSE_ARGS=()
-LOG_SERVICES=(postgres app)
-LOG_DIR="$ROOT_DIR/logs"
-BUILD_LOG="$LOG_DIR/logs-build-app.log"
-UP_LOG="$LOG_DIR/logs-up.log"
-MIGRATE_LOG="$LOG_DIR/logs-migrate.log"
-SEED_LOG="$LOG_DIR/logs-seed.log"
-STATUS_LOG="$LOG_DIR/logs-status.log"
-RUNTIME_LOG="$LOG_DIR/logs-runtime.log"
+  if [[ "$FAILED" -eq 1 ]]; then
+    exit "$exit_code"
+  fi
+
+  FAILED=1
+  warn "Deployment failed. Check logs in ./logs"
+  exit "$exit_code"
+}
+
+trap on_error ERR
 
 print_banner() {
   echo "Azov Resort deployment"
@@ -69,9 +82,14 @@ ensure_env_file() {
   fail ".env was missing. A fresh .env has been created from .env.example. Fill it in and run deploy.sh again."
 }
 
-ensure_root() {
+ensure_docker_access() {
+  if docker info >/dev/null 2>&1; then
+    log "Docker access available for current user"
+    return
+  fi
+
   if [[ "${EUID}" -ne 0 ]]; then
-    fail "Run deploy.sh as root on the VPS."
+    fail "No access to Docker. Run with sudo or add the user to the docker group."
   fi
 }
 
@@ -79,6 +97,10 @@ ensure_docker() {
   if command -v docker >/dev/null 2>&1; then
     log "Docker already installed: $(docker --version)"
     return
+  fi
+
+  if [[ "${EUID}" -ne 0 ]]; then
+    fail "Docker is not installed. Re-run deploy.sh with sudo."
   fi
 
   info "Installing Docker..."
@@ -92,6 +114,10 @@ ensure_compose() {
   if docker compose version >/dev/null 2>&1; then
     log "Docker Compose already installed: $(docker compose version)"
     return
+  fi
+
+  if [[ "${EUID}" -ne 0 ]]; then
+    fail "Docker Compose plugin is missing. Re-run deploy.sh with sudo."
   fi
 
   info "Installing Docker Compose plugin..."
@@ -178,7 +204,7 @@ rebuild_stack() {
   fi
 
   info "Building app image with plain progress output..."
-  run_logged "$BUILD_LOG" docker compose "${COMPOSE_ARGS[@]}" build --no-cache --progress=plain app
+  run_logged "$BUILD_LOG" docker compose "${COMPOSE_ARGS[@]}" --progress=plain build --no-cache app
 
   info "Starting containers..."
   run_logged "$UP_LOG" docker compose "${COMPOSE_ARGS[@]}" up -d --remove-orphans
@@ -256,7 +282,7 @@ show_summary() {
   echo "Admin email: ${ADMIN_EMAIL}"
   echo
   echo "Useful commands:"
-  echo "  docker compose build --no-cache --progress=plain app 2>&1 | tee logs/logs-build-app.log"
+  echo "  docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log"
   echo "  docker compose up -d 2>&1 | tee logs/logs-up.log"
   echo "  docker compose logs -f app 2>&1 | tee logs/logs-runtime.log"
   echo
@@ -281,10 +307,10 @@ stream_logs() {
 main() {
   print_banner
   ensure_log_dir
-  ensure_root
   ensure_env_file
   ensure_docker
   ensure_compose
+  ensure_docker_access
   load_env
   validate_env
   compose_config_check
