@@ -1,0 +1,267 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ========== AUTH ==========
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  phone         String?
+  passwordHash  String?
+  role          Role      @default(USER)
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  bookings      Booking[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  deletedAt     DateTime?
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ========== ROOMS ==========
+
+model Room {
+  id                String    @id @default(cuid())
+  name              String
+  slug              String    @unique
+  description       String    @db.Text
+  shortDescription  String
+  capacity          Int       // max guests
+  area              Int?      // sq meters
+  pricePerDay       Int       // in kopecks (kopecks = rubles * 100)
+  images            String[]  // array of image paths
+  amenities         Json      // { ac: bool, privatKitchen: bool, tv: bool, fridge: bool, ... }
+  hasAC             Boolean   @default(false)
+  hasPrivateKitchen Boolean   @default(true)
+  hasTV             Boolean   @default(true)
+  hasFridge         Boolean   @default(true)
+  floor             Int?
+  isActive          Boolean   @default(true)
+  sortOrder         Int       @default(0)
+  bookings          Booking[]
+  blockedDates      BlockedDate[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  @@map("rooms")
+}
+
+model BlockedDate {
+  id        String   @id @default(cuid())
+  roomId    String
+  room      Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  dateFrom  DateTime
+  dateTo    DateTime
+  reason    String?
+  createdAt DateTime @default(now())
+
+  @@map("blocked_dates")
+}
+
+// ========== BOOKINGS ==========
+
+model Booking {
+  id               String        @id @default(cuid())
+  bookingNumber    String        @unique @default(cuid())
+  userId           String?
+  user             User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  roomId           String
+  room             Room          @relation(fields: [roomId], references: [id])
+  checkIn          DateTime
+  checkOut         DateTime
+  nights           Int
+  guests           Int
+  hasPets          Boolean       @default(false)
+  petsDescription  String?
+  smoking          Boolean       @default(false)
+  // Transfer
+  transferNeeded   Boolean       @default(false)
+  transferFrom     String?
+  transferDate     DateTime?
+  transferUnknown  Boolean       @default(false)
+  // Guest info
+  guestName        String
+  guestPhone       String
+  guestEmail       String?
+  comment          String?       @db.Text
+  // Pricing
+  totalPrice       Int           // in kopecks
+  depositAmount    Int           // in kopecks
+  depositType      DepositType
+  depositValue     Int           // percent or fixed amount in kopecks
+  // Status
+  status           BookingStatus @default(PENDING)
+  // Payment
+  paymentId        String?
+  paymentStatus    PaymentStatus @default(UNPAID)
+  paymentUrl       String?
+  paidAt           DateTime?
+  // Cancellation
+  cancelledAt      DateTime?
+  cancellationReason String?
+  refundAmount     Int?          // in kopecks
+  refundId         String?
+  // Source
+  source           BookingSource @default(WEBSITE)
+  adminNotes       String?       @db.Text
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+// ========== BLOG ==========
+
+model BlogPost {
+  id          String       @id @default(cuid())
+  title       String?
+  content     String?      @db.Text
+  mediaItems  Json         @default("[]") // [{type: 'image'|'video'|'gallery', url, caption, items?:[]}]
+  published   Boolean      @default(true)
+  pinnedAt    DateTime?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("blog_posts")
+}
+
+// ========== SERVICES ==========
+
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text
+  icon        String?
+  price       Int?     // null = free, in kopecks
+  priceNote   String?  // "от 500 руб", "по договорённости"
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  category    String   @default("general")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@map("services")
+}
+
+// ========== SETTINGS ==========
+
+model Setting {
+  key       String   @id
+  value     String   @db.Text
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}
+
+// ========== ANALYTICS ==========
+
+model PageView {
+  id        String   @id @default(cuid())
+  path      String
+  referrer  String?
+  userAgent String?
+  ip        String?
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([path])
+  @@map("page_views")
+}
+
+model ConversionEvent {
+  id        String   @id @default(cuid())
+  event     String   // 'booking_started', 'booking_completed', 'payment_completed' etc.
+  roomId    String?
+  bookingId String?
+  userId    String?
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  @@index([event])
+  @@index([createdAt])
+  @@map("conversion_events")
+}
+
+// ========== ENUMS ==========
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum BookingStatus {
+  PENDING    // Ожидает оплаты
+  CONFIRMED  // Подтверждено (депозит оплачен)
+  CANCELLED  // Отменено
+  COMPLETED  // Завершено (гость выехал)
+  BLOCKED    // Заблокировано администратором
+}
+
+enum PaymentStatus {
+  UNPAID
+  DEPOSIT_PAID
+  FULLY_PAID
+  REFUNDED
+  PARTIAL_REFUND
+  FAILED
+}
+
+enum DepositType {
+  PERCENT
+  FIXED
+}
+
+enum BookingSource {
+  WEBSITE
+  PHONE
+  ADMIN
+  OTHER
+}
