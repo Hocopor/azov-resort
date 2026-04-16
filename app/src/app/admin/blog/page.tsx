@@ -18,17 +18,22 @@ function isMediaItem(value: unknown): value is MediaItem {
   )
 }
 
+function toMediaItems(value: unknown): MediaItem[] {
+  if (!Array.isArray(value)) return []
+  return value.filter(isMediaItem)
+}
+
 export default async function AdminBlogPage() {
   const rawPosts = await prisma.blogPost.findMany({
     orderBy: { createdAt: 'desc' },
   })
 
-  const posts: AdminBlogPosts = rawPosts.map((post) => ({
-    ...post,
-    mediaItems: Array.isArray(post.mediaItems)
-      ? post.mediaItems.filter(isMediaItem)
-      : [],
-  }))
+  const posts: AdminBlogPosts = rawPosts.map(
+    (post): AdminBlogPost => ({
+      ...post,
+      mediaItems: toMediaItems(post.mediaItems),
+    })
+  )
 
   return (
     <div className="space-y-6">
