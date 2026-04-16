@@ -30,8 +30,8 @@ COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 RUN mkdir -p ./public/uploads && chown -R nextjs:nodejs ./public/uploads
 USER nextjs
 
-EXPOSE 3000
-ENV PORT=3000
+EXPOSE 3003
+ENV PORT=3003
 ENV HOSTNAME="0.0.0.0"
 
 COPY docker-entrypoint.sh ./
