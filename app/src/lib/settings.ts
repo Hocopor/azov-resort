@@ -1,6 +1,10 @@
 import { prisma } from '@/lib/db'
 
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
+  if (!process.env.DATABASE_URL) {
+    return {}
+  }
+
   try {
     const settings = await prisma.setting.findMany({
       where: { key: { in: keys } },
@@ -12,6 +16,10 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
 }
 
 export async function getSetting(key: string, defaultValue?: string): Promise<string | undefined> {
+  if (!process.env.DATABASE_URL) {
+    return defaultValue
+  }
+
   try {
     const setting = await prisma.setting.findUnique({ where: { key } })
     return setting?.value ?? defaultValue

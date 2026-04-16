@@ -2,6 +2,8 @@ import Link from 'next/link'
 import { Waves } from 'lucide-react'
 import { getSettings } from '@/lib/settings'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AuthLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettings(['site_name'])
   const siteName = settings.site_name || 'Отдых на Азове'

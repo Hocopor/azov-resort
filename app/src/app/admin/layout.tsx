@@ -6,6 +6,8 @@ import {
   Settings, Users, BarChart3, Waves, ArrowLeft, LogOut
 } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 const navLinks = [
   { href: '/admin', label: 'Дашборд', icon: LayoutDashboard, exact: true },
   { href: '/admin/bookings', label: 'Бронирования', icon: Calendar },

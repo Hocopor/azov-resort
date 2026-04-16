@@ -29,6 +29,16 @@ export function calculateTotalPrice(pricePerDay: number, nights: number): number
   return pricePerDay * nights
 }
 
+export function calculateDeposit(
+  totalPrice: number,
+  settings: { type: 'PERCENT' | 'FIXED'; percent: number; fixed: number }
+): number {
+  if (settings.type === 'PERCENT') {
+    return Math.round(totalPrice * (settings.percent / 100))
+  }
+  return Math.min(settings.fixed, totalPrice)
+}
+
 export function truncate(str: string, maxLen: number): string {
   if (str.length <= maxLen) return str
   return str.slice(0, maxLen).trimEnd() + '…'
