@@ -2,8 +2,6 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { BookingsList } from '@/components/account/BookingsList'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Мои брони' }
 
 export default async function BookingsPage() {

@@ -52,7 +52,7 @@ chmod +x deploy.sh
 2. Перейдите в **Access → Tunnels → Create Tunnel**
 3. Скопируйте токен в `.env` → `CLOUDFLARE_TUNNEL_TOKEN`
 4. В конфигурации туннеля добавьте роут:
-   - **Service**: `http://app:3002`
+   - **Service**: `http://app:3000`
    - **Domain**: ваш домен
 
 ### ЮКасса
@@ -126,10 +126,6 @@ azov-resort/
 ---
 
 ## 🛠️ Управление
-
-docker compose build --no-cache --progress=plain app 2>&1 | tee logs-build-app.log 
-
-docker compose up -d 2>&1 | tee logs-up.log
 
 ### Просмотр логов
 ```bash

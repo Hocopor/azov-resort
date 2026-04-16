@@ -3,8 +3,6 @@ import { prisma } from '@/lib/db'
 import Link from 'next/link'
 import { CheckCircle, XCircle } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
-
 interface Props {
   searchParams: { token?: string; email?: string }
 }

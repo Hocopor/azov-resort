@@ -3,8 +3,6 @@ import { formatMoney, formatDate, getBookingStatusLabel, getBookingStatusColor }
 import Link from 'next/link'
 import { AdminBookingsClient } from '@/components/admin/AdminBookingsClient'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Бронирования — Панель управления' }
 export const revalidate = 0
 

@@ -4,8 +4,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { AdminRoomsClient } from '@/components/admin/AdminRoomsClient'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Номера — Панель управления' }
 export const revalidate = 0
 

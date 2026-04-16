@@ -2,8 +2,6 @@ import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import {
-
-export const dynamic = 'force-dynamic'
   LayoutDashboard, Calendar, BedDouble, FileText,
   Settings, Users, BarChart3, Waves, ArrowLeft, LogOut
 } from 'lucide-react'

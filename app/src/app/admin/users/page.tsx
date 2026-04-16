@@ -2,8 +2,6 @@ import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import { AdminUsersClient } from '@/components/admin/AdminUsersClient'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Пользователи' }
 export const revalidate = 0
 

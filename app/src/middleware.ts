@@ -1,13 +1,12 @@
-import NextAuth from 'next-auth'
+import { auth } from '@/lib/auth'
 import { NextResponse } from 'next/server'
-import { authConfig } from '@/lib/auth.config'
-
-const { auth } = NextAuth(authConfig)
+import type { NextRequest } from 'next/server'
 
 export default auth((req) => {
   const { pathname } = req.nextUrl
   const session = req.auth
 
+  // Admin routes protection
   if (pathname.startsWith('/admin')) {
     if (!session) {
       return NextResponse.redirect(new URL('/auth/login?callbackUrl=/admin', req.url))
@@ -17,6 +16,7 @@ export default auth((req) => {
     }
   }
 
+  // Account routes protection
   if (pathname.startsWith('/account')) {
     if (!session) {
       return NextResponse.redirect(new URL(`/auth/login?callbackUrl=${pathname}`, req.url))

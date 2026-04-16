@@ -2,8 +2,6 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { getSettings } from '@/lib/settings'
 
-export const dynamic = 'force-dynamic'
-
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettings(['site_name', 'site_phone', 'site_address'])
   return (

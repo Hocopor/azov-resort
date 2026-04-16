@@ -7,7 +7,9 @@ const nextConfig = {
     ],
     formats: ['image/avif', 'image/webp'],
   },
-  serverExternalPackages: ['@prisma/client', 'bcryptjs'],
+  experimental: {
+    serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+  },
 }
 
 module.exports = nextConfig

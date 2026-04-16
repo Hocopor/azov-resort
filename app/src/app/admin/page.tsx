@@ -9,8 +9,6 @@ import {
 } from 'lucide-react'
 import { AdminCharts } from '@/components/admin/AdminCharts'
 
-export const dynamic = 'force-dynamic'
-
 export const metadata = { title: 'Дашборд' }
 export const revalidate = 60
 
