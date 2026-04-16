@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db'
 import { getSettings } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
 import {
+
+export const dynamic = 'force-dynamic'
   Waves, Star, Shield, Clock, Car, Bike, Wifi, ChefHat,
   ArrowRight, Sun, Wind, MapPin, Calendar, Users, CheckCircle
 } from 'lucide-react'

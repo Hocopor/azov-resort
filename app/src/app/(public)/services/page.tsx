@@ -5,6 +5,8 @@ import { getSetting } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
 import Link from 'next/link'
 import {
+
+export const dynamic = 'force-dynamic'
   Car, Waves, Bike, WashingMachine, Flame, ParkingSquare,
   Sparkles, Baby, Wifi, Umbrella, Map, ChefHat, ArrowLeft, CheckCircle
 } from 'lucide-react'

@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/db'
 import { AdminSettingsForm } from '@/components/admin/AdminSettingsForm'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Настройки' }
 
 export default async function AdminSettingsPage() {

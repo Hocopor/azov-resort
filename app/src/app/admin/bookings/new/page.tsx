@@ -1,6 +1,8 @@
 import { prisma } from '@/lib/db'
 import { AdminManualBookingForm } from '@/components/admin/AdminManualBookingForm'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Добавить бронь вручную' }
 
 export default async function NewBookingPage() {

@@ -4,6 +4,8 @@ import Link from 'next/link'
 import { User, Calendar, LogOut, Settings, Waves, ArrowLeft } from 'lucide-react'
 import { getSettings } from '@/lib/settings'
 
+export const dynamic = 'force-dynamic'
+
 const navLinks = [
   { href: '/account', label: 'Профиль', icon: User, exact: true },
   { href: '/account/bookings', label: 'Мои брони', icon: Calendar },

@@ -5,6 +5,8 @@ import { prisma } from '@/lib/db'
 import { formatMoney } from '@/lib/utils'
 import { Waves, Wind, Tv, Refrigerator, UtensilsCrossed, Users, Maximize2, CheckCircle } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Номера — выберите подходящий вариант' }
 export const revalidate = 60
 

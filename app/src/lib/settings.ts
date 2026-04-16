@@ -1,6 +1,11 @@
 import { prisma } from '@/lib/db'
 
+function canUseDatabase() {
+  return Boolean(process.env.DATABASE_URL)
+}
+
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
+  if (!canUseDatabase()) return {}
   try {
     const settings = await prisma.setting.findMany({
       where: { key: { in: keys } },
@@ -12,6 +17,7 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
 }
 
 export async function getSetting(key: string, defaultValue?: string): Promise<string | undefined> {
+  if (!canUseDatabase()) return defaultValue
   try {
     const setting = await prisma.setting.findUnique({ where: { key } })
     return setting?.value ?? defaultValue
@@ -21,6 +27,10 @@ export async function getSetting(key: string, defaultValue?: string): Promise<st
 }
 
 export async function updateSetting(key: string, value: string) {
+  if (!canUseDatabase()) {
+    throw new Error('DATABASE_URL is not configured')
+  }
+
   return prisma.setting.upsert({
     where: { key },
     update: { value },

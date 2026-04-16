@@ -4,6 +4,8 @@ import { prisma } from '@/lib/db'
 import { formatDate } from '@/lib/utils'
 import { Waves, Calendar } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Обстановка — что сейчас у моря' }
 export const revalidate = 60
 

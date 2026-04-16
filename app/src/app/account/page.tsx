@@ -2,6 +2,8 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { ProfileForm } from '@/components/account/ProfileForm'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Мой профиль' }
 
 export default async function AccountPage() {

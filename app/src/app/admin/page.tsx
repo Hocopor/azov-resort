@@ -7,6 +7,9 @@ import {
   TrendingUp, Calendar, Users, CreditCard, BedDouble,
   ArrowRight, AlertCircle, CheckCircle, Clock
 } from 'lucide-react'
+import { AdminCharts } from '@/components/admin/AdminCharts'
+
+export const dynamic = 'force-dynamic'
 
 export const metadata = { title: 'Дашборд' }
 export const revalidate = 60
@@ -26,6 +29,7 @@ async function getDashboardData() {
     todayCheckOuts,
     pageViews30d,
     conversionEvents,
+    bookingsByDay,
     rooms,
   ] = await Promise.all([
     prisma.booking.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
@@ -59,6 +63,12 @@ async function getDashboardData() {
       by: ['event'],
       where: { createdAt: { gte: thirtyDaysAgo } },
       _count: { event: true },
+    }),
+    prisma.booking.groupBy({
+      by: ['createdAt'],
+      where: { createdAt: { gte: sevenDaysAgo } },
+      _count: { id: true },
+      orderBy: { createdAt: 'asc' },
     }),
     prisma.room.findMany({ where: { isActive: true }, select: { id: true, name: true, bookings: { where: { status: { in: ['CONFIRMED'] }, checkOut: { gte: now } }, select: { checkIn: true, checkOut: true } } } }),
   ])

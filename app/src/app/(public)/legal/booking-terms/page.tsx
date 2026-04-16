@@ -3,6 +3,8 @@ import Link from 'next/link'
 import { getSettings } from '@/lib/settings'
 import { ArrowLeft } from 'lucide-react'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = { title: 'Условия бронирования' }
 
 export default async function BookingTermsPage() {

@@ -2,6 +2,8 @@ import type { ComponentProps } from 'react'
 import { prisma } from '@/lib/db'
 import { AdminBlogClient } from '@/components/admin/AdminBlogClient'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = { title: 'Блог / Обстановка' }
 export const revalidate = 0
 
