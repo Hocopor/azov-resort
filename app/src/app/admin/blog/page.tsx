@@ -1,12 +1,20 @@
+import type { ComponentProps } from 'react'
 import { prisma } from '@/lib/db'
-import { formatDate } from '@/lib/utils'
 import { AdminBlogClient } from '@/components/admin/AdminBlogClient'
 
 export const metadata = { title: 'Блог / Обстановка' }
 export const revalidate = 0
 
+type AdminBlogPosts = ComponentProps<typeof AdminBlogClient>['posts']
+
 export default async function AdminBlogPage() {
-  const posts = await prisma.blogPost.findMany({ orderBy: { createdAt: 'desc' } })
+  const rawPosts = await prisma.blogPost.findMany({ orderBy: { createdAt: 'desc' } })
+
+  const posts: AdminBlogPosts = rawPosts.map((post) => ({
+    ...post,
+    mediaItems: Array.isArray(post.mediaItems) ? post.mediaItems : [],
+  })) as AdminBlogPosts
+
   return (
     <div className="space-y-6">
       <div>
