@@ -6,7 +6,6 @@ import { prisma } from '@/lib/db'
 import bcrypt from 'bcryptjs'
 import { z } from 'zod'
 
-// VK OAuth Provider
 const VKProvider: OAuthConfig<any> = {
   id: 'vk',
   name: 'ВКонтакте',
@@ -21,7 +20,7 @@ const VKProvider: OAuthConfig<any> = {
   userinfo: {
     url: 'https://api.vk.com/method/users.get',
     params: { fields: 'photo_200', v: '5.131' },
-    async request({ tokens, provider }: any) {
+    async request({ tokens }: any) {
       const res = await fetch(
         `https://api.vk.com/method/users.get?fields=photo_200&v=5.131&access_token=${tokens.access_token}`
       )
@@ -47,7 +46,6 @@ const VKProvider: OAuthConfig<any> = {
   clientSecret: process.env.VK_CLIENT_SECRET,
 }
 
-// Yandex OAuth Provider
 const YandexProvider: OAuthConfig<any> = {
   id: 'yandex',
   name: 'Яндекс',
@@ -72,7 +70,7 @@ const YandexProvider: OAuthConfig<any> = {
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
-  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 }, // 30 days
+  session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
   pages: {
     signIn: '/auth/login',
     newUser: '/account',
@@ -87,10 +85,12 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: 'Пароль', type: 'password' },
       },
       async authorize(credentials) {
-        const parsed = z.object({
-          email: z.string().email(),
-          password: z.string().min(8),
-        }).safeParse(credentials)
+        const parsed = z
+          .object({
+            email: z.string().email(),
+            password: z.string().min(8),
+          })
+          .safeParse(credentials)
 
         if (!parsed.success) return null
 
@@ -122,21 +122,25 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.id = user.id
         token.role = (user as any).role
       }
+
       if (trigger === 'update' && session) {
         token.name = session.name
         token.email = session.email
       }
-      // Refresh role from DB on each request
+
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
           select: { role: true, name: true, deletedAt: true },
         })
+
         if (!dbUser || dbUser.deletedAt) {
-          return {} // invalidate token for deleted accounts
+          return {}
         }
+
         token.role = dbUser.role
       }
+
       return token
     },
     async session({ session, token }) {
@@ -149,7 +153,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   events: {
     async createUser({ user }) {
-      // Send welcome email
       try {
         const { sendWelcomeEmail } = await import('@/lib/email')
         if (user.email) await sendWelcomeEmail(user.email, user.name || 'Гость')
@@ -161,7 +164,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
 })
 
-// Type augmentation
 declare module 'next-auth' {
   interface Session {
     user: {

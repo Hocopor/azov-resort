@@ -6,18 +6,26 @@ import { getSettings } from '@/lib/settings'
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings(['site_name', 'site_address', 'hero_subtitle'])
-  const siteName = settings.site_name || 'РћС‚РґС‹С… РЅР° РђР·РѕРІРµ'
-  const siteAddress = settings.site_address || 'РђР·РѕРІСЃРєРѕРµ РјРѕСЂРµ'
+  const siteName = settings.site_name || 'Отдых на Азове'
+  const siteAddress = settings.site_address || 'Азовское море'
   const metadataBase = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
 
   return {
     metadataBase,
     title: {
-      default: `${siteName} вЂ” Р“РѕСЃС‚РµРІРѕР№ РґРѕРј Сѓ РђР·РѕРІСЃРєРѕРіРѕ РјРѕСЂСЏ`,
+      default: `${siteName} - Гостевой дом у Азовского моря`,
       template: `%s | ${siteName}`,
     },
-    description: settings.hero_subtitle || 'РЈСЋС‚РЅС‹Рµ РЅРѕРјРµСЂР° Сѓ РђР·РѕРІСЃРєРѕРіРѕ РјРѕСЂСЏ. Р‘СЂРѕРЅРёСЂСѓР№С‚Рµ РѕРЅР»Р°Р№РЅ вЂ” Р»СѓС‡С€РёРµ С†РµРЅС‹, С‚СЂР°РЅСЃС„РµСЂ, СЃР°РїР±РѕСЂРґС‹, РІРµР»РѕСЃРёРїРµРґС‹.',
-    keywords: ['РѕС‚РґС‹С… Р°Р·РѕРІСЃРєРѕРµ РјРѕСЂРµ', 'РіРѕСЃС‚РµРІРѕР№ РґРѕРј Р°Р·РѕРІ', 'СЃРЅСЏС‚СЊ РЅРѕРјРµСЂ Р°Р·РѕРІСЃРєРѕРµ РјРѕСЂРµ', 'РѕС‚РґС‹С… Сѓ РјРѕСЂСЏ', siteAddress],
+    description:
+      settings.hero_subtitle ||
+      'Уютные номера у Азовского моря. Бронируйте онлайн - лучшие цены, трансфер, сапборды, велосипеды.',
+    keywords: [
+      'отдых азовское море',
+      'гостевой дом азов',
+      'снять номер азовское море',
+      'отдых у моря',
+      siteAddress,
+    ],
     openGraph: {
       type: 'website',
       siteName,
@@ -53,9 +61,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <SessionProvider>
-          <ToastProvider>
-            {children}
-          </ToastProvider>
+          <ToastProvider>{children}</ToastProvider>
         </SessionProvider>
       </body>
     </html>
