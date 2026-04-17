@@ -229,7 +229,7 @@ wait_for_postgres() {
 
 run_migrations() {
   info "Running Prisma migrations..."
-  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app npx prisma migrate deploy
+  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma migrate deploy
   log "Prisma migrations applied"
 }
 
@@ -263,7 +263,7 @@ seed_if_needed() {
   fi
 
   info "Running seed..."
-  run_logged "$SEED_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app npx tsx prisma/seed.ts
+  run_logged "$SEED_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app node_modules/.bin/tsx prisma/seed.ts
   log "Seed completed"
 }
 

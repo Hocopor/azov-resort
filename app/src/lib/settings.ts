@@ -1,7 +1,11 @@
 import { prisma } from '@/lib/db'
 
+function shouldSkipDatabaseAccess() {
+  return !process.env.DATABASE_URL || process.env.SKIP_DB_DURING_BUILD === '1'
+}
+
 export async function getSettings(keys: string[]): Promise<Record<string, string>> {
-  if (!process.env.DATABASE_URL) {
+  if (shouldSkipDatabaseAccess()) {
     return {}
   }
 
@@ -16,7 +20,7 @@ export async function getSettings(keys: string[]): Promise<Record<string, string
 }
 
 export async function getSetting(key: string, defaultValue?: string): Promise<string | undefined> {
-  if (!process.env.DATABASE_URL) {
+  if (shouldSkipDatabaseAccess()) {
     return defaultValue
   }
 
