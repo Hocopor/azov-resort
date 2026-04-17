@@ -14,10 +14,6 @@ export async function middleware(req: NextRequest) {
     if (!token) {
       return NextResponse.redirect(new URL('/auth/login?callbackUrl=/admin', req.url))
     }
-
-    if (token.role !== 'ADMIN') {
-      return NextResponse.redirect(new URL('/', req.url))
-    }
   }
 
   if (pathname.startsWith('/account') && !token) {
