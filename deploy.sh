@@ -233,37 +233,9 @@ run_migrations() {
   log "Prisma migrations applied"
 }
 
-seed_if_needed() {
-  info "Checking whether seed data is needed..."
-
-  local has_users_table
-  has_users_table="$(
-    docker compose "${COMPOSE_ARGS[@]}" exec -T postgres psql \
-      -U "${POSTGRES_USER:-azov_user}" \
-      -d "${POSTGRES_DB:-azov_resort}" \
-      -tAc "SELECT to_regclass('public.users') IS NOT NULL;" 2>/dev/null | tr -d '[:space:]'
-  )"
-
-  if [[ "$has_users_table" != "t" ]]; then
-    warn "users table is not available yet, skipping seed"
-    return
-  fi
-
-  local admin_count
-  admin_count="$(
-    docker compose "${COMPOSE_ARGS[@]}" exec -T postgres psql \
-      -U "${POSTGRES_USER:-azov_user}" \
-      -d "${POSTGRES_DB:-azov_resort}" \
-      -tAc "SELECT COUNT(*) FROM users WHERE role = 'ADMIN';" 2>/dev/null | tr -d '[:space:]'
-  )"
-
-  if [[ "${admin_count:-0}" != "0" ]]; then
-    log "Admin user already exists, seed skipped"
-    return
-  fi
-
+run_seed() {
   info "Running seed..."
-  run_logged "$SEED_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app node_modules/.bin/tsx prisma/seed.ts
+  run_logged "$SEED_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app node prisma/seed-runtime.js
   log "Seed completed"
 }
 
@@ -318,7 +290,7 @@ main() {
   rebuild_stack
   wait_for_postgres
   run_migrations
-  seed_if_needed
+  run_seed
   show_status
   show_summary
   stream_logs
