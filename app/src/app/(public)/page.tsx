@@ -68,6 +68,34 @@ export default async function HomePage() {
     { text: settings.review_text_3, author: settings.review_author_3, city: settings.review_city_3 },
   ].filter((r) => r.text && r.author)
 
+  const heroBadgeClassName = hasCustomHeroImage
+    ? 'inline-flex items-center gap-2 px-4 py-2 bg-[rgba(58,69,34,0.48)] backdrop-blur-sm rounded-full text-sm font-medium mb-6 border border-[rgba(255,248,231,0.24)] text-[#fff6e8] shadow-[0_10px_28px_rgba(0,0,0,0.18)]'
+    : 'inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium mb-6 border border-white/20'
+
+  const heroTitleClassName = hasCustomHeroImage
+    ? 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6 text-[#fff8ef] drop-shadow-[0_4px_18px_rgba(0,0,0,0.32)]'
+    : 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6'
+
+  const heroSubtitleClassName = hasCustomHeroImage
+    ? 'text-lg sm:text-xl text-[#f8ead7] leading-relaxed mb-10 max-w-xl drop-shadow-[0_2px_10px_rgba(0,0,0,0.28)]'
+    : 'text-lg sm:text-xl text-white/80 leading-relaxed mb-10 max-w-xl'
+
+  const heroStatValueClassName = hasCustomHeroImage
+    ? 'text-3xl font-display font-bold text-[#fff7ec] drop-shadow-[0_2px_10px_rgba(0,0,0,0.24)]'
+    : 'text-3xl font-display font-bold'
+
+  const heroStatLabelClassName = hasCustomHeroImage
+    ? 'text-sm text-[#f3e3cb] drop-shadow-[0_2px_8px_rgba(0,0,0,0.2)]'
+    : 'text-sm text-white/60'
+
+  const heroPrimaryButtonClassName = hasCustomHeroImage
+    ? 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#db7a4e] hover:bg-[#cb6c42] text-[#fffaf3] font-bold rounded-2xl text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl'
+    : 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-2xl text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl'
+
+  const heroSecondaryButtonClassName = hasCustomHeroImage
+    ? 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-[rgba(70,49,31,0.56)] hover:bg-[rgba(70,49,31,0.72)] backdrop-blur-sm text-[#fff4e4] font-bold rounded-2xl text-lg transition-all duration-300 border border-[rgba(255,241,220,0.28)]'
+    : 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold rounded-2xl text-lg transition-all duration-300 border border-white/25'
+
   return (
     <>
       {/* ===== HERO ===== */}
@@ -101,16 +129,16 @@ export default async function HomePage() {
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-36 text-white">
           <div className="max-w-3xl">
             {/* Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium mb-6 border border-white/20">
+            <div className={heroBadgeClassName}>
               <Sun className="w-4 h-4 text-yellow-300" />
               Сезон 2025 открыт — бронируйте сейчас!
             </div>
 
-            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6">
+            <h1 className={heroTitleClassName}>
               {settings.hero_title || 'Отдых у\u00A0Азовского моря'}
             </h1>
 
-            <p className="text-lg sm:text-xl text-white/80 leading-relaxed mb-10 max-w-xl">
+            <p className={heroSubtitleClassName}>
               {settings.hero_subtitle || 'Уютные номера, чистое море, тёплый приём — всё для вашего идеального отпуска'}
             </p>
 
@@ -122,8 +150,8 @@ export default async function HomePage() {
                 { value: '100%', label: 'тёплый приём' },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <div className="text-3xl font-display font-bold">{stat.value}</div>
-                  <div className="text-sm text-white/60">{stat.label}</div>
+                  <div className={heroStatValueClassName}>{stat.value}</div>
+                  <div className={heroStatLabelClassName}>{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -131,14 +159,14 @@ export default async function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/rooms"
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-2xl text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
+                className={heroPrimaryButtonClassName}
               >
                 Выбрать номер
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <a
                 href={`tel:${settings.site_phone || ''}`}
-                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold rounded-2xl text-lg transition-all duration-300 border border-white/25"
+                className={heroSecondaryButtonClassName}
               >
                 Позвонить нам
               </a>
