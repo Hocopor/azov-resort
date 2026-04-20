@@ -8,6 +8,10 @@ import { Waves, Wind, Tv, Refrigerator, UtensilsCrossed, Users, Maximize2, Check
 export const metadata: Metadata = { title: 'Номера — выберите подходящий вариант' }
 export const revalidate = 60
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 async function getRooms() {
   return prisma.room.findMany({
     where: { isActive: true },
@@ -58,6 +62,7 @@ export default async function RoomsPage() {
                       alt={room.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      unoptimized={isUploadedImage(room.images[0])}
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -69,7 +74,7 @@ export default async function RoomsPage() {
                     <div className="absolute bottom-2 left-2 flex gap-1">
                       {room.images.slice(1, 4).map((img, i) => (
                         <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white">
-                          <Image src={img} alt="" width={40} height={40} className="object-cover w-full h-full" />
+                          <Image src={img} alt="" width={40} height={40} className="object-cover w-full h-full" unoptimized={isUploadedImage(img)} />
                         </div>
                       ))}
                       {room.images.length > 4 && (

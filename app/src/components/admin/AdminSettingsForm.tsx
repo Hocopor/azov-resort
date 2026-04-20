@@ -20,6 +20,10 @@ const GENERAL_IMAGE_FALLBACKS: Record<string, string> = {
   og_image: '/images/general/og-image.jpg',
 }
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 export function AdminSettingsForm({ settings }: Props) {
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -213,7 +217,7 @@ export function AdminSettingsForm({ settings }: Props) {
                 <div className="mb-3 text-sm font-semibold text-gray-800">{label}</div>
                 <div className="mb-3 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
                   <div className="relative h-44 w-full">
-                    <Image src={currentUrl} alt={label} fill className="object-cover" />
+                    <Image src={currentUrl} alt={label} fill className="object-cover" unoptimized={isUploadedImage(currentUrl)} />
                   </div>
                 </div>
                 <div className="mb-3 text-xs text-gray-500">{hint}</div>

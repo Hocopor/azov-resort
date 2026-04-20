@@ -15,6 +15,10 @@ export const metadata: Metadata = {
 
 export const revalidate = 60
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 async function getHomeData() {
   const [rooms, settings, recentPosts] = await Promise.all([
     prisma.room.findMany({
@@ -76,6 +80,7 @@ export default async function HomePage() {
             fill
             className={hasCustomHeroImage ? 'object-cover' : 'object-cover opacity-30 mix-blend-overlay'}
             priority
+            unoptimized={isUploadedImage(heroBackground)}
           />
           {/* Animated bubbles */}
           <div className="bubble w-4 h-4 left-[10%]" style={{ animationDuration: '12s', animationDelay: '0s' }} />
@@ -295,7 +300,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 gap-4">
               {aboutImages.map((src, i) => (
                 <div key={i} className={`relative rounded-2xl overflow-hidden bg-sea-900 ${i === 0 ? 'col-span-2 h-52' : 'h-40'}`}>
-                  <Image src={src} alt="" fill className="object-cover opacity-70" />
+                  <Image src={src} alt="" fill className="object-cover opacity-70" unoptimized={isUploadedImage(src)} />
                   <div className="absolute inset-0 bg-gradient-to-t from-sea-900/40 to-transparent" />
                 </div>
               ))}

@@ -16,6 +16,10 @@ interface Props {
   params: { id: string }
 }
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const room = await prisma.room.findUnique({ where: { slug: params.id } })
   if (!room) return {}

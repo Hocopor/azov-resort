@@ -8,6 +8,10 @@ interface Props {
   name: string
 }
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 export function RoomGallery({ images, name }: Props) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
@@ -38,7 +42,7 @@ export function RoomGallery({ images, name }: Props) {
           } h-72 md:h-96`}
           onClick={() => setLightboxIdx(0)}
         >
-          <Image src={images[0]} alt={name} fill className="object-cover" priority />
+          <Image src={images[0]} alt={name} fill className="object-cover" priority unoptimized={isUploadedImage(images[0])} />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
             <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
           </div>
@@ -51,7 +55,7 @@ export function RoomGallery({ images, name }: Props) {
             className="relative cursor-pointer group h-48 md:h-48"
             onClick={() => setLightboxIdx(i + 1)}
           >
-            <Image src={img} alt={`${name} ${i + 2}`} fill className="object-cover" />
+            <Image src={img} alt={`${name} ${i + 2}`} fill className="object-cover" unoptimized={isUploadedImage(img)} />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
             {i === 2 && images.length > 4 && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
@@ -101,6 +105,7 @@ export function RoomGallery({ images, name }: Props) {
               alt={`${name} ${lightboxIdx + 1}`}
               fill
               className="object-contain"
+              unoptimized={isUploadedImage(images[lightboxIdx])}
             />
           </div>
 
@@ -114,7 +119,7 @@ export function RoomGallery({ images, name }: Props) {
                   i === lightboxIdx ? 'border-white scale-110' : 'border-white/30'
                 }`}
               >
-                <Image src={img} alt="" width={48} height={32} className="object-cover w-full h-full" />
+                <Image src={img} alt="" width={48} height={32} className="object-cover w-full h-full" unoptimized={isUploadedImage(img)} />
               </button>
             ))}
           </div>

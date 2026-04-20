@@ -55,6 +55,10 @@ interface Room {
   bookings: Booking[]
 }
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -325,7 +329,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                     {(editForm.images || []).map((image: string, index: number) => (
                       <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
                         <div className="relative h-44 w-full bg-gray-100">
-                          <Image src={image} alt={`Фото ${index + 1}`} fill className="object-cover" />
+                          <Image src={image} alt={`Фото ${index + 1}`} fill className="object-cover" unoptimized={isUploadedImage(image)} />
                           <div className="absolute left-3 top-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
                             {index === 0 ? 'Обложка' : `#${index + 1}`}
                           </div>
@@ -390,7 +394,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
               <div className="flex items-start gap-4">
                 <div className="relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-sea-100">
                   {room.images[0] ? (
-                    <Image src={room.images[0]} alt={room.name} fill className="object-cover" />
+                    <Image src={room.images[0]} alt={room.name} fill className="object-cover" unoptimized={isUploadedImage(room.images[0])} />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
                       <Waves className="h-8 w-8 text-sea-300" />
