@@ -20,6 +20,33 @@ function isUploadedImage(url: string) {
   return url.startsWith('/uploads/')
 }
 
+function normalizeAmenities(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean)
+  }
+
+  if (value && typeof value === 'object') {
+    const amenityLabels: Record<string, string> = {
+      shower: 'Душ',
+      toilet: 'Туалет',
+      ac: 'Кондиционер',
+      tv: 'Телевизор',
+      fridge: 'Холодильник',
+      wifi: 'Wi-Fi',
+      privateKitchen: 'Своя кухня',
+      sharedKitchen: 'Общая кухня',
+      veranda: 'Веранда',
+      sofa: 'Диван',
+    }
+
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([key]) => amenityLabels[key] || key)
+  }
+
+  return []
+}
+
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const room = await prisma.room.findUnique({ where: { slug: params.id } })
   if (!room) return {}
@@ -82,6 +109,8 @@ export default async function RoomDetailPage({ params }: Props) {
     { icon: CheckCircle, label: 'Уборка номера', always: true },
   ].filter((a) => a.always || a.condition)
 
+  const customAmenities = normalizeAmenities(room.amenities)
+
   return (
     <div className="min-h-screen bg-sand-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-16">
@@ -112,6 +141,9 @@ export default async function RoomDetailPage({ params }: Props) {
                         <Maximize2 className="w-3.5 h-3.5" /> {room.area} м²
                       </span>
                     )}
+                    {room.floor !== null && room.floor !== undefined && (
+                      <span className="badge-sea">Этаж {room.floor}</span>
+                    )}
                   </div>
                 </div>
                 <div className="text-right">
@@ -124,12 +156,19 @@ export default async function RoomDetailPage({ params }: Props) {
 
               <h2 className="font-display text-2xl font-semibold mb-5">Удобства</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {amenitiesList.map((a) => (
-                  <div key={a.label} className="flex items-center gap-2.5 p-3 bg-sand-50 rounded-xl">
-                    <a.icon className="w-5 h-5 text-sea-600 flex-shrink-0" />
-                    <span className="text-sm text-gray-700">{a.label}</span>
-                  </div>
-                ))}
+                {customAmenities.length > 0
+                  ? customAmenities.map((item) => (
+                      <div key={item} className="flex items-center gap-2.5 p-3 bg-sand-50 rounded-xl">
+                        <CheckCircle className="w-5 h-5 text-sea-600 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{item}</span>
+                      </div>
+                    ))
+                  : amenitiesList.map((a) => (
+                      <div key={a.label} className="flex items-center gap-2.5 p-3 bg-sand-50 rounded-xl">
+                        <a.icon className="w-5 h-5 text-sea-600 flex-shrink-0" />
+                        <span className="text-sm text-gray-700">{a.label}</span>
+                      </div>
+                    ))}
               </div>
             </div>
           </div>

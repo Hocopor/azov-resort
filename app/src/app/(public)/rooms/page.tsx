@@ -12,6 +12,33 @@ function isUploadedImage(url: string) {
   return url.startsWith('/uploads/')
 }
 
+function normalizeAmenities(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean)
+  }
+
+  if (value && typeof value === 'object') {
+    const amenityLabels: Record<string, string> = {
+      shower: 'Душ',
+      toilet: 'Туалет',
+      ac: 'Кондиционер',
+      tv: 'Телевизор',
+      fridge: 'Холодильник',
+      wifi: 'Wi-Fi',
+      privateKitchen: 'Своя кухня',
+      sharedKitchen: 'Общая кухня',
+      veranda: 'Веранда',
+      sofa: 'Диван',
+    }
+
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([key]) => amenityLabels[key] || key)
+  }
+
+  return []
+}
+
 async function getRooms() {
   return prisma.room.findMany({
     where: { isActive: true },
@@ -54,6 +81,14 @@ export default async function RoomsPage() {
                 key={room.id}
                 className="card overflow-hidden lg:flex group hover:shadow-card-hover transition-shadow duration-300"
               >
+                {(() => {
+                  const customAmenities = normalizeAmenities(room.amenities)
+                  const previewAmenities = customAmenities.length > 0
+                    ? customAmenities.slice(0, 7)
+                    : ['Душ', 'Туалет', 'Wi-Fi', 'Мангальная зона', 'Парковка', 'Сапборды', 'Велосипеды']
+
+                  return (
+                    <>
                 {/* Image */}
                 <div className="relative lg:w-80 xl:w-96 h-60 lg:h-auto flex-shrink-0 bg-gradient-to-br from-sea-100 to-sea-200">
                   {room.images[0] ? (
@@ -112,6 +147,9 @@ export default async function RoomsPage() {
                           <Maximize2 className="w-3 h-3" /> {room.area} м²
                         </span>
                       )}
+                      {room.floor !== null && room.floor !== undefined && (
+                        <span className="badge-sea">Этаж {room.floor}</span>
+                      )}
                       {room.hasAC && (
                         <span className="badge bg-blue-100 text-blue-700">
                           <Wind className="w-3 h-3" /> Кондиционер
@@ -140,7 +178,7 @@ export default async function RoomsPage() {
 
                     {/* Common amenities */}
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                      {['Душ', 'Туалет', 'Wi-Fi', 'Мангальная зона', 'Парковка', 'Сапборды', 'Велосипеды'].map((a) => (
+                      {previewAmenities.map((a) => (
                         <span key={a} className="flex items-center gap-1">
                           <CheckCircle className="w-3 h-3 text-green-500" /> {a}
                         </span>
@@ -157,6 +195,9 @@ export default async function RoomsPage() {
                     </Link>
                   </div>
                 </div>
+                    </>
+                  )
+                })()}
               </div>
             ))}
           </div>

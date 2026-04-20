@@ -46,10 +46,20 @@ interface Room {
   id: string
   name: string
   slug: string
-  pricePerDay: number
+  description: string
+  shortDescription: string
   capacity: number
-  isActive: boolean
+  area: number | null
+  pricePerDay: number
   images: string[]
+  amenities: unknown
+  hasAC: boolean
+  hasPrivateKitchen: boolean
+  hasTV: boolean
+  hasFridge: boolean
+  floor: number | null
+  isActive: boolean
+  sortOrder: number
   _count: { bookings: number }
   blockedDates: BlockedDate[]
   bookings: Booking[]
@@ -57,6 +67,33 @@ interface Room {
 
 function isUploadedImage(url: string) {
   return url.startsWith('/uploads/')
+}
+
+function normalizeAmenitiesInput(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => String(item).trim()).filter(Boolean)
+  }
+
+  if (value && typeof value === 'object') {
+    const amenityLabels: Record<string, string> = {
+      shower: 'Душ',
+      toilet: 'Туалет',
+      ac: 'Кондиционер',
+      tv: 'Телевизор',
+      fridge: 'Холодильник',
+      wifi: 'Wi-Fi',
+      privateKitchen: 'Своя кухня',
+      sharedKitchen: 'Общая кухня',
+      veranda: 'Веранда',
+      sofa: 'Диван',
+    }
+
+    return Object.entries(value as Record<string, unknown>)
+      .filter(([, enabled]) => Boolean(enabled))
+      .map(([key]) => amenityLabels[key] || key)
+  }
+
+  return []
 }
 
 export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
@@ -69,7 +106,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const [blockReason, setBlockReason] = useState('')
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
-  const [editForm, setEditForm] = useState<any>({})
+  const [editForm, setEditForm] = useState<Record<string, any>>({})
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([])
 
   const uploadFiles = async (files: File[], folder: string) => {
@@ -176,8 +213,19 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
     setRemovedImageUrls([])
     setEditForm({
       name: room.name,
+      slug: room.slug,
+      shortDescription: room.shortDescription,
+      description: room.description,
       pricePerDay: Math.round(room.pricePerDay / 100),
       capacity: room.capacity,
+      area: room.area ?? '',
+      floor: room.floor ?? '',
+      sortOrder: room.sortOrder,
+      hasAC: room.hasAC,
+      hasPrivateKitchen: room.hasPrivateKitchen,
+      hasTV: room.hasTV,
+      hasFridge: room.hasFridge,
+      amenitiesText: normalizeAmenitiesInput(room.amenities).join('\n'),
       images: [...room.images],
     })
   }
@@ -188,8 +236,8 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
     setSavingId(`images-${editingRoom.id}`)
 
     try {
-      const uploaded = await uploadFiles(files, `rooms/${editingRoom.slug}`)
-      setEditForm((prev: any) => ({
+      const uploaded = await uploadFiles(files, `rooms/${editForm.slug || editingRoom.slug}`)
+      setEditForm((prev) => ({
         ...prev,
         images: [...(prev.images || []), ...uploaded],
       }))
@@ -202,7 +250,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   }
 
   const moveImage = (index: number, direction: -1 | 1) => {
-    setEditForm((prev: any) => {
+    setEditForm((prev) => {
       const images = [...(prev.images || [])]
       const nextIndex = index + direction
 
@@ -218,7 +266,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   }
 
   const removeImage = (index: number) => {
-    setEditForm((prev: any) => {
+    setEditForm((prev) => {
       const images = [...(prev.images || [])]
       const [removed] = images.splice(index, 1)
 
@@ -240,9 +288,24 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          previousSlug: editingRoom.slug,
           name: editForm.name,
+          slug: editForm.slug,
+          shortDescription: editForm.shortDescription,
+          description: editForm.description,
           pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
           capacity: parseInt(editForm.capacity || '1', 10),
+          area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
+          floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
+          sortOrder: parseInt(editForm.sortOrder || '0', 10),
+          hasAC: Boolean(editForm.hasAC),
+          hasPrivateKitchen: Boolean(editForm.hasPrivateKitchen),
+          hasTV: Boolean(editForm.hasTV),
+          hasFridge: Boolean(editForm.hasFridge),
+          amenities: String(editForm.amenitiesText || '')
+            .split(/\r?\n/)
+            .map((item) => item.trim())
+            .filter(Boolean),
           images: editForm.images || [],
         }),
       })
@@ -257,8 +320,22 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
             ? {
                 ...room,
                 name: editForm.name,
+                slug: editForm.slug,
+                shortDescription: editForm.shortDescription,
+                description: editForm.description,
                 pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
                 capacity: parseInt(editForm.capacity || '1', 10),
+                area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
+                floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
+                sortOrder: parseInt(editForm.sortOrder || '0', 10),
+                hasAC: Boolean(editForm.hasAC),
+                hasPrivateKitchen: Boolean(editForm.hasPrivateKitchen),
+                hasTV: Boolean(editForm.hasTV),
+                hasFridge: Boolean(editForm.hasFridge),
+                amenities: String(editForm.amenitiesText || '')
+                  .split(/\r?\n/)
+                  .map((item) => item.trim())
+                  .filter(Boolean),
                 images: editForm.images || [],
               }
             : room
@@ -280,7 +357,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
     <>
       {editingRoom && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+          <div className="max-h-[90vh] w-full max-w-6xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
             <div className="mb-5 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Редактировать номер</h3>
               <button onClick={() => setEditingRoom(null)} className="text-gray-400 hover:text-gray-600">
@@ -288,19 +365,79 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
               </button>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+            <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-xs text-gray-500">Название</label>
-                  <input value={editForm.name} onChange={(e) => setEditForm((prev: any) => ({ ...prev, name: e.target.value }))} className="input-field" />
+                  <input value={editForm.name} onChange={(e) => setEditForm((prev) => ({ ...prev, name: e.target.value }))} className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Slug / URL</label>
+                  <input value={editForm.slug} onChange={(e) => setEditForm((prev) => ({ ...prev, slug: e.target.value }))} className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Короткое описание</label>
+                  <textarea value={editForm.shortDescription} onChange={(e) => setEditForm((prev) => ({ ...prev, shortDescription: e.target.value }))} rows={3} className="input-field resize-none" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Полное описание</label>
+                  <textarea value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} rows={7} className="input-field resize-none" />
                 </div>
                 <div>
                   <label className="mb-1 block text-xs text-gray-500">Цена за ночь (₽)</label>
-                  <input type="number" value={editForm.pricePerDay} onChange={(e) => setEditForm((prev: any) => ({ ...prev, pricePerDay: e.target.value }))} className="input-field" />
+                  <input type="number" value={editForm.pricePerDay} onChange={(e) => setEditForm((prev) => ({ ...prev, pricePerDay: e.target.value }))} className="input-field" />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Вместимость</label>
+                    <input type="number" min={1} value={editForm.capacity} onChange={(e) => setEditForm((prev) => ({ ...prev, capacity: e.target.value }))} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Сортировка</label>
+                    <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((prev) => ({ ...prev, sortOrder: e.target.value }))} className="input-field" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Площадь (м²)</label>
+                    <input type="number" min={0} value={editForm.area} onChange={(e) => setEditForm((prev) => ({ ...prev, area: e.target.value }))} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Этаж</label>
+                    <input type="number" min={0} value={editForm.floor} onChange={(e) => setEditForm((prev) => ({ ...prev, floor: e.target.value }))} className="input-field" />
+                  </div>
+                </div>
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Основные удобства</div>
+                  <div className="grid grid-cols-2 gap-3 text-sm text-gray-700">
+                    {[
+                      { key: 'hasAC', label: 'Кондиционер' },
+                      { key: 'hasPrivateKitchen', label: 'Своя кухня' },
+                      { key: 'hasTV', label: 'Телевизор' },
+                      { key: 'hasFridge', label: 'Холодильник' },
+                    ].map((item) => (
+                      <label key={item.key} className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(editForm[item.key])}
+                          onChange={(e) => setEditForm((prev) => ({ ...prev, [item.key]: e.target.checked }))}
+                          className="h-4 w-4 rounded border-gray-300 accent-sea-700"
+                        />
+                        <span>{item.label}</span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs text-gray-500">Вместимость (чел.)</label>
-                  <input type="number" min={1} value={editForm.capacity} onChange={(e) => setEditForm((prev: any) => ({ ...prev, capacity: e.target.value }))} className="input-field" />
+                  <label className="mb-1 block text-xs text-gray-500">Список удобств для сайта</label>
+                  <textarea
+                    value={editForm.amenitiesText}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, amenitiesText: e.target.value }))}
+                    rows={8}
+                    className="input-field resize-none"
+                    placeholder={'Каждое удобство с новой строки\nWi-Fi\nДуш\nМангал\nПарковка'}
+                  />
+                  <p className="mt-2 text-xs text-gray-400">Каждая строка станет отдельным пунктом удобств на сайте.</p>
                 </div>
                 <div className="rounded-2xl border border-sea-100 bg-sea-50 p-4 text-sm text-gray-600">
                   Первое изображение в списке станет главным на карточке номера и на странице бронирования.
@@ -314,7 +451,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
 
                 <AdminFileDropzone
                   title={savingId === `images-${editingRoom.id}` ? 'Загрузка...' : 'Перетащите фото номера сюда'}
-                  hint="Можно загружать сколько угодно изображений. Новые фото автоматически добавятся в конец галереи"
+                  hint="Можно загружать сколько угодно изображений. Новые фото добавляются в конец галереи"
                   multiple
                   disabled={savingId === `images-${editingRoom.id}`}
                   onFilesSelected={handleRoomImageUpload}
@@ -411,8 +548,9 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                           <Users className="h-3 w-3" /> до {room.capacity} чел.
                         </span>
                         <span className="badge bg-sand-200 text-sand-800">{formatMoney(room.pricePerDay)} / ночь</span>
+                        <span className="badge bg-gray-100 text-gray-600">slug: {room.slug}</span>
                         <span className={`badge ${room.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {room.isActive ? '● Активен' : '● Скрыт'}
+                          {room.isActive ? 'Активен' : 'Скрыт'}
                         </span>
                         <span className="badge bg-gray-100 text-gray-600">{room._count.bookings} броней всего</span>
                         <span className="badge bg-blue-100 text-blue-700">{room.images.length} фото</span>
@@ -441,6 +579,49 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
 
               {isExpanded && (
                 <div className="mt-5 space-y-6 border-t border-gray-100 pt-5">
+                  <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                    <div className="rounded-2xl bg-gray-50 p-4 text-sm">
+                      <div className="text-xs uppercase tracking-wide text-gray-400">Кратко</div>
+                      <div className="mt-1 text-gray-700">{room.shortDescription || '—'}</div>
+                    </div>
+                    <div className="rounded-2xl bg-gray-50 p-4 text-sm">
+                      <div className="text-xs uppercase tracking-wide text-gray-400">Площадь / этаж</div>
+                      <div className="mt-1 text-gray-700">{room.area ? `${room.area} м²` : '—'} / {room.floor ?? '—'}</div>
+                    </div>
+                    <div className="rounded-2xl bg-gray-50 p-4 text-sm">
+                      <div className="text-xs uppercase tracking-wide text-gray-400">Сортировка</div>
+                      <div className="mt-1 text-gray-700">{room.sortOrder}</div>
+                    </div>
+                    <div className="rounded-2xl bg-gray-50 p-4 text-sm">
+                      <div className="text-xs uppercase tracking-wide text-gray-400">Базовые удобства</div>
+                      <div className="mt-1 text-gray-700">
+                        {[room.hasAC && 'AC', room.hasTV && 'TV', room.hasFridge && 'Fridge', room.hasPrivateKitchen ? 'Kitchen' : 'Shared kitchen']
+                          .filter(Boolean)
+                          .join(', ')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Полное описание</div>
+                    <div className="whitespace-pre-wrap">{room.description || '—'}</div>
+                  </div>
+
+                  <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
+                    <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Удобства на сайте</div>
+                    <div className="flex flex-wrap gap-2">
+                      {normalizeAmenitiesInput(room.amenities).length > 0 ? (
+                        normalizeAmenitiesInput(room.amenities).map((item) => (
+                          <span key={item} className="badge bg-white text-gray-700">
+                            {item}
+                          </span>
+                        ))
+                      ) : (
+                        <span className="text-gray-400">Список не заполнен</span>
+                      )}
+                    </div>
+                  </div>
+
                   <div>
                     <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
                       <Calendar className="h-4 w-4 text-sea-600" /> Предстоящие брони
