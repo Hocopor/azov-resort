@@ -161,6 +161,23 @@ export function AdminSettingsForm({ settings }: Props) {
     { key: 'og_image', label: 'OG-изображение', hint: 'Картинка превью для соцсетей и мессенджеров' },
   ]
 
+  const heroColorFields = [
+    { key: 'hero_badge_bg', label: 'Плашка сезона: фон', placeholder: 'rgba(58,69,34,0.48)', type: 'text' as const },
+    { key: 'hero_badge_border', label: 'Плашка сезона: рамка', placeholder: 'rgba(255,248,231,0.24)', type: 'text' as const },
+    { key: 'hero_badge_text', label: 'Плашка сезона: текст', placeholder: '#fff6e8', type: 'color' as const },
+    { key: 'hero_title_color', label: 'Заголовок', placeholder: '#fff8ef', type: 'color' as const },
+    { key: 'hero_subtitle_color', label: 'Подзаголовок', placeholder: '#f8ead7', type: 'color' as const },
+    { key: 'hero_stat_value_color', label: 'Цифры статистики', placeholder: '#fff7ec', type: 'color' as const },
+    { key: 'hero_stat_label_color', label: 'Подписи статистики', placeholder: '#f3e3cb', type: 'color' as const },
+    { key: 'hero_primary_button_bg', label: 'Кнопка 1: фон', placeholder: '#db7a4e', type: 'color' as const },
+    { key: 'hero_primary_button_hover', label: 'Кнопка 1: hover', placeholder: '#cb6c42', type: 'color' as const },
+    { key: 'hero_primary_button_text', label: 'Кнопка 1: текст', placeholder: '#fffaf3', type: 'color' as const },
+    { key: 'hero_secondary_button_bg', label: 'Кнопка 2: фон', placeholder: 'rgba(70,49,31,0.56)', type: 'text' as const },
+    { key: 'hero_secondary_button_hover', label: 'Кнопка 2: hover', placeholder: 'rgba(70,49,31,0.72)', type: 'text' as const },
+    { key: 'hero_secondary_button_text', label: 'Кнопка 2: текст', placeholder: '#fff4e4', type: 'color' as const },
+    { key: 'hero_secondary_button_border', label: 'Кнопка 2: рамка', placeholder: 'rgba(255,241,220,0.28)', type: 'text' as const },
+  ]
+
   return (
     <div className="space-y-6">
       <div className="admin-card">
@@ -201,6 +218,49 @@ export function AdminSettingsForm({ settings }: Props) {
             <textarea value={vals.about_text || ''} onChange={(e) => set('about_text', e.target.value)} rows={3} className="input-field resize-none" />
           </div>
           <SaveBtn keys={['site_name', 'site_phone', 'site_address', 'check_in_time', 'check_out_time', 'hero_title', 'hero_subtitle', 'about_text']} />
+        </div>
+      </div>
+
+      <div className="admin-card">
+        <h2 className="mb-5 flex items-center gap-2 font-semibold text-gray-800">
+          <ImageIcon className="h-5 w-5 text-sea-600" /> Оформление hero при загруженном фоне
+        </h2>
+        <div className="mb-4 rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm text-gray-600">
+          Эти цвета работают только когда загружен главный фон. Если фон удалить, главная страница вернётся к стандартным цветам.
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          {heroColorFields.map((field) => (
+            <div key={field.key} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
+              <label className="mb-2 block text-sm font-medium text-gray-700">{field.label}</label>
+              {field.type === 'color' ? (
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={vals[field.key] || field.placeholder}
+                    onChange={(e) => set(field.key, e.target.value)}
+                    className="h-11 w-16 cursor-pointer rounded-lg border border-gray-200 bg-white p-1"
+                  />
+                  <input
+                    value={vals[field.key] || field.placeholder}
+                    onChange={(e) => set(field.key, e.target.value)}
+                    className="input-field"
+                    placeholder={field.placeholder}
+                  />
+                </div>
+              ) : (
+                <input
+                  value={vals[field.key] || ''}
+                  onChange={(e) => set(field.key, e.target.value)}
+                  className="input-field"
+                  placeholder={field.placeholder}
+                />
+              )}
+              <div className="mt-2 text-xs text-gray-400">Оставь пустым, чтобы вернулся стандартный цвет.</div>
+            </div>
+          ))}
+        </div>
+        <div className="mt-5">
+          <SaveBtn keys={heroColorFields.map((field) => field.key)} />
         </div>
       </div>
 
