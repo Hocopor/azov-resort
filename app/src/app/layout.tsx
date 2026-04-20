@@ -5,9 +5,10 @@ import { ToastProvider } from '@/components/providers/ToastProvider'
 import { getSettings } from '@/lib/settings'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const settings = await getSettings(['site_name', 'site_address', 'hero_subtitle'])
+  const settings = await getSettings(['site_name', 'site_address', 'hero_subtitle', 'og_image'])
   const siteName = settings.site_name || 'Отдых на Азове'
   const siteAddress = settings.site_address || 'Азовское море'
+  const ogImage = settings.og_image || '/images/general/og-image.jpg'
   const metadataBase = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
 
   return {
@@ -30,7 +31,7 @@ export async function generateMetadata(): Promise<Metadata> {
       type: 'website',
       siteName,
       locale: 'ru_RU',
-      images: [{ url: '/images/general/og-image.jpg', width: 1200, height: 630 }],
+      images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     robots: { index: true, follow: true },
     icons: {

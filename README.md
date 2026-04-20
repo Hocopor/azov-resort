@@ -144,6 +144,10 @@ docker compose restart app
 git pull
 docker compose build --no-cache app
 docker compose up -d app
+
+или 
+
+docker compose up -d --build
 ```
 
 ### Prisma Studio (GUI для БД)

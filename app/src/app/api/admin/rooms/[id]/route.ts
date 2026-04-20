@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { revalidatePath } from 'next/cache'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await auth()
@@ -13,11 +14,17 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     where: { id: params.id },
     data: {
       ...(body.isActive !== undefined && { isActive: body.isActive }),
-      ...(body.name && { name: body.name }),
+      ...(body.name !== undefined && { name: body.name }),
       ...(body.pricePerDay !== undefined && { pricePerDay: body.pricePerDay }),
       ...(body.capacity !== undefined && { capacity: body.capacity }),
-      ...(body.description && { description: body.description }),
+      ...(body.description !== undefined && { description: body.description }),
+      ...(body.images !== undefined && { images: body.images }),
     },
   })
+
+  revalidatePath('/rooms')
+  revalidatePath(`/rooms/${room.slug}`)
+  revalidatePath('/admin/rooms')
+
   return NextResponse.json(room)
 }

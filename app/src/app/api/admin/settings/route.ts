@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
+import { revalidatePath } from 'next/cache'
 
 export async function PATCH(req: NextRequest) {
   const session = await auth()
@@ -19,6 +20,10 @@ export async function PATCH(req: NextRequest) {
       })
     )
   )
+
+  revalidatePath('/')
+  revalidatePath('/services')
+  revalidatePath('/admin/settings')
 
   return NextResponse.json({ ok: true })
 }

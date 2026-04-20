@@ -1,16 +1,31 @@
 'use client'
+
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import { format, addDays } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { DayPicker, DateRange } from 'react-day-picker'
 import {
-  Waves, Edit3, Ban, CheckCircle, Calendar, Users, Loader2,
-  ChevronDown, ChevronUp, Eye, EyeOff, Trash2, Plus, X
+  Waves,
+  Edit3,
+  Ban,
+  Calendar,
+  Users,
+  Loader2,
+  ChevronDown,
+  ChevronUp,
+  Eye,
+  EyeOff,
+  Plus,
+  X,
+  Trash2,
+  ArrowUp,
+  ArrowDown,
+  ImageIcon,
 } from 'lucide-react'
 import { formatMoney, formatDate, getBookingStatusColor, getBookingStatusLabel } from '@/lib/utils'
 import { useToast } from '@/components/providers/ToastProvider'
+import { AdminFileDropzone } from '@/components/admin/AdminFileDropzone'
 import 'react-day-picker/style.css'
 
 interface Booking {
@@ -51,17 +66,55 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const [savingId, setSavingId] = useState<string | null>(null)
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [editForm, setEditForm] = useState<any>({})
+  const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([])
+
+  const uploadFiles = async (files: File[], folder: string) => {
+    const uploadedUrls: string[] = []
+
+    for (const file of files) {
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('folder', folder)
+
+      const res = await fetch('/api/admin/upload', {
+        method: 'POST',
+        body: formData,
+      })
+
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data?.error || 'Ошибка загрузки файла')
+      }
+
+      uploadedUrls.push(data.url)
+    }
+
+    return uploadedUrls
+  }
+
+  const deleteUploadedFile = async (url: string) => {
+    if (!url.startsWith('/uploads/')) return
+
+    await fetch('/api/admin/upload', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url }),
+    })
+  }
 
   const toggleActive = async (room: Room) => {
     setSavingId(room.id)
+
     try {
       const res = await fetch(`/api/admin/rooms/${room.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !room.isActive }),
       })
+
       if (!res.ok) throw new Error()
-      setRooms((r) => r.map((rr) => rr.id === room.id ? { ...rr, isActive: !rr.isActive } : rr))
+
+      setRooms((prev) => prev.map((item) => (item.id === room.id ? { ...item, isActive: !item.isActive } : item)))
       success(room.isActive ? 'Номер скрыт с сайта' : 'Номер активирован')
     } catch {
       showError('Ошибка обновления')
@@ -75,7 +128,9 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
       showError('Выберите период блокировки')
       return
     }
+
     setSavingId(`block-${roomId}`)
+
     try {
       const res = await fetch(`/api/admin/rooms/${roomId}/blocked-dates`, {
         method: 'POST',
@@ -86,7 +141,9 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
           reason: blockReason || null,
         }),
       })
+
       if (!res.ok) throw new Error()
+
       success('Период заблокирован')
       setBlockingId(null)
       setBlockRange(undefined)
@@ -112,32 +169,102 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
 
   const startEdit = (room: Room) => {
     setEditingRoom(room)
+    setRemovedImageUrls([])
     setEditForm({
       name: room.name,
       pricePerDay: Math.round(room.pricePerDay / 100),
       capacity: room.capacity,
+      images: [...room.images],
+    })
+  }
+
+  const handleRoomImageUpload = async (files: File[]) => {
+    if (!editingRoom) return
+
+    setSavingId(`images-${editingRoom.id}`)
+
+    try {
+      const uploaded = await uploadFiles(files, `rooms/${editingRoom.slug}`)
+      setEditForm((prev: any) => ({
+        ...prev,
+        images: [...(prev.images || []), ...uploaded],
+      }))
+      success(`Загружено файлов: ${uploaded.length}`)
+    } catch (error) {
+      showError(error instanceof Error ? error.message : 'Ошибка загрузки изображений')
+    } finally {
+      setSavingId(null)
+    }
+  }
+
+  const moveImage = (index: number, direction: -1 | 1) => {
+    setEditForm((prev: any) => {
+      const images = [...(prev.images || [])]
+      const nextIndex = index + direction
+
+      if (nextIndex < 0 || nextIndex >= images.length) {
+        return prev
+      }
+
+      const [item] = images.splice(index, 1)
+      images.splice(nextIndex, 0, item)
+
+      return { ...prev, images }
+    })
+  }
+
+  const removeImage = (index: number) => {
+    setEditForm((prev: any) => {
+      const images = [...(prev.images || [])]
+      const [removed] = images.splice(index, 1)
+
+      if (removed?.startsWith('/uploads/')) {
+        setRemovedImageUrls((current) => [...current, removed])
+      }
+
+      return { ...prev, images }
     })
   }
 
   const saveEdit = async () => {
     if (!editingRoom) return
+
     setSavingId(`edit-${editingRoom.id}`)
+
     try {
       const res = await fetch(`/api/admin/rooms/${editingRoom.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: editForm.name,
-          pricePerDay: parseInt(editForm.pricePerDay) * 100,
-          capacity: parseInt(editForm.capacity),
+          pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
+          capacity: parseInt(editForm.capacity || '1', 10),
+          images: editForm.images || [],
         }),
       })
+
       if (!res.ok) throw new Error()
-      setRooms((r) => r.map((rr) => rr.id === editingRoom.id
-        ? { ...rr, name: editForm.name, pricePerDay: parseInt(editForm.pricePerDay) * 100, capacity: parseInt(editForm.capacity) }
-        : rr))
+
+      await Promise.all(removedImageUrls.map((url) => deleteUploadedFile(url)))
+
+      setRooms((prev) =>
+        prev.map((room) =>
+          room.id === editingRoom.id
+            ? {
+                ...room,
+                name: editForm.name,
+                pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
+                capacity: parseInt(editForm.capacity || '1', 10),
+                images: editForm.images || [],
+              }
+            : room
+        )
+      )
+
       success('Номер обновлён')
       setEditingRoom(null)
+      setRemovedImageUrls([])
+      router.refresh()
     } catch {
       showError('Ошибка сохранения')
     } finally {
@@ -147,34 +274,105 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
 
   return (
     <>
-      {/* Edit modal */}
       {editingRoom && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <div className="bg-white rounded-3xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-5">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-5xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl">
+            <div className="mb-5 flex items-center justify-between">
               <h3 className="font-semibold text-gray-900">Редактировать номер</h3>
               <button onClick={() => setEditingRoom(null)} className="text-gray-400 hover:text-gray-600">
-                <X className="w-5 h-5" />
+                <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="space-y-4">
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Название</label>
-                <input value={editForm.name} onChange={(e) => setEditForm((f: any) => ({ ...f, name: e.target.value }))} className="input-field" />
+
+            <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+              <div className="space-y-4">
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Название</label>
+                  <input value={editForm.name} onChange={(e) => setEditForm((prev: any) => ({ ...prev, name: e.target.value }))} className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Цена за ночь (₽)</label>
+                  <input type="number" value={editForm.pricePerDay} onChange={(e) => setEditForm((prev: any) => ({ ...prev, pricePerDay: e.target.value }))} className="input-field" />
+                </div>
+                <div>
+                  <label className="mb-1 block text-xs text-gray-500">Вместимость (чел.)</label>
+                  <input type="number" min={1} value={editForm.capacity} onChange={(e) => setEditForm((prev: any) => ({ ...prev, capacity: e.target.value }))} className="input-field" />
+                </div>
+                <div className="rounded-2xl border border-sea-100 bg-sea-50 p-4 text-sm text-gray-600">
+                  Первое изображение в списке станет главным на карточке номера и на странице бронирования.
+                </div>
               </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Цена за ночь (₽)</label>
-                <input type="number" value={editForm.pricePerDay} onChange={(e) => setEditForm((f: any) => ({ ...f, pricePerDay: e.target.value }))} className="input-field" />
-              </div>
-              <div>
-                <label className="text-xs text-gray-500 mb-1 block">Вместимость (чел.)</label>
-                <input type="number" min={1} value={editForm.capacity} onChange={(e) => setEditForm((f: any) => ({ ...f, capacity: e.target.value }))} className="input-field" />
-              </div>
-              <div className="flex gap-3">
-                <button onClick={saveEdit} disabled={savingId?.startsWith('edit')} className="btn-primary flex-1 justify-center disabled:opacity-60">
-                  {savingId?.startsWith('edit') ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Сохранить'}
-                </button>
-                <button onClick={() => setEditingRoom(null)} className="btn-outline">Отмена</button>
+
+              <div className="space-y-4">
+                <div className="flex items-center gap-2 text-sm font-semibold text-gray-800">
+                  <ImageIcon className="h-4 w-4 text-sea-600" /> Галерея номера
+                </div>
+
+                <AdminFileDropzone
+                  title={savingId === `images-${editingRoom.id}` ? 'Загрузка...' : 'Перетащите фото номера сюда'}
+                  hint="Можно загружать сколько угодно изображений. Новые фото автоматически добавятся в конец галереи"
+                  multiple
+                  disabled={savingId === `images-${editingRoom.id}`}
+                  onFilesSelected={handleRoomImageUpload}
+                />
+
+                {(editForm.images || []).length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-gray-200 bg-gray-50 p-8 text-center text-sm text-gray-400">
+                    Фотографий пока нет
+                  </div>
+                ) : (
+                  <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    {(editForm.images || []).map((image: string, index: number) => (
+                      <div key={`${image}-${index}`} className="overflow-hidden rounded-2xl border border-gray-100 bg-white shadow-sm">
+                        <div className="relative h-44 w-full bg-gray-100">
+                          <Image src={image} alt={`Фото ${index + 1}`} fill className="object-cover" />
+                          <div className="absolute left-3 top-3 rounded-full bg-black/65 px-2.5 py-1 text-xs font-semibold text-white">
+                            {index === 0 ? 'Обложка' : `#${index + 1}`}
+                          </div>
+                        </div>
+                        <div className="flex items-center justify-between gap-2 p-3">
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, -1)}
+                              disabled={index === 0}
+                              className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Поднять выше"
+                            >
+                              <ArrowUp className="h-4 w-4" />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => moveImage(index, 1)}
+                              disabled={index === (editForm.images || []).length - 1}
+                              className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100 disabled:cursor-not-allowed disabled:opacity-40"
+                              title="Опустить ниже"
+                            >
+                              <ArrowDown className="h-4 w-4" />
+                            </button>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => removeImage(index)}
+                            className="rounded-xl p-2 text-red-500 transition-colors hover:bg-red-50"
+                            title="Удалить фото"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex gap-3">
+                  <button onClick={saveEdit} disabled={!!savingId} className="btn-primary flex-1 justify-center disabled:opacity-60">
+                    {savingId?.startsWith('edit-') ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Сохранить'}
+                  </button>
+                  <button onClick={() => setEditingRoom(null)} className="btn-outline">
+                    Отмена
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -185,120 +383,103 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
         {rooms.map((room) => {
           const isExpanded = expandedId === room.id
           const isBlocking = blockingId === room.id
-          const upcomingBookings = room.bookings.filter((b) => new Date(b.checkIn) >= new Date())
+          const upcomingBookings = room.bookings.filter((booking) => new Date(booking.checkIn) >= new Date())
 
           return (
             <div key={room.id} className={`admin-card overflow-hidden ${!room.isActive ? 'opacity-70' : ''}`}>
-              {/* Room header */}
               <div className="flex items-start gap-4">
-                {/* Thumb */}
-                <div className="relative w-20 h-16 rounded-xl overflow-hidden bg-sea-100 flex-shrink-0">
+                <div className="relative h-16 w-20 flex-shrink-0 overflow-hidden rounded-xl bg-sea-100">
                   {room.images[0] ? (
                     <Image src={room.images[0]} alt={room.name} fill className="object-cover" />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <Waves className="w-8 h-8 text-sea-300" />
+                      <Waves className="h-8 w-8 text-sea-300" />
                     </div>
                   )}
                 </div>
 
-                <div className="flex-1 min-w-0">
+                <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
                       <h3 className="font-semibold text-gray-900">{room.name}</h3>
-                      <div className="flex flex-wrap gap-2 mt-1">
+                      <div className="mt-1 flex flex-wrap gap-2">
                         <span className="badge-sea">
-                          <Users className="w-3 h-3" /> до {room.capacity} чел.
+                          <Users className="h-3 w-3" /> до {room.capacity} чел.
                         </span>
-                        <span className="badge bg-sand-200 text-sand-800">
-                          {formatMoney(room.pricePerDay)} / ночь
-                        </span>
+                        <span className="badge bg-sand-200 text-sand-800">{formatMoney(room.pricePerDay)} / ночь</span>
                         <span className={`badge ${room.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                           {room.isActive ? '● Активен' : '● Скрыт'}
                         </span>
-                        <span className="badge bg-gray-100 text-gray-600">
-                          {room._count.bookings} броней всего
-                        </span>
+                        <span className="badge bg-gray-100 text-gray-600">{room._count.bookings} броней всего</span>
+                        <span className="badge bg-blue-100 text-blue-700">{room.images.length} фото</span>
                       </div>
                     </div>
 
-                    <div className="flex items-center gap-2 flex-shrink-0">
-                      <button onClick={() => startEdit(room)} className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors" title="Редактировать">
-                        <Edit3 className="w-4 h-4" />
+                    <div className="flex flex-shrink-0 items-center gap-2">
+                      <button onClick={() => startEdit(room)} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100" title="Редактировать">
+                        <Edit3 className="h-4 w-4" />
                       </button>
                       <button
                         onClick={() => toggleActive(room)}
                         disabled={savingId === room.id}
-                        className={`p-2 rounded-xl transition-colors ${room.isActive ? 'hover:bg-red-50 text-orange-500' : 'hover:bg-green-50 text-green-500'}`}
+                        className={`rounded-xl p-2 transition-colors ${room.isActive ? 'text-orange-500 hover:bg-red-50' : 'text-green-500 hover:bg-green-50'}`}
                         title={room.isActive ? 'Скрыть' : 'Показать'}
                       >
-                        {savingId === room.id ? <Loader2 className="w-4 h-4 animate-spin" /> : room.isActive ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        {savingId === room.id ? <Loader2 className="h-4 w-4 animate-spin" /> : room.isActive ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                       </button>
-                      <button
-                        onClick={() => setExpandedId(isExpanded ? null : room.id)}
-                        className="p-2 rounded-xl hover:bg-gray-100 text-gray-500 transition-colors"
-                      >
-                        {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                      <button onClick={() => setExpandedId(isExpanded ? null : room.id)} className="rounded-xl p-2 text-gray-500 transition-colors hover:bg-gray-100">
+                        {isExpanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
                 </div>
               </div>
 
-              {/* Expanded section */}
               {isExpanded && (
-                <div className="mt-5 pt-5 border-t border-gray-100 space-y-6">
-                  {/* Upcoming bookings */}
+                <div className="mt-5 space-y-6 border-t border-gray-100 pt-5">
                   <div>
-                    <h4 className="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-sea-600" /> Предстоящие брони
+                    <h4 className="mb-3 flex items-center gap-2 text-sm font-semibold text-gray-700">
+                      <Calendar className="h-4 w-4 text-sea-600" /> Предстоящие брони
                     </h4>
                     {upcomingBookings.length === 0 ? (
                       <p className="text-sm text-gray-400">Нет предстоящих броней</p>
                     ) : (
                       <div className="space-y-2">
-                        {upcomingBookings.map((b, i) => (
-                          <div key={i} className="flex items-center justify-between p-3 bg-gray-50 rounded-xl text-sm">
-                            <span className="font-medium text-gray-800">{b.guestName}</span>
+                        {upcomingBookings.map((booking, index) => (
+                          <div key={index} className="flex items-center justify-between rounded-xl bg-gray-50 p-3 text-sm">
+                            <span className="font-medium text-gray-800">{booking.guestName}</span>
                             <span className="text-gray-500">
-                              {formatDate(b.checkIn, 'd MMM')} — {formatDate(b.checkOut, 'd MMM')}
+                              {formatDate(booking.checkIn, 'd MMM')} — {formatDate(booking.checkOut, 'd MMM')}
                             </span>
-                            <span className={`badge ${getBookingStatusColor(b.status)}`}>{getBookingStatusLabel(b.status)}</span>
+                            <span className={`badge ${getBookingStatusColor(booking.status)}`}>{getBookingStatusLabel(booking.status)}</span>
                           </div>
                         ))}
                       </div>
                     )}
                   </div>
 
-                  {/* Blocked dates */}
                   <div>
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-                        <Ban className="w-4 h-4 text-coral-600" /> Заблокированные периоды
+                    <div className="mb-3 flex items-center justify-between">
+                      <h4 className="flex items-center gap-2 text-sm font-semibold text-gray-700">
+                        <Ban className="h-4 w-4 text-coral-600" /> Заблокированные периоды
                       </h4>
-                      <button
-                        onClick={() => setBlockingId(isBlocking ? null : room.id)}
-                        className="flex items-center gap-1 text-xs font-medium text-sea-700 hover:underline"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> Заблокировать период
+                      <button onClick={() => setBlockingId(isBlocking ? null : room.id)} className="flex items-center gap-1 text-xs font-medium text-sea-700 hover:underline">
+                        <Plus className="h-3.5 w-3.5" /> Заблокировать период
                       </button>
                     </div>
 
                     {room.blockedDates.length > 0 && (
-                      <div className="space-y-2 mb-3">
-                        {room.blockedDates.map((bd) => (
-                          <div key={bd.id} className="flex items-center justify-between p-3 bg-coral-50 rounded-xl text-sm border border-coral-100">
+                      <div className="mb-3 space-y-2">
+                        {room.blockedDates.map((blocked) => (
+                          <div key={blocked.id} className="flex items-center justify-between rounded-xl border border-coral-100 bg-coral-50 p-3 text-sm">
                             <div>
                               <span className="font-medium text-coral-800">
-                                {formatDate(bd.dateFrom, 'd MMM')} — {formatDate(bd.dateTo, 'd MMM')}
+                                {formatDate(blocked.dateFrom, 'd MMM')} — {formatDate(blocked.dateTo, 'd MMM')}
                               </span>
-                              {bd.reason && <span className="text-coral-600 ml-2 text-xs">{bd.reason}</span>}
+                              {blocked.reason && <span className="ml-2 text-xs text-coral-600">{blocked.reason}</span>}
                             </div>
-                            <button
-                              onClick={() => removeBlockedDate(room.id, bd.id)}
-                              className="text-coral-400 hover:text-coral-600 transition-colors"
-                            >
-                              <X className="w-4 h-4" />
+                            <button onClick={() => removeBlockedDate(room.id, blocked.id)} className="text-coral-400 transition-colors hover:text-coral-600">
+                              <X className="h-4 w-4" />
                             </button>
                           </div>
                         ))}
@@ -306,7 +487,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                     )}
 
                     {isBlocking && (
-                      <div className="p-4 bg-sea-50 rounded-2xl border border-sea-100 space-y-4">
+                      <div className="space-y-4 rounded-2xl border border-sea-100 bg-sea-50 p-4">
                         <p className="text-sm text-gray-600">Выберите период для блокировки:</p>
                         <div className="flex justify-center">
                           <DayPicker
@@ -325,14 +506,10 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                           className="input-field text-sm"
                         />
                         <div className="flex gap-3">
-                          <button
-                            onClick={() => saveBlockedDate(room.id)}
-                            disabled={!blockRange?.from || !blockRange?.to || savingId === `block-${room.id}`}
-                            className="btn-primary text-sm py-2 disabled:opacity-60"
-                          >
-                            {savingId === `block-${room.id}` ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Заблокировать'}
+                          <button onClick={() => saveBlockedDate(room.id)} disabled={!blockRange?.from || !blockRange?.to || savingId === `block-${room.id}`} className="btn-primary py-2 text-sm disabled:opacity-60">
+                            {savingId === `block-${room.id}` ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Заблокировать'}
                           </button>
-                          <button onClick={() => { setBlockingId(null); setBlockRange(undefined); setBlockReason('') }} className="btn-outline text-sm py-2">
+                          <button onClick={() => { setBlockingId(null); setBlockRange(undefined); setBlockReason('') }} className="btn-outline py-2 text-sm">
                             Отмена
                           </button>
                         </div>

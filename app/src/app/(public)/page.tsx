@@ -27,6 +27,7 @@ async function getHomeData() {
       'review_text_1', 'review_author_1', 'review_city_1',
       'review_text_2', 'review_author_2', 'review_city_2',
       'review_text_3', 'review_author_3', 'review_city_3',
+      'hero_bg_image', 'about_image_1', 'about_image_2', 'about_image_3', 'about_image_4',
     ]),
     prisma.blogPost.findMany({
       where: { published: true },
@@ -39,6 +40,14 @@ async function getHomeData() {
 
 export default async function HomePage() {
   const { rooms, settings, recentPosts } = await getHomeData()
+  const heroBackground = settings.hero_bg_image || '/images/general/hero-bg.jpg'
+  const hasCustomHeroImage = Boolean(settings.hero_bg_image)
+  const aboutImages = [
+    settings.about_image_1 || '/images/general/about-1.jpg',
+    settings.about_image_2 || '/images/general/about-2.jpg',
+    settings.about_image_3 || '/images/general/about-3.jpg',
+    settings.about_image_4 || '/images/general/about-4.jpg',
+  ]
 
   const features = [
     { icon: Waves, label: 'Море рядом', desc: 'Пляж в 5 минутах', color: 'text-sea-600 bg-sea-50' },
@@ -60,12 +69,12 @@ export default async function HomePage() {
       {/* ===== HERO ===== */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
         {/* Background */}
-        <div className="absolute inset-0 bg-gradient-to-br from-deep-900 via-sea-800 to-deep-700">
+        <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-deep-900' : 'bg-gradient-to-br from-deep-900 via-sea-800 to-deep-700'}`}>
           <Image
-            src="/images/general/hero-bg.jpg"
+            src={heroBackground}
             alt="Азовское море"
             fill
-            className="object-cover opacity-30 mix-blend-overlay"
+            className={hasCustomHeroImage ? 'object-cover' : 'object-cover opacity-30 mix-blend-overlay'}
             priority
           />
           {/* Animated bubbles */}
@@ -284,12 +293,7 @@ export default async function HomePage() {
               </Link>
             </div>
             <div className="grid grid-cols-2 gap-4">
-              {[
-                '/images/general/about-1.jpg',
-                '/images/general/about-2.jpg',
-                '/images/general/about-3.jpg',
-                '/images/general/about-4.jpg',
-              ].map((src, i) => (
+              {aboutImages.map((src, i) => (
                 <div key={i} className={`relative rounded-2xl overflow-hidden bg-sea-900 ${i === 0 ? 'col-span-2 h-52' : 'h-40'}`}>
                   <Image src={src} alt="" fill className="object-cover opacity-70" />
                   <div className="absolute inset-0 bg-gradient-to-t from-sea-900/40 to-transparent" />
