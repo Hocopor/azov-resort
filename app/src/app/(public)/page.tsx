@@ -68,38 +68,6 @@ export default async function HomePage() {
     { text: settings.review_text_3, author: settings.review_author_3, city: settings.review_city_3 },
   ].filter((r) => r.text && r.author)
 
-  const heroBadgeClassName = hasCustomHeroImage
-    ? 'inline-flex items-center gap-2 px-4 py-2 bg-black/35 backdrop-blur-md rounded-full text-sm font-medium mb-6 border border-white/20 text-[#fff7e8] shadow-[0_14px_40px_rgba(0,0,0,0.28)]'
-    : 'inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium mb-6 border border-white/20'
-
-  const heroTitleClassName = hasCustomHeroImage
-    ? 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6 text-[#fff8ec] drop-shadow-[0_4px_24px_rgba(0,0,0,0.58)]'
-    : 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6'
-
-  const heroSubtitleClassName = hasCustomHeroImage
-    ? 'text-lg sm:text-xl text-[#fff2dd] leading-relaxed mb-10 max-w-xl drop-shadow-[0_3px_18px_rgba(0,0,0,0.52)]'
-    : 'text-lg sm:text-xl text-white/80 leading-relaxed mb-10 max-w-xl'
-
-  const heroContentWrapClassName = hasCustomHeroImage
-    ? 'max-w-3xl rounded-[2rem] bg-[linear-gradient(135deg,rgba(18,17,14,0.52),rgba(18,17,14,0.18))] px-6 py-7 shadow-[0_24px_80px_rgba(0,0,0,0.24)] backdrop-blur-[3px] sm:px-8 sm:py-8'
-    : 'max-w-3xl'
-
-  const heroPrimaryButtonClassName = hasCustomHeroImage
-    ? 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#d56d45] hover:bg-[#c45f39] text-white font-bold rounded-2xl text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_20px_50px_rgba(0,0,0,0.28)]'
-    : 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-2xl text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl'
-
-  const heroSecondaryButtonClassName = hasCustomHeroImage
-    ? 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-[rgba(66,45,26,0.55)] hover:bg-[rgba(66,45,26,0.72)] backdrop-blur-md text-[#fff7ea] font-bold rounded-2xl text-lg transition-all duration-300 border border-[rgba(255,240,220,0.24)] shadow-[0_18px_50px_rgba(0,0,0,0.18)]'
-    : 'inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold rounded-2xl text-lg transition-all duration-300 border border-white/25'
-
-  const heroStatValueClassName = hasCustomHeroImage
-    ? 'text-3xl font-display font-bold text-[#fff8ec] drop-shadow-[0_3px_14px_rgba(0,0,0,0.45)]'
-    : 'text-3xl font-display font-bold'
-
-  const heroStatLabelClassName = hasCustomHeroImage
-    ? 'text-sm text-[#f6ead6] drop-shadow-[0_2px_8px_rgba(0,0,0,0.36)]'
-    : 'text-sm text-white/60'
-
   return (
     <>
       {/* ===== HERO ===== */}
@@ -114,9 +82,6 @@ export default async function HomePage() {
             priority
             unoptimized={isUploadedImage(heroBackground)}
           />
-          {hasCustomHeroImage && (
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_35%,rgba(0,0,0,0.14),transparent_38%),linear-gradient(90deg,rgba(14,12,10,0.52)_0%,rgba(14,12,10,0.28)_38%,rgba(14,12,10,0.06)_72%,rgba(14,12,10,0.16)_100%)]" />
-          )}
           {/* Animated bubbles */}
           <div className="bubble w-4 h-4 left-[10%]" style={{ animationDuration: '12s', animationDelay: '0s' }} />
           <div className="bubble w-6 h-6 left-[30%]" style={{ animationDuration: '15s', animationDelay: '3s' }} />
@@ -134,18 +99,18 @@ export default async function HomePage() {
         </div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-36 text-white">
-          <div className={heroContentWrapClassName}>
+          <div className="max-w-3xl">
             {/* Badge */}
-            <div className={heroBadgeClassName}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium mb-6 border border-white/20">
               <Sun className="w-4 h-4 text-yellow-300" />
               Сезон 2025 открыт — бронируйте сейчас!
             </div>
 
-            <h1 className={heroTitleClassName}>
+            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6">
               {settings.hero_title || 'Отдых у\u00A0Азовского моря'}
             </h1>
 
-            <p className={heroSubtitleClassName}>
+            <p className="text-lg sm:text-xl text-white/80 leading-relaxed mb-10 max-w-xl">
               {settings.hero_subtitle || 'Уютные номера, чистое море, тёплый приём — всё для вашего идеального отпуска'}
             </p>
 
@@ -157,8 +122,8 @@ export default async function HomePage() {
                 { value: '100%', label: 'тёплый приём' },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <div className={heroStatValueClassName}>{stat.value}</div>
-                  <div className={heroStatLabelClassName}>{stat.label}</div>
+                  <div className="text-3xl font-display font-bold">{stat.value}</div>
+                  <div className="text-sm text-white/60">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -166,14 +131,14 @@ export default async function HomePage() {
             <div className="flex flex-col sm:flex-row gap-4">
               <Link
                 href="/rooms"
-                className={heroPrimaryButtonClassName}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-coral-500 hover:bg-coral-600 text-white font-bold rounded-2xl text-lg transition-all duration-300 hover:-translate-y-1 hover:shadow-xl"
               >
                 Выбрать номер
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <a
                 href={`tel:${settings.site_phone || ''}`}
-                className={heroSecondaryButtonClassName}
+                className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold rounded-2xl text-lg transition-all duration-300 border border-white/25"
               >
                 Позвонить нам
               </a>
