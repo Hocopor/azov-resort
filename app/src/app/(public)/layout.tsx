@@ -6,6 +6,7 @@ export const dynamic = 'force-dynamic'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettings(['site_name', 'site_phone', 'site_address'])
+
   return (
     <>
       <Header
@@ -16,7 +17,7 @@ export default async function PublicLayout({ children }: { children: React.React
       <Footer
         siteName={settings.site_name || 'Отдых на Азове'}
         sitePhone={settings.site_phone || '+7 (XXX) XXX-XX-XX'}
-        siteAddress={settings.site_address || 'Азовское море, Краснодарский край'}
+        siteAddress={settings.site_address || 'Краснодарский край, Темрюкский район, посёлок Кучугуры, ул. Зелёная 26.'}
       />
     </>
   )

@@ -3,7 +3,7 @@ import { auth } from '@/lib/auth'
 import Link from 'next/link'
 import {
   LayoutDashboard, Calendar, BedDouble, FileText,
-  Settings, Users, BarChart3, Waves, ArrowLeft, LogOut
+  Settings, Users, Waves, ArrowLeft, LogOut, Map, Star,
 } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
@@ -12,7 +12,9 @@ const navLinks = [
   { href: '/admin', label: 'Дашборд', icon: LayoutDashboard, exact: true },
   { href: '/admin/bookings', label: 'Бронирования', icon: Calendar },
   { href: '/admin/rooms', label: 'Номера', icon: BedDouble },
+  { href: '/admin/territory', label: 'Территория', icon: Map },
   { href: '/admin/blog', label: 'Обстановка / Блог', icon: FileText },
+  { href: '/admin/reviews', label: 'Отзывы', icon: Star },
   { href: '/admin/users', label: 'Пользователи', icon: Users },
   { href: '/admin/settings', label: 'Настройки', icon: Settings },
 ]
@@ -23,7 +25,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
       <aside className="w-60 bg-deep-800 text-white flex-shrink-0 flex flex-col fixed inset-y-0 left-0 z-40 overflow-y-auto">
         <div className="p-5 border-b border-white/10">
           <div className="flex items-center gap-2.5">
@@ -62,7 +63,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
         </div>
       </aside>
 
-      {/* Main content */}
       <div className="flex-1 ml-60">
         <main className="p-6 lg:p-8">{children}</main>
       </div>

@@ -6,12 +6,12 @@ import { getSettings } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
 import { AppImage } from '@/components/ui/AppImage'
 import {
-  Waves, Star, Shield, Clock, Car, Bike, Wifi, ChefHat,
-  ArrowRight, Sun, Wind, MapPin, Calendar, Users, CheckCircle
+  Waves, Star, Shield, Car, Bike, Wifi, ChefHat,
+  ArrowRight, Sun, Wind, MapPin, Calendar, Users, CheckCircle,
 } from 'lucide-react'
 
 export const metadata: Metadata = {
-  title: 'Главная — Отдых у Азовского моря',
+  title: 'Гостевой дом на Азовском море — отдых у моря, номера, цены',
 }
 
 export const revalidate = 60
@@ -41,39 +41,69 @@ function buildOutlineTextStyle(strokeColor: string, strokeWidth: number, baseSha
   } as CSSProperties
 }
 
+function pickHomeReviews<T>(items: T[]) {
+  const pool = [...items]
+  pool.sort(() => Math.random() - 0.5)
+  return pool.slice(0, 3)
+}
+
 async function getHomeData() {
-  const [rooms, settings, recentPosts] = await Promise.all([
+  const [rooms, settings, reviews] = await Promise.all([
     prisma.room.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       take: 4,
     }),
     getSettings([
-      'hero_title', 'hero_subtitle', 'about_text', 'site_name', 'site_phone',
-      'review_text_1', 'review_author_1', 'review_city_1',
-      'review_text_2', 'review_author_2', 'review_city_2',
-      'review_text_3', 'review_author_3', 'review_city_3',
-      'hero_bg_image', 'about_image_1', 'about_image_2', 'about_image_3', 'about_image_4',
-      'hero_badge_bg', 'hero_badge_border', 'hero_badge_text',
-      'hero_title_color', 'hero_title_stroke_color', 'hero_title_stroke_width',
-      'hero_subtitle_color', 'hero_subtitle_stroke_color', 'hero_subtitle_stroke_width',
-      'hero_filter_color', 'hero_filter_opacity',
-      'hero_stat_value_color', 'hero_stat_value_stroke_color', 'hero_stat_value_stroke_width',
-      'hero_stat_label_color', 'hero_stat_label_stroke_color', 'hero_stat_label_stroke_width',
-      'hero_primary_button_bg', 'hero_primary_button_hover', 'hero_primary_button_text',
-      'hero_secondary_button_bg', 'hero_secondary_button_hover', 'hero_secondary_button_text', 'hero_secondary_button_border',
+      'hero_title',
+      'hero_subtitle',
+      'about_text',
+      'site_name',
+      'site_phone',
+      'site_address',
+      'hero_bg_image',
+      'about_image_1',
+      'about_image_2',
+      'about_image_3',
+      'about_image_4',
+      'hero_badge_bg',
+      'hero_badge_border',
+      'hero_badge_text',
+      'hero_title_color',
+      'hero_title_stroke_color',
+      'hero_title_stroke_width',
+      'hero_subtitle_color',
+      'hero_subtitle_stroke_color',
+      'hero_subtitle_stroke_width',
+      'hero_filter_color',
+      'hero_filter_opacity',
+      'hero_stat_value_color',
+      'hero_stat_value_stroke_color',
+      'hero_stat_value_stroke_width',
+      'hero_stat_label_color',
+      'hero_stat_label_stroke_color',
+      'hero_stat_label_stroke_width',
+      'hero_primary_button_bg',
+      'hero_primary_button_hover',
+      'hero_primary_button_text',
+      'hero_secondary_button_bg',
+      'hero_secondary_button_hover',
+      'hero_secondary_button_text',
+      'hero_secondary_button_border',
     ]),
-    prisma.blogPost.findMany({
-      where: { published: true },
-      orderBy: { createdAt: 'desc' },
-      take: 3,
+    prisma.review.findMany({
+      where: { published: true, rating: { gte: 4 } },
+      include: { user: { select: { name: true } } },
+      orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
+      take: 12,
     }),
   ])
-  return { rooms, settings, recentPosts }
+
+  return { rooms, settings, reviews: pickHomeReviews(reviews) }
 }
 
 export default async function HomePage() {
-  const { rooms, settings, recentPosts } = await getHomeData()
+  const { rooms, settings, reviews } = await getHomeData()
   const heroBackground = settings.hero_bg_image || '/images/general/hero-bg.jpg'
   const hasCustomHeroImage = Boolean(settings.hero_bg_image)
   const aboutImages = [
@@ -82,49 +112,33 @@ export default async function HomePage() {
     settings.about_image_3 || '/images/general/about-3.jpg',
     settings.about_image_4 || '/images/general/about-4.jpg',
   ]
+  const siteAddress =
+    settings.site_address || 'Краснодарский край, Темрюкский район, посёлок Кучугуры, ул. Зелёная 26.'
 
   const features = [
-    { icon: Waves, label: 'Море рядом', desc: 'Пляж в 5 минутах', color: 'text-sea-600 bg-sea-50' },
+    { icon: Waves, label: 'Море рядом', desc: 'Пляж в 5 минутах ходьбы', color: 'text-sea-600 bg-sea-50' },
     { icon: Wifi, label: 'Бесплатный Wi-Fi', desc: 'На всей территории', color: 'text-blue-600 bg-blue-50' },
     { icon: Car, label: 'Трансфер', desc: 'Встретим и доставим', color: 'text-green-600 bg-green-50' },
-    { icon: Bike, label: 'Велосипеды и САПы', desc: 'В вашем распоряжении', color: 'text-orange-600 bg-orange-50' },
-    { icon: Shield, label: 'Чистота и уют', desc: 'Ежедневная уборка', color: 'text-purple-600 bg-purple-50' },
-    { icon: ChefHat, label: 'Кухни в номерах', desc: 'Готовьте сами', color: 'text-coral-600 bg-coral-50' },
+    { icon: Bike, label: 'В вашем распоряжении — бесплатно', desc: 'Велосипеды и сапборды', color: 'text-orange-600 bg-orange-50' },
+    { icon: Shield, label: 'Спокойствие и уют', desc: 'Уютные условия для спокойного отдыха', color: 'text-purple-600 bg-purple-50' },
+    { icon: ChefHat, label: 'Номера с кухней', desc: 'Прям как дома, только на море', color: 'text-coral-600 bg-coral-50' },
   ]
 
-  const reviews = [
-    { text: settings.review_text_1, author: settings.review_author_1, city: settings.review_city_1 },
-    { text: settings.review_text_2, author: settings.review_author_2, city: settings.review_city_2 },
-    { text: settings.review_text_3, author: settings.review_author_3, city: settings.review_city_3 },
-  ].filter((r) => r.text && r.author)
-
   const heroTitleStrokeColor = getSettingColor(settings.hero_title_stroke_color, '#5f432d')
-  const heroTitleStrokeWidth = hasCustomHeroImage
-    ? Number.parseFloat(settings.hero_title_stroke_width || '1.5')
-    : 0
+  const heroTitleStrokeWidth = hasCustomHeroImage ? Number.parseFloat(settings.hero_title_stroke_width || '1.5') : 0
   const safeHeroTitleStrokeWidth = Number.isFinite(heroTitleStrokeWidth) ? Math.max(heroTitleStrokeWidth, 0) : 0
   const heroSubtitleStrokeColor = getSettingColor(settings.hero_subtitle_stroke_color, '#3d3126')
-  const heroSubtitleStrokeWidth = hasCustomHeroImage
-    ? Number.parseFloat(settings.hero_subtitle_stroke_width || '0')
-    : 0
+  const heroSubtitleStrokeWidth = hasCustomHeroImage ? Number.parseFloat(settings.hero_subtitle_stroke_width || '0') : 0
   const safeHeroSubtitleStrokeWidth = Number.isFinite(heroSubtitleStrokeWidth) ? Math.max(heroSubtitleStrokeWidth, 0) : 0
   const heroStatValueStrokeColor = getSettingColor(settings.hero_stat_value_stroke_color, '#4d3927')
-  const heroStatValueStrokeWidth = hasCustomHeroImage
-    ? Number.parseFloat(settings.hero_stat_value_stroke_width || '0')
-    : 0
+  const heroStatValueStrokeWidth = hasCustomHeroImage ? Number.parseFloat(settings.hero_stat_value_stroke_width || '0') : 0
   const safeHeroStatValueStrokeWidth = Number.isFinite(heroStatValueStrokeWidth) ? Math.max(heroStatValueStrokeWidth, 0) : 0
   const heroStatLabelStrokeColor = getSettingColor(settings.hero_stat_label_stroke_color, '#3d3126')
-  const heroStatLabelStrokeWidth = hasCustomHeroImage
-    ? Number.parseFloat(settings.hero_stat_label_stroke_width || '0')
-    : 0
+  const heroStatLabelStrokeWidth = hasCustomHeroImage ? Number.parseFloat(settings.hero_stat_label_stroke_width || '0') : 0
   const safeHeroStatLabelStrokeWidth = Number.isFinite(heroStatLabelStrokeWidth) ? Math.max(heroStatLabelStrokeWidth, 0) : 0
   const heroFilterColor = getSettingColor(settings.hero_filter_color, '#102131')
-  const heroFilterOpacity = hasCustomHeroImage
-    ? Number.parseFloat(settings.hero_filter_opacity || '0')
-    : 0
-  const safeHeroFilterOpacity = Number.isFinite(heroFilterOpacity)
-    ? Math.min(Math.max(heroFilterOpacity, 0), 100) / 100
-    : 0
+  const heroFilterOpacity = hasCustomHeroImage ? Number.parseFloat(settings.hero_filter_opacity || '0') : 0
+  const safeHeroFilterOpacity = Number.isFinite(heroFilterOpacity) ? Math.min(Math.max(heroFilterOpacity, 0), 100) / 100 : 0
 
   const heroTitleStyle = buildOutlineTextStyle(heroTitleStrokeColor, safeHeroTitleStrokeWidth, '0 4px 18px rgba(0,0,0,0.32)')
   const heroSubtitleStyle = buildOutlineTextStyle(heroSubtitleStrokeColor, safeHeroSubtitleStrokeWidth, '0 2px 10px rgba(0,0,0,0.28)')
@@ -180,9 +194,7 @@ export default async function HomePage() {
 
   return (
     <>
-      {/* ===== HERO ===== */}
       <section className="relative min-h-screen flex items-center overflow-hidden">
-        {/* Background */}
         <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-deep-900' : 'bg-gradient-to-br from-deep-900 via-sea-800 to-deep-700'}`}>
           <AppImage
             src={heroBackground}
@@ -192,12 +204,8 @@ export default async function HomePage() {
             priority
           />
           {hasCustomHeroImage && safeHeroFilterOpacity > 0 && (
-            <div
-              className="absolute inset-0"
-              style={{ backgroundColor: heroFilterColor, opacity: safeHeroFilterOpacity }}
-            />
+            <div className="absolute inset-0" style={{ backgroundColor: heroFilterColor, opacity: safeHeroFilterOpacity }} />
           )}
-          {/* Animated bubbles */}
           <div className="bubble w-4 h-4 left-[10%]" style={{ animationDuration: '12s', animationDelay: '0s' }} />
           <div className="bubble w-6 h-6 left-[30%]" style={{ animationDuration: '15s', animationDelay: '3s' }} />
           <div className="bubble w-3 h-3 left-[60%]" style={{ animationDuration: '10s', animationDelay: '7s' }} />
@@ -205,7 +213,6 @@ export default async function HomePage() {
           <div className="bubble w-2 h-2 left-[45%]" style={{ animationDuration: '8s', animationDelay: '5s' }} />
         </div>
 
-        {/* Wave bottom */}
         <div className="absolute bottom-0 left-0 right-0">
           <svg viewBox="0 0 1440 120" className="w-full" preserveAspectRatio="none">
             <path d="M0,60 C240,100 480,20 720,60 C960,100 1200,20 1440,60 L1440,120 L0,120 Z" fill="white" opacity="0.1" />
@@ -215,46 +222,42 @@ export default async function HomePage() {
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-32 pb-36 text-white" style={heroStyleVars}>
           <div className="max-w-3xl">
-            {/* Badge */}
             <div className={heroBadgeClassName}>
               <Sun className="w-4 h-4 text-yellow-300" />
-              Сезон 2026 скоро начнётся — бронируйте сейчас!
+              Гостевой дом на Зелёной 26
             </div>
 
             <h1 className={heroTitleClassName} style={heroTitleStyle}>
-              {settings.hero_title || 'Отдых у\u00A0Азовского моря'}
+              {settings.hero_title || 'Отдых у Азовского моря'}
             </h1>
 
             <p className={heroSubtitleClassName} style={heroSubtitleStyle}>
-              {settings.hero_subtitle || 'Уютные номера, чистое море, тёплый приём — всё для вашего идеального отпуска'}
+              {settings.hero_subtitle || 'Уютные номера, тёплое море и спокойная атмосфера для семейного отдыха.'}
             </p>
 
-            {/* Stats */}
             <div className="flex flex-wrap gap-6 mb-10">
               {[
                 { value: '7', label: 'номеров' },
-                { value: '5 мин', label: 'до пляжа' },
+                { value: '5 мин.', label: 'до пляжа' },
                 { value: '100%', label: 'тёплый приём' },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <div className={heroStatValueClassName} style={heroStatValueStyle}>{stat.value}</div>
-                  <div className={heroStatLabelClassName} style={heroStatLabelStyle}>{stat.label}</div>
+                  <div className={heroStatValueClassName} style={heroStatValueStyle}>
+                    {stat.value}
+                  </div>
+                  <div className={heroStatLabelClassName} style={heroStatLabelStyle}>
+                    {stat.label}
+                  </div>
                 </div>
               ))}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-4">
-              <Link
-                href="/rooms"
-                className={heroPrimaryButtonClassName}
-              >
+              <Link href="/rooms" className={heroPrimaryButtonClassName}>
                 Выбрать номер
                 <ArrowRight className="w-5 h-5" />
               </Link>
-              <a
-                href={`tel:${settings.site_phone || ''}`}
-                className={heroSecondaryButtonClassName}
-              >
+              <a href={`tel:${settings.site_phone || ''}`} className={heroSecondaryButtonClassName}>
                 Позвонить нам
               </a>
             </div>
@@ -262,65 +265,59 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===== QUICK BOOKING STRIP ===== */}
       <section className="relative z-10 -mt-1 bg-white py-6 shadow-md">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-center justify-center gap-8">
-            <div className="flex items-center gap-2 text-gray-600">
+            <a href="#map-section" className="flex items-center gap-2 text-gray-600 hover:text-sea-700 transition-colors scroll-smooth">
               <MapPin className="w-5 h-5 text-sea-600" />
-              <span className="text-sm">Азовское море, Краснодарский край</span>
-            </div>
+              <span className="text-sm">{siteAddress}</span>
+            </a>
             <div className="flex items-center gap-2 text-gray-600">
               <Calendar className="w-5 h-5 text-sea-600" />
               <span className="text-sm">Заезд с 14:00 / Выезд до 12:00</span>
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Users className="w-5 h-5 text-sea-600" />
-              <span className="text-sm">7 номеров разного типа</span>
+              <span className="text-sm">Номера у моря для пар и семей</span>
             </div>
             <Link href="/rooms" className="btn-primary py-2.5 text-sm">
-              Смотреть номера →
+              Номера и цены →
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ===== WHY US ===== */}
       <section className="section-padding bg-sand-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-14">
             <h2 className="section-title">Почему выбирают нас</h2>
             <p className="section-subtitle mx-auto">
-              Мы создаём условия для настоящего отдыха — без лишних забот
+              Мы создаём условия для комфортного отдыха: удобные номера, нужные услуги и спокойная атмосфера.
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-5">
-            {features.map((f) => (
-              <div
-                key={f.label}
-                className="card p-6 hover:-translate-y-1 transition-transform duration-300"
-              >
-                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${f.color}`}>
-                  <f.icon className="w-6 h-6" />
+            {features.map((feature) => (
+              <div key={feature.label} className="card p-6 hover:-translate-y-1 transition-transform duration-300">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${feature.color}`}>
+                  <feature.icon className="w-6 h-6" />
                 </div>
-                <h3 className="font-semibold text-gray-900 mb-1">{f.label}</h3>
-                <p className="text-sm text-gray-500">{f.desc}</p>
+                <h3 className="font-semibold text-gray-900 mb-1">{feature.label}</h3>
+                <p className="text-sm text-gray-500">{feature.desc}</p>
               </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ===== ROOMS PREVIEW ===== */}
       <section className="section-padding bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-end justify-between mb-12">
             <div>
-              <h2 className="section-title">Наши номера</h2>
-              <p className="section-subtitle">Уютное жильё на любой вкус и бюджет</p>
+              <h2 className="section-title">Все номера и цены</h2>
+              <p className="section-subtitle">Уютное жильё, вдали от городской суеты, для спокойного отдыха.</p>
             </div>
             <Link href="/rooms" className="hidden sm:flex items-center gap-1 text-sea-700 font-semibold hover:underline text-sm">
-              Все номера <ArrowRight className="w-4 h-4" />
+              Все номера и цены <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
 
@@ -341,14 +338,12 @@ export default async function HomePage() {
                     </div>
                   )}
                   <div className="absolute top-3 left-3">
-                    <span className="badge-sea text-xs">
-                      До {room.capacity} чел.
-                    </span>
+                    <span className="badge-sea text-xs">До {room.capacity} чел.</span>
                   </div>
                   {room.hasAC && (
                     <div className="absolute top-3 right-3">
                       <span className="badge bg-blue-100 text-blue-700 text-xs">
-                        <Wind className="w-3 h-3" /> AC
+                        <Wind className="w-3 h-3" /> Кондиционер
                       </span>
                     </div>
                   )}
@@ -359,11 +354,9 @@ export default async function HomePage() {
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</span>
-                      <span className="text-xs text-gray-400"> / ночь</span>
+                      <span className="text-xs text-gray-400"> / сутки</span>
                     </div>
-                    <span className="text-xs font-semibold text-coral-600 group-hover:underline">
-                      Подробнее →
-                    </span>
+                    <span className="text-xs font-semibold text-coral-600 group-hover:underline">Подробнее →</span>
                   </div>
                 </div>
               </Link>
@@ -372,13 +365,12 @@ export default async function HomePage() {
 
           <div className="text-center mt-8 sm:hidden">
             <Link href="/rooms" className="btn-outline">
-              Все номера <ArrowRight className="w-4 h-4" />
+              Все номера и цены <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ===== ABOUT ===== */}
       <section className="section-padding bg-deep-700 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <div className="absolute top-0 right-0 w-96 h-96 bg-sea-400 rounded-full blur-3xl" />
@@ -388,19 +380,19 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
             <div>
               <h2 className="font-display text-4xl md:text-5xl font-semibold mb-6">
-                Маленький рай у Азовского моря
+                Уютный, спокойный уголок у Азовского моря.
               </h2>
               <p className="text-white/80 text-lg leading-relaxed mb-8">
-                {settings.about_text || 'Мы принимаем гостей и знаем, как сделать ваш отдых незабываемым.'}
+                {settings.about_text || 'Гостевой дом для тех, кто хочет отдохнуть у моря без суеты.'}
               </p>
               <ul className="space-y-3 mb-8">
                 {[
-                  'Пляж Азовского моря в 5 минутах ходьбы',
-                  'Охраняемая парковка на территории',
+                  'Пляж в 5 минутах ходьбы',
+                  'Парковка на территории',
                   'Мангальная зона и беседки',
-                  'Детская площадка для малышей',
+                  'Детская площадка с песочницей',
                   'Сапборды и велосипеды бесплатно',
-                  'Трансфер по предварительному заказу',
+                  'Трансфер по предварительному запросу',
                 ].map((item) => (
                   <li key={item} className="flex items-center gap-3 text-white/90">
                     <CheckCircle className="w-5 h-5 text-sea-400 flex-shrink-0" />
@@ -412,9 +404,13 @@ export default async function HomePage() {
                 Все услуги <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
+
             <div className="grid grid-cols-2 gap-4">
-              {aboutImages.map((src, i) => (
-                <div key={i} className={`relative rounded-2xl overflow-hidden bg-sea-900 ${i === 0 ? 'col-span-2 h-52' : 'h-40'}`}>
+              {aboutImages.map((src, index) => (
+                <div
+                  key={index}
+                  className={`relative rounded-2xl overflow-hidden bg-sea-900 ${index === 0 ? 'col-span-2 h-52' : 'h-40'}`}
+                >
                   <AppImage src={src} alt="" fill className="object-cover opacity-70" />
                   <div className="absolute inset-0 bg-gradient-to-t from-sea-900/40 to-transparent" />
                 </div>
@@ -424,49 +420,50 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ===== REVIEWS ===== */}
       {reviews.length > 0 && (
         <section className="section-padding bg-sand-50">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12">
-              <h2 className="section-title">Отзывы гостей</h2>
-              <p className="section-subtitle mx-auto">Что говорят те, кто уже отдохнул у нас</p>
+              <h2 className="section-title">Реальные отзывы гостей</h2>
+              <p className="section-subtitle mx-auto">На главной показываем только лучшие отзывы от настоящих гостей.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {reviews.map((review, i) => (
-                <div key={i} className="card p-7">
+              {reviews.map((review) => (
+                <div key={review.id} className="card p-7">
                   <div className="flex gap-1 mb-4">
-                    {[1, 2, 3, 4, 5].map((s) => (
-                      <Star key={s} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <Star
+                        key={index}
+                        className={`w-4 h-4 ${index < review.rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                      />
                     ))}
                   </div>
-                  <p className="text-gray-700 leading-relaxed mb-5 italic">«{review.text}»</p>
+                  <p className="text-gray-700 leading-relaxed mb-5 italic">«{review.content}»</p>
                   <div>
-                    <div className="font-semibold text-gray-900">{review.author}</div>
-                    <div className="text-sm text-gray-400 flex items-center gap-1">
-                      <MapPin className="w-3 h-3" /> {review.city}
-                    </div>
+                    <div className="font-semibold text-gray-900">{review.user.name || 'Гость'}</div>
                   </div>
                 </div>
               ))}
+            </div>
+            <div className="mt-8 text-center">
+              <Link href="/reviews" className="btn-outline">
+                Посмотреть все отзывы <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </section>
       )}
 
-      {/* ===== CTA ===== */}
       <section className="section-padding bg-coral-500 text-white relative overflow-hidden">
         <div className="absolute inset-0 opacity-20">
           <svg viewBox="0 0 800 200" className="absolute bottom-0 w-full" preserveAspectRatio="none">
             <path d="M0,100 C200,0 600,200 800,100 L800,200 L0,200 Z" fill="white" />
           </svg>
         </div>
-        <div className="relative text-center max-w-2xl mx-auto px-4">
-          <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">
-            Готовы к отдыху?
-          </h2>
+        <div className="relative text-center max-w-3xl mx-auto px-4">
+          <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">Готовы к отдыху?</h2>
           <p className="text-white/85 text-lg mb-8">
-            Бронируйте номер прямо сейчас — лучшие места разбирают быстро
+            Выберите номер у моря и отправьте заявку на бронирование, либо звоните по телефону — поможем подобрать удобный вариант по датам, удобствам и количеству гостей.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
@@ -482,6 +479,26 @@ export default async function HomePage() {
             >
               Позвонить нам
             </a>
+          </div>
+        </div>
+      </section>
+
+      <section id="map-section" className="bg-white py-16 scroll-mt-28">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="mb-8 text-center">
+            <h2 className="section-title">Как нас найти</h2>
+            <p className="section-subtitle mx-auto">{siteAddress}</p>
+          </div>
+          <div className="overflow-hidden rounded-[2rem] shadow-card border border-gray-100">
+            <iframe
+              title="Карта гостевого дома"
+              src={`https://yandex.ru/map-widget/v1/?z=17&text=${encodeURIComponent(siteAddress)}`}
+              width="100%"
+              height="460"
+              loading="lazy"
+              allowFullScreen
+              className="w-full"
+            />
           </div>
         </div>
       </section>

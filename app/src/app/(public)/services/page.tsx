@@ -6,15 +6,25 @@ import { formatMoney } from '@/lib/utils'
 import Link from 'next/link'
 import {
   Car, Waves, Bike, WashingMachine, Flame, ParkingSquare,
-  Sparkles, Baby, Wifi, Umbrella, Map, ChefHat, ArrowLeft, CheckCircle
+  Sparkles, Baby, Wifi, Umbrella, Map, ChefHat, ArrowLeft, CheckCircle,
 } from 'lucide-react'
 
-export const metadata: Metadata = { title: 'Услуги и удобства' }
+export const metadata: Metadata = { title: 'Услуги и удобства гостевого дома на Азовском море' }
 export const revalidate = 60
 
 const iconMap: Record<string, any> = {
-  Car, Waves, Bike, WashingMachine, Flame, ParkingSquare,
-  Sparkles, Baby, Wifi, Umbrella, Map, ChefHat,
+  Car,
+  Waves,
+  Bike,
+  WashingMachine,
+  Flame,
+  ParkingSquare,
+  Sparkles,
+  Baby,
+  Wifi,
+  Umbrella,
+  Map,
+  ChefHat,
 }
 
 export default async function ServicesPage() {
@@ -29,23 +39,29 @@ export default async function ServicesPage() {
   }
 
   const visibleServices = services.filter(
-    (s) => !(s.category === 'food' && cookingActive !== 'true')
+    (service) => !(service.category === 'food' && cookingActive !== 'true')
   )
 
   const categories: Record<string, { label: string; services: typeof services }> = {}
   const catLabels: Record<string, string> = {
     transport: 'Транспорт и трансфер',
-    sport: 'Активный отдых',
+    sport: 'Активный отдых у моря',
     recreation: 'Зоны отдыха',
-    household: 'Бытовые услуги',
+    household: 'Бытовые удобства',
     general: 'Основное',
     tours: 'Экскурсии',
     food: 'Питание',
   }
 
-  for (const s of visibleServices) {
-    if (!categories[s.category]) categories[s.category] = { label: catLabels[s.category] || s.category, services: [] }
-    categories[s.category].services.push(s)
+  for (const service of visibleServices) {
+    if (!categories[service.category]) {
+      categories[service.category] = {
+        label: catLabels[service.category] || service.category,
+        services: [],
+      }
+    }
+
+    categories[service.category].services.push(service)
   }
 
   return (
@@ -64,23 +80,31 @@ export default async function ServicesPage() {
 
       <section className="bg-sand-50 py-16">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 space-y-12">
-          {Object.entries(categories).map(([key, cat]) => (
+          {Object.entries(categories).map(([key, category]) => (
             <div key={key}>
-              <h2 className="font-display text-3xl font-semibold text-deep-700 mb-6">{cat.label}</h2>
+              <h2 className="font-display text-3xl font-semibold text-deep-700 mb-6">{category.label}</h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                {cat.services.map((service) => {
+                {category.services.map((service) => {
                   const Icon = iconMap[service.icon || ''] || CheckCircle
                   const isFree = service.price === 0
 
                   return (
                     <div key={service.id} className="card p-6 hover:-translate-y-1 transition-transform duration-300">
-                      <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${isFree ? 'bg-green-100 text-green-600' : 'bg-sea-100 text-sea-600'}`}>
+                      <div
+                        className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4 ${
+                          isFree ? 'bg-green-100 text-green-600' : 'bg-sea-100 text-sea-600'
+                        }`}
+                      >
                         <Icon className="w-6 h-6" />
                       </div>
                       <h3 className="font-semibold text-gray-900 mb-2">{service.name}</h3>
                       <p className="text-sm text-gray-500 leading-relaxed mb-4">{service.description}</p>
-                      <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${isFree ? 'bg-green-100 text-green-700' : 'bg-sea-100 text-sea-700'}`}>
-                        {isFree ? '✓ Бесплатно' : service.priceNote || (service.price ? formatMoney(service.price) : 'По договорённости')}
+                      <div
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold ${
+                          isFree ? 'bg-green-100 text-green-700' : 'bg-sea-100 text-sea-700'
+                        }`}
+                      >
+                        {isFree ? 'Бесплатно' : service.priceNote || (service.price ? formatMoney(service.price) : 'По договорённости')}
                       </div>
                     </div>
                   )
@@ -91,7 +115,6 @@ export default async function ServicesPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="bg-sea-700 text-white py-16 text-center">
         <div className="max-w-xl mx-auto px-4">
           <h2 className="font-display text-3xl font-bold mb-3">Готовы отдохнуть?</h2>
