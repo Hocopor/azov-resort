@@ -39,7 +39,7 @@ async function getHomeData() {
       'review_text_3', 'review_author_3', 'review_city_3',
       'hero_bg_image', 'about_image_1', 'about_image_2', 'about_image_3', 'about_image_4',
       'hero_badge_bg', 'hero_badge_border', 'hero_badge_text',
-      'hero_title_color', 'hero_subtitle_color',
+      'hero_title_color', 'hero_title_stroke_color', 'hero_title_stroke_width', 'hero_subtitle_color',
       'hero_stat_value_color', 'hero_stat_label_color',
       'hero_primary_button_bg', 'hero_primary_button_hover', 'hero_primary_button_text',
       'hero_secondary_button_bg', 'hero_secondary_button_hover', 'hero_secondary_button_text', 'hero_secondary_button_border',
@@ -79,6 +79,28 @@ export default async function HomePage() {
     { text: settings.review_text_3, author: settings.review_author_3, city: settings.review_city_3 },
   ].filter((r) => r.text && r.author)
 
+  const heroTitleStrokeColor = getSettingColor(settings.hero_title_stroke_color, '#5f432d')
+  const heroTitleStrokeWidth = hasCustomHeroImage
+    ? Number.parseFloat(settings.hero_title_stroke_width || '1.5')
+    : 0
+  const safeHeroTitleStrokeWidth = Number.isFinite(heroTitleStrokeWidth) ? Math.max(heroTitleStrokeWidth, 0) : 0
+
+  const heroTitleStyle = hasCustomHeroImage && safeHeroTitleStrokeWidth > 0
+    ? ({
+        textShadow: [
+          `${safeHeroTitleStrokeWidth}px 0 0 ${heroTitleStrokeColor}`,
+          `${-safeHeroTitleStrokeWidth}px 0 0 ${heroTitleStrokeColor}`,
+          `0 ${safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
+          `0 ${-safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
+          `${safeHeroTitleStrokeWidth}px ${safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
+          `${-safeHeroTitleStrokeWidth}px ${safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
+          `${safeHeroTitleStrokeWidth}px ${-safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
+          `${-safeHeroTitleStrokeWidth}px ${-safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
+          '0 4px 18px rgba(0,0,0,0.32)',
+        ].join(', '),
+      } as CSSProperties)
+    : undefined
+
   const heroStyleVars = hasCustomHeroImage
     ? ({
         '--hero-badge-bg': getSettingColor(settings.hero_badge_bg, 'rgba(58,69,34,0.48)'),
@@ -103,7 +125,7 @@ export default async function HomePage() {
     : 'inline-flex items-center gap-2 px-4 py-2 bg-white/15 backdrop-blur-sm rounded-full text-sm font-medium mb-6 border border-white/20'
 
   const heroTitleClassName = hasCustomHeroImage
-    ? 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6 text-[var(--hero-title-color)] drop-shadow-[0_4px_18px_rgba(0,0,0,0.32)]'
+    ? 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6 text-[var(--hero-title-color)]'
     : 'font-display text-5xl sm:text-6xl md:text-7xl font-bold leading-tight mb-6'
 
   const heroSubtitleClassName = hasCustomHeroImage
@@ -164,7 +186,7 @@ export default async function HomePage() {
               Сезон 2025 открыт — бронируйте сейчас!
             </div>
 
-            <h1 className={heroTitleClassName}>
+            <h1 className={heroTitleClassName} style={heroTitleStyle}>
               {settings.hero_title || 'Отдых у\u00A0Азовского моря'}
             </h1>
 

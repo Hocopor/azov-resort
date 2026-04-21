@@ -166,6 +166,8 @@ export function AdminSettingsForm({ settings }: Props) {
     { key: 'hero_badge_border', label: 'Плашка сезона: рамка', placeholder: 'rgba(255,248,231,0.24)', type: 'text' as const },
     { key: 'hero_badge_text', label: 'Плашка сезона: текст', placeholder: '#fff6e8', type: 'color' as const },
     { key: 'hero_title_color', label: 'Заголовок', placeholder: '#fff8ef', type: 'color' as const },
+    { key: 'hero_title_stroke_color', label: 'Заголовок: обводка', placeholder: '#5f432d', type: 'color' as const },
+    { key: 'hero_title_stroke_width', label: 'Заголовок: толщина обводки', placeholder: '1.5', type: 'text' as const },
     { key: 'hero_subtitle_color', label: 'Подзаголовок', placeholder: '#f8ead7', type: 'color' as const },
     { key: 'hero_stat_value_color', label: 'Цифры статистики', placeholder: '#fff7ec', type: 'color' as const },
     { key: 'hero_stat_label_color', label: 'Подписи статистики', placeholder: '#f3e3cb', type: 'color' as const },
