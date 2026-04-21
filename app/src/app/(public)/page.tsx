@@ -339,6 +339,7 @@ export default async function HomePage() {
                       alt={room.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
+                      unoptimized={isUploadedImage(room.images[0])}
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">

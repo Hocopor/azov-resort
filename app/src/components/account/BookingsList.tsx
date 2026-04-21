@@ -27,6 +27,10 @@ interface Booking {
   room: { name: string; slug: string; images: string[] }
 }
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 export function BookingsList({ bookings }: { bookings: Booking[] }) {
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -83,7 +87,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
               {/* Room image */}
               <div className="relative sm:w-44 h-32 sm:h-auto bg-gradient-to-br from-sea-100 to-sea-200 flex-shrink-0">
                 {b.room.images[0] ? (
-                  <Image src={b.room.images[0]} alt={b.room.name} fill className="object-cover" />
+                  <Image src={b.room.images[0]} alt={b.room.name} fill className="object-cover" unoptimized={isUploadedImage(b.room.images[0])} />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Waves className="w-10 h-10 text-sea-300" />

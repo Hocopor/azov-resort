@@ -14,6 +14,10 @@ interface MediaItem {
   items?: string[]
 }
 
+function isUploadedImage(url: string) {
+  return url.startsWith('/uploads/')
+}
+
 export default async function BlogPage() {
   const posts = await prisma.blogPost.findMany({
     where: { published: true },
@@ -56,7 +60,7 @@ export default async function BlogPage() {
                   <div key={idx}>
                     {item.type === 'image' && item.url && (
                       <div className="relative w-full" style={{ aspectRatio: '16/9' }}>
-                        <Image src={item.url} alt={item.caption || ''} fill className="object-cover" />
+                        <Image src={item.url} alt={item.caption || ''} fill className="object-cover" unoptimized={isUploadedImage(item.url)} />
                         {item.caption && (
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-4">
                             <p className="text-white text-sm">{item.caption}</p>
@@ -83,7 +87,7 @@ export default async function BlogPage() {
                       <div className={`grid gap-1 ${item.items.length === 1 ? '' : item.items.length === 2 ? 'grid-cols-2' : item.items.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
                         {item.items.slice(0, 4).map((src, i) => (
                           <div key={i} className="relative" style={{ aspectRatio: item.items!.length === 1 ? '16/9' : '1/1' }}>
-                            <Image src={src} alt="" fill className="object-cover" />
+                            <Image src={src} alt="" fill className="object-cover" unoptimized={isUploadedImage(src)} />
                             {i === 3 && item.items!.length > 4 && (
                               <div className="absolute inset-0 bg-black/50 flex items-center justify-center text-white text-xl font-bold">
                                 +{item.items!.length - 4}
