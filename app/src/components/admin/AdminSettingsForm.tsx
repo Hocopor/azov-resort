@@ -175,8 +175,14 @@ export function AdminSettingsForm({ settings }: Props) {
     { key: 'hero_filter_color', label: 'Hero-изображение: цвет фильтра', placeholder: '#102131', type: 'color' },
     { key: 'hero_filter_opacity', label: 'Hero-изображение: прозрачность фильтра (%)', placeholder: '0', type: 'range', min: 0, max: 100, step: 1 },
     { key: 'hero_subtitle_color', label: 'Подзаголовок', placeholder: '#f8ead7', type: 'color' },
+    { key: 'hero_subtitle_stroke_color', label: 'Подзаголовок: обводка', placeholder: '#3d3126', type: 'color' },
+    { key: 'hero_subtitle_stroke_width', label: 'Подзаголовок: толщина обводки', placeholder: '0', type: 'text' },
     { key: 'hero_stat_value_color', label: 'Цифры статистики', placeholder: '#fff7ec', type: 'color' },
+    { key: 'hero_stat_value_stroke_color', label: 'Цифры статистики: обводка', placeholder: '#4d3927', type: 'color' },
+    { key: 'hero_stat_value_stroke_width', label: 'Цифры статистики: толщина обводки', placeholder: '0', type: 'text' },
     { key: 'hero_stat_label_color', label: 'Подписи статистики', placeholder: '#f3e3cb', type: 'color' },
+    { key: 'hero_stat_label_stroke_color', label: 'Подписи статистики: обводка', placeholder: '#3d3126', type: 'color' },
+    { key: 'hero_stat_label_stroke_width', label: 'Подписи статистики: толщина обводки', placeholder: '0', type: 'text' },
     { key: 'hero_primary_button_bg', label: 'Кнопка 1: фон', placeholder: '#db7a4e', type: 'color' },
     { key: 'hero_primary_button_hover', label: 'Кнопка 1: hover', placeholder: '#cb6c42', type: 'color' },
     { key: 'hero_primary_button_text', label: 'Кнопка 1: текст', placeholder: '#fffaf3', type: 'color' },
@@ -234,7 +240,7 @@ export function AdminSettingsForm({ settings }: Props) {
           <ImageIcon className="h-5 w-5 text-sea-600" /> Оформление hero при загруженном фоне
         </h2>
         <div className="mb-4 rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm text-gray-600">
-          Эти цвета и фильтр работают только когда загружен главный фон. Если фон удалить, главная страница вернётся к стандартным цветам.
+          Эти цвета, обводки и фильтр работают только когда загружен главный фон. Если фон удалить, главная страница вернётся к стандартным цветам.
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {heroColorFields.map((field) => (

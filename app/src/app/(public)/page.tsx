@@ -25,6 +25,26 @@ function getSettingColor(value: string | undefined, fallback: string) {
   return normalized ? normalized : fallback
 }
 
+function buildOutlineTextStyle(strokeColor: string, strokeWidth: number, baseShadow: string) {
+  if (!(strokeWidth > 0)) {
+    return undefined
+  }
+
+  return {
+    textShadow: [
+      `${strokeWidth}px 0 0 ${strokeColor}`,
+      `${-strokeWidth}px 0 0 ${strokeColor}`,
+      `0 ${strokeWidth}px 0 ${strokeColor}`,
+      `0 ${-strokeWidth}px 0 ${strokeColor}`,
+      `${strokeWidth}px ${strokeWidth}px 0 ${strokeColor}`,
+      `${-strokeWidth}px ${strokeWidth}px 0 ${strokeColor}`,
+      `${strokeWidth}px ${-strokeWidth}px 0 ${strokeColor}`,
+      `${-strokeWidth}px ${-strokeWidth}px 0 ${strokeColor}`,
+      baseShadow,
+    ].join(', '),
+  } as CSSProperties
+}
+
 async function getHomeData() {
   const [rooms, settings, recentPosts] = await Promise.all([
     prisma.room.findMany({
@@ -39,9 +59,11 @@ async function getHomeData() {
       'review_text_3', 'review_author_3', 'review_city_3',
       'hero_bg_image', 'about_image_1', 'about_image_2', 'about_image_3', 'about_image_4',
       'hero_badge_bg', 'hero_badge_border', 'hero_badge_text',
-      'hero_title_color', 'hero_title_stroke_color', 'hero_title_stroke_width', 'hero_subtitle_color',
+      'hero_title_color', 'hero_title_stroke_color', 'hero_title_stroke_width',
+      'hero_subtitle_color', 'hero_subtitle_stroke_color', 'hero_subtitle_stroke_width',
       'hero_filter_color', 'hero_filter_opacity',
-      'hero_stat_value_color', 'hero_stat_label_color',
+      'hero_stat_value_color', 'hero_stat_value_stroke_color', 'hero_stat_value_stroke_width',
+      'hero_stat_label_color', 'hero_stat_label_stroke_color', 'hero_stat_label_stroke_width',
       'hero_primary_button_bg', 'hero_primary_button_hover', 'hero_primary_button_text',
       'hero_secondary_button_bg', 'hero_secondary_button_hover', 'hero_secondary_button_text', 'hero_secondary_button_border',
     ]),
@@ -85,6 +107,21 @@ export default async function HomePage() {
     ? Number.parseFloat(settings.hero_title_stroke_width || '1.5')
     : 0
   const safeHeroTitleStrokeWidth = Number.isFinite(heroTitleStrokeWidth) ? Math.max(heroTitleStrokeWidth, 0) : 0
+  const heroSubtitleStrokeColor = getSettingColor(settings.hero_subtitle_stroke_color, '#3d3126')
+  const heroSubtitleStrokeWidth = hasCustomHeroImage
+    ? Number.parseFloat(settings.hero_subtitle_stroke_width || '0')
+    : 0
+  const safeHeroSubtitleStrokeWidth = Number.isFinite(heroSubtitleStrokeWidth) ? Math.max(heroSubtitleStrokeWidth, 0) : 0
+  const heroStatValueStrokeColor = getSettingColor(settings.hero_stat_value_stroke_color, '#4d3927')
+  const heroStatValueStrokeWidth = hasCustomHeroImage
+    ? Number.parseFloat(settings.hero_stat_value_stroke_width || '0')
+    : 0
+  const safeHeroStatValueStrokeWidth = Number.isFinite(heroStatValueStrokeWidth) ? Math.max(heroStatValueStrokeWidth, 0) : 0
+  const heroStatLabelStrokeColor = getSettingColor(settings.hero_stat_label_stroke_color, '#3d3126')
+  const heroStatLabelStrokeWidth = hasCustomHeroImage
+    ? Number.parseFloat(settings.hero_stat_label_stroke_width || '0')
+    : 0
+  const safeHeroStatLabelStrokeWidth = Number.isFinite(heroStatLabelStrokeWidth) ? Math.max(heroStatLabelStrokeWidth, 0) : 0
   const heroFilterColor = getSettingColor(settings.hero_filter_color, '#102131')
   const heroFilterOpacity = hasCustomHeroImage
     ? Number.parseFloat(settings.hero_filter_opacity || '0')
@@ -93,21 +130,10 @@ export default async function HomePage() {
     ? Math.min(Math.max(heroFilterOpacity, 0), 100) / 100
     : 0
 
-  const heroTitleStyle = hasCustomHeroImage && safeHeroTitleStrokeWidth > 0
-    ? ({
-        textShadow: [
-          `${safeHeroTitleStrokeWidth}px 0 0 ${heroTitleStrokeColor}`,
-          `${-safeHeroTitleStrokeWidth}px 0 0 ${heroTitleStrokeColor}`,
-          `0 ${safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
-          `0 ${-safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
-          `${safeHeroTitleStrokeWidth}px ${safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
-          `${-safeHeroTitleStrokeWidth}px ${safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
-          `${safeHeroTitleStrokeWidth}px ${-safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
-          `${-safeHeroTitleStrokeWidth}px ${-safeHeroTitleStrokeWidth}px 0 ${heroTitleStrokeColor}`,
-          '0 4px 18px rgba(0,0,0,0.32)',
-        ].join(', '),
-      } as CSSProperties)
-    : undefined
+  const heroTitleStyle = buildOutlineTextStyle(heroTitleStrokeColor, safeHeroTitleStrokeWidth, '0 4px 18px rgba(0,0,0,0.32)')
+  const heroSubtitleStyle = buildOutlineTextStyle(heroSubtitleStrokeColor, safeHeroSubtitleStrokeWidth, '0 2px 10px rgba(0,0,0,0.28)')
+  const heroStatValueStyle = buildOutlineTextStyle(heroStatValueStrokeColor, safeHeroStatValueStrokeWidth, '0 2px 10px rgba(0,0,0,0.24)')
+  const heroStatLabelStyle = buildOutlineTextStyle(heroStatLabelStrokeColor, safeHeroStatLabelStrokeWidth, '0 2px 8px rgba(0,0,0,0.2)')
 
   const heroStyleVars = hasCustomHeroImage
     ? ({
@@ -116,7 +142,6 @@ export default async function HomePage() {
         '--hero-badge-text': getSettingColor(settings.hero_badge_text, '#fff6e8'),
         '--hero-title-color': getSettingColor(settings.hero_title_color, '#fff8ef'),
         '--hero-subtitle-color': getSettingColor(settings.hero_subtitle_color, '#f8ead7'),
-        '--hero-filter-color': heroFilterColor,
         '--hero-stat-value-color': getSettingColor(settings.hero_stat_value_color, '#fff7ec'),
         '--hero-stat-label-color': getSettingColor(settings.hero_stat_label_color, '#f3e3cb'),
         '--hero-primary-button-bg': getSettingColor(settings.hero_primary_button_bg, '#db7a4e'),
@@ -174,7 +199,7 @@ export default async function HomePage() {
           {hasCustomHeroImage && safeHeroFilterOpacity > 0 && (
             <div
               className="absolute inset-0"
-              style={{ backgroundColor: 'var(--hero-filter-color)', opacity: safeHeroFilterOpacity }}
+              style={{ backgroundColor: heroFilterColor, opacity: safeHeroFilterOpacity }}
             />
           )}
           {/* Animated bubbles */}
@@ -205,7 +230,7 @@ export default async function HomePage() {
               {settings.hero_title || 'Отдых у\u00A0Азовского моря'}
             </h1>
 
-            <p className={heroSubtitleClassName}>
+            <p className={heroSubtitleClassName} style={heroSubtitleStyle}>
               {settings.hero_subtitle || 'Уютные номера, чистое море, тёплый приём — всё для вашего идеального отпуска'}
             </p>
 
@@ -217,8 +242,8 @@ export default async function HomePage() {
                 { value: '100%', label: 'тёплый приём' },
               ].map((stat) => (
                 <div key={stat.label}>
-                  <div className={heroStatValueClassName}>{stat.value}</div>
-                  <div className={heroStatLabelClassName}>{stat.label}</div>
+                  <div className={heroStatValueClassName} style={heroStatValueStyle}>{stat.value}</div>
+                  <div className={heroStatLabelClassName} style={heroStatLabelStyle}>{stat.label}</div>
                 </div>
               ))}
             </div>
