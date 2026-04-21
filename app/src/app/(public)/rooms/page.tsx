@@ -1,16 +1,12 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { prisma } from '@/lib/db'
 import { formatMoney } from '@/lib/utils'
 import { Waves, Wind, Tv, Refrigerator, UtensilsCrossed, Users, Maximize2, CheckCircle } from 'lucide-react'
+import { AppImage } from '@/components/ui/AppImage'
 
 export const metadata: Metadata = { title: 'Номера — выберите подходящий вариант' }
 export const revalidate = 60
-
-function isUploadedImage(url: string) {
-  return url.startsWith('/uploads/')
-}
 
 function normalizeAmenities(value: unknown): string[] {
   if (Array.isArray(value)) {
@@ -92,12 +88,11 @@ export default async function RoomsPage() {
                 {/* Image */}
                 <div className="relative lg:w-80 xl:w-96 h-60 lg:h-auto flex-shrink-0 bg-gradient-to-br from-sea-100 to-sea-200">
                   {room.images[0] ? (
-                    <Image
+                    <AppImage
                       src={room.images[0]}
                       alt={room.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      unoptimized={isUploadedImage(room.images[0])}
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -109,7 +104,7 @@ export default async function RoomsPage() {
                     <div className="absolute bottom-2 left-2 flex gap-1">
                       {room.images.slice(1, 4).map((img, i) => (
                         <div key={i} className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white">
-                          <Image src={img} alt="" width={40} height={40} className="object-cover w-full h-full" unoptimized={isUploadedImage(img)} />
+                          <AppImage src={img} alt="" width={40} height={40} className="object-cover w-full h-full" />
                         </div>
                       ))}
                       {room.images.length > 4 && (

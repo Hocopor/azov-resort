@@ -1,7 +1,6 @@
 'use client'
 import { useState } from 'react'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import {
   Calendar, Users, MapPin, CreditCard, XCircle, CheckCircle,
@@ -9,6 +8,7 @@ import {
 } from 'lucide-react'
 import { formatDate, formatMoney, nightsLabel, getBookingStatusLabel, getBookingStatusColor, getDaysUntilCheckIn } from '@/lib/utils'
 import { useToast } from '@/components/providers/ToastProvider'
+import { AppImage } from '@/components/ui/AppImage'
 
 interface Booking {
   id: string
@@ -25,10 +25,6 @@ interface Booking {
   cancelledAt?: Date | null
   refundAmount?: number | null
   room: { name: string; slug: string; images: string[] }
-}
-
-function isUploadedImage(url: string) {
-  return url.startsWith('/uploads/')
 }
 
 export function BookingsList({ bookings }: { bookings: Booking[] }) {
@@ -87,7 +83,7 @@ export function BookingsList({ bookings }: { bookings: Booking[] }) {
               {/* Room image */}
               <div className="relative sm:w-44 h-32 sm:h-auto bg-gradient-to-br from-sea-100 to-sea-200 flex-shrink-0">
                 {b.room.images[0] ? (
-                  <Image src={b.room.images[0]} alt={b.room.name} fill className="object-cover" unoptimized={isUploadedImage(b.room.images[0])} />
+                  <AppImage src={b.room.images[0]} alt={b.room.name} fill className="object-cover" />
                 ) : (
                   <div className="absolute inset-0 flex items-center justify-center">
                     <Waves className="w-10 h-10 text-sea-300" />

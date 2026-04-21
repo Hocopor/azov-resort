@@ -1,10 +1,10 @@
 import { CSSProperties } from 'react'
 import { Metadata } from 'next'
 import Link from 'next/link'
-import Image from 'next/image'
 import { prisma } from '@/lib/db'
 import { getSettings } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
+import { AppImage } from '@/components/ui/AppImage'
 import {
   Waves, Star, Shield, Clock, Car, Bike, Wifi, ChefHat,
   ArrowRight, Sun, Wind, MapPin, Calendar, Users, CheckCircle
@@ -15,10 +15,6 @@ export const metadata: Metadata = {
 }
 
 export const revalidate = 60
-
-function isUploadedImage(url: string) {
-  return url.startsWith('/uploads/')
-}
 
 function getSettingColor(value: string | undefined, fallback: string) {
   const normalized = value?.trim()
@@ -188,13 +184,12 @@ export default async function HomePage() {
       <section className="relative min-h-screen flex items-center overflow-hidden">
         {/* Background */}
         <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-deep-900' : 'bg-gradient-to-br from-deep-900 via-sea-800 to-deep-700'}`}>
-          <Image
+          <AppImage
             src={heroBackground}
             alt="Азовское море"
             fill
             className={hasCustomHeroImage ? 'object-cover' : 'object-cover opacity-30 mix-blend-overlay'}
             priority
-            unoptimized={isUploadedImage(heroBackground)}
           />
           {hasCustomHeroImage && safeHeroFilterOpacity > 0 && (
             <div
@@ -334,12 +329,11 @@ export default async function HomePage() {
               <Link key={room.id} href={`/rooms/${room.slug}`} className="card card-hover group">
                 <div className="relative h-48 bg-gradient-to-br from-sea-100 to-sea-200 overflow-hidden">
                   {room.images[0] ? (
-                    <Image
+                    <AppImage
                       src={room.images[0]}
                       alt={room.name}
                       fill
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      unoptimized={isUploadedImage(room.images[0])}
                     />
                   ) : (
                     <div className="absolute inset-0 flex items-center justify-center">
@@ -421,7 +415,7 @@ export default async function HomePage() {
             <div className="grid grid-cols-2 gap-4">
               {aboutImages.map((src, i) => (
                 <div key={i} className={`relative rounded-2xl overflow-hidden bg-sea-900 ${i === 0 ? 'col-span-2 h-52' : 'h-40'}`}>
-                  <Image src={src} alt="" fill className="object-cover opacity-70" unoptimized={isUploadedImage(src)} />
+                  <AppImage src={src} alt="" fill className="object-cover opacity-70" />
                   <div className="absolute inset-0 bg-gradient-to-t from-sea-900/40 to-transparent" />
                 </div>
               ))}
