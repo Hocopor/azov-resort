@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Image from 'next/image'
 import { useRouter } from 'next/navigation'
 import { Loader2, Globe, CreditCard, XCircle, ToggleRight, ImageIcon, Trash2 } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
@@ -321,7 +320,12 @@ export function AdminSettingsForm({ settings }: Props) {
                 <div className="mb-3 text-sm font-semibold text-gray-800">{label}</div>
                 <div className="mb-3 overflow-hidden rounded-2xl border border-gray-100 bg-gray-50">
                   <div className="relative h-44 w-full">
-                    <Image src={currentUrl} alt={label} fill className="object-cover" unoptimized={isUploadedImage(currentUrl)} />
+                    <img
+                      key={currentUrl}
+                      src={currentUrl}
+                      alt={label}
+                      className="h-full w-full object-cover"
+                    />
                   </div>
                 </div>
                 <div className="mb-3 text-xs text-gray-500">{hint}</div>
