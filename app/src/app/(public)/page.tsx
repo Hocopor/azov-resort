@@ -40,6 +40,7 @@ async function getHomeData() {
       'hero_bg_image', 'about_image_1', 'about_image_2', 'about_image_3', 'about_image_4',
       'hero_badge_bg', 'hero_badge_border', 'hero_badge_text',
       'hero_title_color', 'hero_title_stroke_color', 'hero_title_stroke_width', 'hero_subtitle_color',
+      'hero_filter_color', 'hero_filter_opacity',
       'hero_stat_value_color', 'hero_stat_label_color',
       'hero_primary_button_bg', 'hero_primary_button_hover', 'hero_primary_button_text',
       'hero_secondary_button_bg', 'hero_secondary_button_hover', 'hero_secondary_button_text', 'hero_secondary_button_border',
@@ -84,6 +85,13 @@ export default async function HomePage() {
     ? Number.parseFloat(settings.hero_title_stroke_width || '1.5')
     : 0
   const safeHeroTitleStrokeWidth = Number.isFinite(heroTitleStrokeWidth) ? Math.max(heroTitleStrokeWidth, 0) : 0
+  const heroFilterColor = getSettingColor(settings.hero_filter_color, '#102131')
+  const heroFilterOpacity = hasCustomHeroImage
+    ? Number.parseFloat(settings.hero_filter_opacity || '0')
+    : 0
+  const safeHeroFilterOpacity = Number.isFinite(heroFilterOpacity)
+    ? Math.min(Math.max(heroFilterOpacity, 0), 100) / 100
+    : 0
 
   const heroTitleStyle = hasCustomHeroImage && safeHeroTitleStrokeWidth > 0
     ? ({
@@ -108,6 +116,7 @@ export default async function HomePage() {
         '--hero-badge-text': getSettingColor(settings.hero_badge_text, '#fff6e8'),
         '--hero-title-color': getSettingColor(settings.hero_title_color, '#fff8ef'),
         '--hero-subtitle-color': getSettingColor(settings.hero_subtitle_color, '#f8ead7'),
+        '--hero-filter-color': heroFilterColor,
         '--hero-stat-value-color': getSettingColor(settings.hero_stat_value_color, '#fff7ec'),
         '--hero-stat-label-color': getSettingColor(settings.hero_stat_label_color, '#f3e3cb'),
         '--hero-primary-button-bg': getSettingColor(settings.hero_primary_button_bg, '#db7a4e'),
@@ -162,6 +171,12 @@ export default async function HomePage() {
             priority
             unoptimized={isUploadedImage(heroBackground)}
           />
+          {hasCustomHeroImage && safeHeroFilterOpacity > 0 && (
+            <div
+              className="absolute inset-0"
+              style={{ backgroundColor: 'var(--hero-filter-color)', opacity: safeHeroFilterOpacity }}
+            />
+          )}
           {/* Animated bubbles */}
           <div className="bubble w-4 h-4 left-[10%]" style={{ animationDuration: '12s', animationDelay: '0s' }} />
           <div className="bubble w-6 h-6 left-[30%]" style={{ animationDuration: '15s', animationDelay: '3s' }} />

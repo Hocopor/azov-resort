@@ -20,6 +20,10 @@ const GENERAL_IMAGE_FALLBACKS: Record<string, string> = {
   og_image: '/images/general/og-image.jpg',
 }
 
+type HeroField =
+  | { key: string; label: string; placeholder: string; type: 'color' | 'text' }
+  | { key: string; label: string; placeholder: string; type: 'range'; min: number; max: number; step: number }
+
 function isUploadedImage(url: string) {
   return url.startsWith('/uploads/')
 }
@@ -154,30 +158,32 @@ export function AdminSettingsForm({ settings }: Props) {
 
   const generalImageFields = [
     { key: 'hero_bg_image', label: 'Главный фон', hint: 'Фон первого экрана на главной' },
-    { key: 'about_image_1', label: 'Фото “О нас” №1', hint: 'Большое изображение блока “О нас”' },
-    { key: 'about_image_2', label: 'Фото “О нас” №2', hint: 'Малое изображение блока “О нас”' },
-    { key: 'about_image_3', label: 'Фото “О нас” №3', hint: 'Малое изображение блока “О нас”' },
-    { key: 'about_image_4', label: 'Фото “О нас” №4', hint: 'Малое изображение блока “О нас”' },
+    { key: 'about_image_1', label: 'Фото "О нас" №1', hint: 'Большое изображение блока "О нас"' },
+    { key: 'about_image_2', label: 'Фото "О нас" №2', hint: 'Малое изображение блока "О нас"' },
+    { key: 'about_image_3', label: 'Фото "О нас" №3', hint: 'Малое изображение блока "О нас"' },
+    { key: 'about_image_4', label: 'Фото "О нас" №4', hint: 'Малое изображение блока "О нас"' },
     { key: 'og_image', label: 'OG-изображение', hint: 'Картинка превью для соцсетей и мессенджеров' },
   ]
 
-  const heroColorFields = [
-    { key: 'hero_badge_bg', label: 'Плашка сезона: фон', placeholder: 'rgba(58,69,34,0.48)', type: 'text' as const },
-    { key: 'hero_badge_border', label: 'Плашка сезона: рамка', placeholder: 'rgba(255,248,231,0.24)', type: 'text' as const },
-    { key: 'hero_badge_text', label: 'Плашка сезона: текст', placeholder: '#fff6e8', type: 'color' as const },
-    { key: 'hero_title_color', label: 'Заголовок', placeholder: '#fff8ef', type: 'color' as const },
-    { key: 'hero_title_stroke_color', label: 'Заголовок: обводка', placeholder: '#5f432d', type: 'color' as const },
-    { key: 'hero_title_stroke_width', label: 'Заголовок: толщина обводки', placeholder: '1.5', type: 'text' as const },
-    { key: 'hero_subtitle_color', label: 'Подзаголовок', placeholder: '#f8ead7', type: 'color' as const },
-    { key: 'hero_stat_value_color', label: 'Цифры статистики', placeholder: '#fff7ec', type: 'color' as const },
-    { key: 'hero_stat_label_color', label: 'Подписи статистики', placeholder: '#f3e3cb', type: 'color' as const },
-    { key: 'hero_primary_button_bg', label: 'Кнопка 1: фон', placeholder: '#db7a4e', type: 'color' as const },
-    { key: 'hero_primary_button_hover', label: 'Кнопка 1: hover', placeholder: '#cb6c42', type: 'color' as const },
-    { key: 'hero_primary_button_text', label: 'Кнопка 1: текст', placeholder: '#fffaf3', type: 'color' as const },
-    { key: 'hero_secondary_button_bg', label: 'Кнопка 2: фон', placeholder: 'rgba(70,49,31,0.56)', type: 'text' as const },
-    { key: 'hero_secondary_button_hover', label: 'Кнопка 2: hover', placeholder: 'rgba(70,49,31,0.72)', type: 'text' as const },
-    { key: 'hero_secondary_button_text', label: 'Кнопка 2: текст', placeholder: '#fff4e4', type: 'color' as const },
-    { key: 'hero_secondary_button_border', label: 'Кнопка 2: рамка', placeholder: 'rgba(255,241,220,0.28)', type: 'text' as const },
+  const heroColorFields: HeroField[] = [
+    { key: 'hero_badge_bg', label: 'Плашка сезона: фон', placeholder: 'rgba(58,69,34,0.48)', type: 'text' },
+    { key: 'hero_badge_border', label: 'Плашка сезона: рамка', placeholder: 'rgba(255,248,231,0.24)', type: 'text' },
+    { key: 'hero_badge_text', label: 'Плашка сезона: текст', placeholder: '#fff6e8', type: 'color' },
+    { key: 'hero_title_color', label: 'Заголовок', placeholder: '#fff8ef', type: 'color' },
+    { key: 'hero_title_stroke_color', label: 'Заголовок: обводка', placeholder: '#5f432d', type: 'color' },
+    { key: 'hero_title_stroke_width', label: 'Заголовок: толщина обводки', placeholder: '1.5', type: 'text' },
+    { key: 'hero_filter_color', label: 'Hero-изображение: цвет фильтра', placeholder: '#102131', type: 'color' },
+    { key: 'hero_filter_opacity', label: 'Hero-изображение: прозрачность фильтра (%)', placeholder: '0', type: 'range', min: 0, max: 100, step: 1 },
+    { key: 'hero_subtitle_color', label: 'Подзаголовок', placeholder: '#f8ead7', type: 'color' },
+    { key: 'hero_stat_value_color', label: 'Цифры статистики', placeholder: '#fff7ec', type: 'color' },
+    { key: 'hero_stat_label_color', label: 'Подписи статистики', placeholder: '#f3e3cb', type: 'color' },
+    { key: 'hero_primary_button_bg', label: 'Кнопка 1: фон', placeholder: '#db7a4e', type: 'color' },
+    { key: 'hero_primary_button_hover', label: 'Кнопка 1: hover', placeholder: '#cb6c42', type: 'color' },
+    { key: 'hero_primary_button_text', label: 'Кнопка 1: текст', placeholder: '#fffaf3', type: 'color' },
+    { key: 'hero_secondary_button_bg', label: 'Кнопка 2: фон', placeholder: 'rgba(70,49,31,0.56)', type: 'text' },
+    { key: 'hero_secondary_button_hover', label: 'Кнопка 2: hover', placeholder: 'rgba(70,49,31,0.72)', type: 'text' },
+    { key: 'hero_secondary_button_text', label: 'Кнопка 2: текст', placeholder: '#fff4e4', type: 'color' },
+    { key: 'hero_secondary_button_border', label: 'Кнопка 2: рамка', placeholder: 'rgba(255,241,220,0.28)', type: 'text' },
   ]
 
   return (
@@ -228,13 +234,14 @@ export function AdminSettingsForm({ settings }: Props) {
           <ImageIcon className="h-5 w-5 text-sea-600" /> Оформление hero при загруженном фоне
         </h2>
         <div className="mb-4 rounded-2xl border border-sand-200 bg-sand-50 p-4 text-sm text-gray-600">
-          Эти цвета работают только когда загружен главный фон. Если фон удалить, главная страница вернётся к стандартным цветам.
+          Эти цвета и фильтр работают только когда загружен главный фон. Если фон удалить, главная страница вернётся к стандартным цветам.
         </div>
         <div className="grid gap-4 md:grid-cols-2">
           {heroColorFields.map((field) => (
             <div key={field.key} className="rounded-2xl border border-gray-100 bg-white p-4 shadow-sm">
               <label className="mb-2 block text-sm font-medium text-gray-700">{field.label}</label>
-              {field.type === 'color' ? (
+
+              {field.type === 'color' && (
                 <div className="flex items-center gap-3">
                   <input
                     type="color"
@@ -249,7 +256,9 @@ export function AdminSettingsForm({ settings }: Props) {
                     placeholder={field.placeholder}
                   />
                 </div>
-              ) : (
+              )}
+
+              {field.type === 'text' && (
                 <input
                   value={vals[field.key] || ''}
                   onChange={(e) => set(field.key, e.target.value)}
@@ -257,7 +266,34 @@ export function AdminSettingsForm({ settings }: Props) {
                   placeholder={field.placeholder}
                 />
               )}
-              <div className="mt-2 text-xs text-gray-400">Оставь пустым, чтобы вернулся стандартный цвет.</div>
+
+              {field.type === 'range' && (
+                <div className="space-y-3">
+                  <input
+                    type="range"
+                    min={field.min}
+                    max={field.max}
+                    step={field.step}
+                    value={vals[field.key] || field.placeholder}
+                    onChange={(e) => set(field.key, e.target.value)}
+                    className="w-full accent-sea-700"
+                  />
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="number"
+                      min={field.min}
+                      max={field.max}
+                      step={field.step}
+                      value={vals[field.key] || field.placeholder}
+                      onChange={(e) => set(field.key, e.target.value)}
+                      className="input-field w-28"
+                    />
+                    <span className="text-sm text-gray-500">%</span>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2 text-xs text-gray-400">Оставь пустым, чтобы вернулся стандартный вариант.</div>
             </div>
           ))}
         </div>
@@ -385,8 +421,8 @@ export function AdminSettingsForm({ settings }: Props) {
         </h2>
         <div className="space-y-4">
           {[
-            { key: 'services_page_active', label: 'Страница «Услуги»', desc: 'Показывать ссылку на страницу доп. услуг в меню' },
-            { key: 'cooking_service_active', label: 'Услуга «Блюда по предзаказу»', desc: 'Показывать предложение о приготовлении еды' },
+            { key: 'services_page_active', label: 'Страница "Услуги"', desc: 'Показывать ссылку на страницу доп. услуг в меню' },
+            { key: 'cooking_service_active', label: 'Услуга "Блюда по предзаказу"', desc: 'Показывать предложение о приготовлении еды' },
           ].map(({ key, label, desc }) => (
             <div key={key} className="flex items-center justify-between rounded-xl bg-gray-50 p-4">
               <div>
