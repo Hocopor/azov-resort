@@ -60,6 +60,7 @@ COPY docker-entrypoint.sh ./
 
 RUN chmod +x docker-entrypoint.sh \
   && mkdir -p ./.npm \
+  && mkdir -p ./uploads \
   && mkdir -p ./public/uploads \
   && chown -R nextjs:nodejs /app
 

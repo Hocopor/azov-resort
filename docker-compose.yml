@@ -49,7 +49,7 @@ services:
     networks:
       - internal
     volumes:
-      - uploads:/app/public/uploads
+      - uploads:/app/uploads
 
   cloudflared:
     image: cloudflare/cloudflared:latest

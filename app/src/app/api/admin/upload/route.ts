@@ -15,7 +15,8 @@ const ALLOWED_TYPES = [
   'video/quicktime',
 ]
 const MAX_SIZE = 100 * 1024 * 1024
-const UPLOAD_ROOT = join(process.cwd(), 'public', 'uploads')
+const UPLOAD_ROOT = join(process.cwd(), 'uploads')
+const LEGACY_UPLOAD_ROOT = join(process.cwd(), 'public', 'uploads')
 
 function sanitizeFolder(input: string | null) {
   const parts = (input || '')
@@ -80,16 +81,23 @@ export async function DELETE(req: NextRequest) {
   }
 
   const uploadsPath = resolve(UPLOAD_ROOT)
-  const filePath = resolve(process.cwd(), 'public', url.slice(1))
+  const legacyUploadsPath = resolve(LEGACY_UPLOAD_ROOT)
+  const relativePath = url.replace(/^\/uploads\//, '')
+  const filePath = resolve(UPLOAD_ROOT, relativePath)
+  const legacyFilePath = resolve(LEGACY_UPLOAD_ROOT, relativePath)
 
-  if (!filePath.startsWith(uploadsPath)) {
+  if (!filePath.startsWith(uploadsPath) || !legacyFilePath.startsWith(legacyUploadsPath)) {
     return NextResponse.json({ error: 'Некорректный путь файла' }, { status: 400 })
   }
 
   try {
     await unlink(filePath)
   } catch {
-    // Ignore if the file has already been removed.
+    try {
+      await unlink(legacyFilePath)
+    } catch {
+      // Ignore if the file has already been removed.
+    }
   }
 
   return NextResponse.json({ ok: true })

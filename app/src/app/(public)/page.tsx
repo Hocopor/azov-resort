@@ -218,7 +218,7 @@ export default async function HomePage() {
             {/* Badge */}
             <div className={heroBadgeClassName}>
               <Sun className="w-4 h-4 text-yellow-300" />
-              Сезон 2025 открыт — бронируйте сейчас!
+              Сезон 2026 скоро начнётся — бронируйте сейчас!
             </div>
 
             <h1 className={heroTitleClassName} style={heroTitleStyle}>
