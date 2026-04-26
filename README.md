@@ -2,32 +2,30 @@
 
 Production deployment for the Azov Resort site on Ubuntu 24 with Docker Compose.
 
-## Direct domain branch
+## Shared reverse proxy branch
 
-This branch is intended for direct public deployment without Cloudflare Tunnel.
+This branch is intended for direct public deployment without Cloudflare Tunnel and without grabbing `80/443` inside its own Compose stack.
 
 Traffic flow:
 
-`Internet -> Caddy (80/443) -> Next.js app (internal Docker network) -> PostgreSQL (internal Docker network)`
+`Internet -> host Caddy/Nginx on VPS -> 127.0.0.1:APP_PORT -> Next.js app container -> PostgreSQL container`
 
-Security defaults in this branch:
+This avoids conflicts with neighbor sites on the same VPS, because this project only binds a localhost port such as `127.0.0.1:4181`.
 
-- only `80/tcp` and `443/tcp` are exposed by Docker
+## Security model
+
+- Docker exposes the app only on `127.0.0.1:${APP_PORT}`
 - PostgreSQL stays on an internal-only Docker network
-- the Next.js container is not published directly to the internet
-- HTTPS is terminated by Caddy with automatic certificates
-- HTTP is redirected to HTTPS
-- common security headers are enabled
+- the Next.js app is never published directly to the internet
+- the host reverse proxy handles HTTPS certificates and domain routing
 - deploy script can configure UFW to allow only `OpenSSH`, `80/tcp`, `443/tcp`
 
 ## Required DNS
 
-Point your domain to the VPS before deployment:
+Point your domain to the VPS:
 
 - `A` record for `your-domain.ru` -> your VPS IPv4
 - optionally `AAAA` record -> your VPS IPv6
-
-The DNS record must resolve directly to the server because this branch does not use Cloudflare Tunnel.
 
 ## Environment
 
@@ -40,6 +38,7 @@ cp .env.example .env
 Important variables:
 
 - `APP_DOMAIN=your-domain.ru`
+- `APP_PORT=4181`
 - `NEXTAUTH_URL=https://your-domain.ru`
 - `NEXT_PUBLIC_SITE_URL=https://your-domain.ru`
 - `POSTGRES_PASSWORD=...`
@@ -54,8 +53,6 @@ openssl rand -base64 32
 
 ## Deploy on Ubuntu 24
 
-Run as root for the safest setup because the script can also configure the firewall:
-
 ```bash
 chmod +x deploy.sh
 sudo ./deploy.sh
@@ -66,14 +63,33 @@ What the script does:
 - installs Docker if needed
 - installs Docker Compose plugin if needed
 - installs UFW if needed
-- validates domain-related environment variables
+- validates domain and port environment variables
 - configures firewall rules for `OpenSSH`, `80/tcp`, `443/tcp`
 - builds the app with plain logs
-- starts `postgres`, `app`, `caddy`
+- starts `postgres` and `app`
 - waits for PostgreSQL
 - runs Prisma migrations
 - runs seed
 - streams logs to console and files
+
+## Reverse proxy on the host
+
+This branch expects an existing host-level Caddy or Nginx.
+
+Ready-made examples:
+
+- Caddy: `ops/caddy/azov-resort.Caddyfile.example`
+- Nginx: `ops/nginx/azov-resort.conf.example`
+
+For Caddy, point the domain to the app:
+
+```caddyfile
+your-domain.ru {
+  reverse_proxy 127.0.0.1:4181
+}
+```
+
+If another project already uses `127.0.0.1:4180`, keep this one on `127.0.0.1:4181` or choose another free localhost port.
 
 ## Useful commands
 
@@ -95,12 +111,6 @@ App logs:
 docker compose logs -f app 2>&1 | tee logs/logs-runtime.log
 ```
 
-Proxy logs:
-
-```bash
-docker compose logs -f caddy
-```
-
 Apply Prisma schema if needed:
 
 ```bash
@@ -110,11 +120,10 @@ docker compose exec -T app ./node_modules/.bin/prisma db push
 ## Docker services
 
 - `postgres` - PostgreSQL 16
-- `app` - Next.js application
-- `caddy` - reverse proxy with HTTPS
+- `app` - Next.js application bound to localhost only
 
 ## Notes
 
 - Uploaded media is stored in the `uploads` Docker volume.
-- Caddy certificates are stored in `caddy_data`.
 - If you change the domain, also update OAuth redirect URLs and payment webhooks.
+- If you change `APP_PORT`, update the host Caddy/Nginx upstream too.

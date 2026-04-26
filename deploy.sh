@@ -12,7 +12,7 @@ NC='\033[0m'
 
 FAILED=0
 COMPOSE_ARGS=()
-LOG_SERVICES=(postgres app caddy)
+LOG_SERVICES=(postgres app)
 LOG_DIR="$ROOT_DIR/logs"
 BUILD_LOG="$LOG_DIR/logs-build-app.log"
 UP_LOG="$LOG_DIR/logs-up.log"
@@ -199,6 +199,12 @@ validate_env() {
     info "APP_DOMAIN was not set explicitly. Using ${APP_DOMAIN}."
   fi
 
+  if [[ -z "${APP_PORT:-}" ]]; then
+    APP_PORT=4181
+    export APP_PORT
+    info "APP_PORT was not set explicitly. Using ${APP_PORT}."
+  fi
+
   if [[ "${NEXTAUTH_URL}" != https://* ]]; then
     fail "NEXTAUTH_URL must start with https:// for direct secure deployment."
   fi
@@ -218,6 +224,14 @@ validate_env() {
 
   if [[ "$public_host" != "$APP_DOMAIN" ]]; then
     fail "NEXT_PUBLIC_SITE_URL host ($public_host) must match APP_DOMAIN ($APP_DOMAIN)."
+  fi
+
+  if ! [[ "${APP_PORT}" =~ ^[0-9]+$ ]]; then
+    fail "APP_PORT must be a numeric TCP port."
+  fi
+
+  if (( APP_PORT < 1024 || APP_PORT > 65535 )); then
+    fail "APP_PORT must be between 1024 and 65535."
   fi
 
   log ".env validated"
@@ -257,9 +271,6 @@ prepare_dirs() {
 rebuild_stack() {
   info "Stopping previous containers..."
   docker compose "${COMPOSE_ARGS[@]}" down --remove-orphans || true
-
-  info "Pulling external images..."
-  docker compose "${COMPOSE_ARGS[@]}" pull caddy || true
 
   info "Building app image with plain progress output..."
   run_logged "$BUILD_LOG" docker compose "${COMPOSE_ARGS[@]}" --progress=plain build --no-cache app
@@ -310,6 +321,7 @@ show_summary() {
   echo
   echo "Admin URL: ${NEXT_PUBLIC_SITE_URL}/admin"
   echo "Admin email: ${ADMIN_EMAIL}"
+  echo "Local upstream for host reverse proxy: 127.0.0.1:${APP_PORT}"
   echo
   echo "Useful commands:"
   echo "  docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log"
