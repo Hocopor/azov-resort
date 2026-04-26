@@ -12,7 +12,7 @@ NC='\033[0m'
 
 FAILED=0
 COMPOSE_ARGS=()
-LOG_SERVICES=(postgres app)
+LOG_SERVICES=(postgres app caddy)
 LOG_DIR="$ROOT_DIR/logs"
 BUILD_LOG="$LOG_DIR/logs-build-app.log"
 UP_LOG="$LOG_DIR/logs-up.log"
@@ -126,6 +126,23 @@ ensure_compose() {
   log "Docker Compose plugin installed"
 }
 
+ensure_ufw() {
+  if command -v ufw >/dev/null 2>&1; then
+    log "UFW already installed"
+    return
+  fi
+
+  if [[ "${EUID}" -ne 0 ]]; then
+    warn "UFW is not installed and deploy.sh is not running as root. Firewall setup will be skipped."
+    return
+  fi
+
+  info "Installing UFW..."
+  apt-get update -qq
+  apt-get install -y ufw
+  log "UFW installed"
+}
+
 load_env() {
   set -a
   # shellcheck disable=SC1091
@@ -137,6 +154,7 @@ validate_env() {
   local required_vars=(
     POSTGRES_PASSWORD
     NEXTAUTH_SECRET
+    NEXTAUTH_URL
     NEXT_PUBLIC_SITE_URL
     ADMIN_EMAIL
   )
@@ -173,15 +191,57 @@ validate_env() {
     info "DATABASE_URL was not set explicitly. Using compose internal URL."
   fi
 
-  if [[ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]]; then
-    COMPOSE_ARGS+=(--profile tunnel)
-    LOG_SERVICES+=(cloudflared)
-    log "Cloudflare tunnel profile enabled"
-  else
-    warn "CLOUDFLARE_TUNNEL_TOKEN is empty, deploy will start without cloudflared"
+  if [[ -z "${APP_DOMAIN:-}" ]]; then
+    APP_DOMAIN="${NEXT_PUBLIC_SITE_URL#https://}"
+    APP_DOMAIN="${APP_DOMAIN#http://}"
+    APP_DOMAIN="${APP_DOMAIN%%/*}"
+    export APP_DOMAIN
+    info "APP_DOMAIN was not set explicitly. Using ${APP_DOMAIN}."
+  fi
+
+  if [[ "${NEXTAUTH_URL}" != https://* ]]; then
+    fail "NEXTAUTH_URL must start with https:// for direct secure deployment."
+  fi
+
+  if [[ "${NEXT_PUBLIC_SITE_URL}" != https://* ]]; then
+    fail "NEXT_PUBLIC_SITE_URL must start with https:// for direct secure deployment."
+  fi
+
+  local nextauth_host="${NEXTAUTH_URL#https://}"
+  nextauth_host="${nextauth_host%%/*}"
+  local public_host="${NEXT_PUBLIC_SITE_URL#https://}"
+  public_host="${public_host%%/*}"
+
+  if [[ "$nextauth_host" != "$APP_DOMAIN" ]]; then
+    fail "NEXTAUTH_URL host ($nextauth_host) must match APP_DOMAIN ($APP_DOMAIN)."
+  fi
+
+  if [[ "$public_host" != "$APP_DOMAIN" ]]; then
+    fail "NEXT_PUBLIC_SITE_URL host ($public_host) must match APP_DOMAIN ($APP_DOMAIN)."
   fi
 
   log ".env validated"
+}
+
+configure_firewall() {
+  if ! command -v ufw >/dev/null 2>&1; then
+    warn "UFW is unavailable. Skipping firewall configuration."
+    return
+  fi
+
+  if [[ "${EUID}" -ne 0 ]]; then
+    warn "Not running as root. Skipping firewall configuration."
+    return
+  fi
+
+  info "Configuring UFW firewall..."
+  ufw allow OpenSSH >/dev/null
+  ufw allow 80/tcp >/dev/null
+  ufw allow 443/tcp >/dev/null
+  ufw --force default deny incoming >/dev/null
+  ufw --force default allow outgoing >/dev/null
+  ufw --force enable >/dev/null 2>&1 || true
+  log "Firewall configured: OpenSSH, 80/tcp, 443/tcp allowed"
 }
 
 compose_config_check() {
@@ -199,9 +259,7 @@ rebuild_stack() {
   docker compose "${COMPOSE_ARGS[@]}" down --remove-orphans || true
 
   info "Pulling external images..."
-  if [[ " ${COMPOSE_ARGS[*]} " == *" --profile tunnel "* ]]; then
-    docker compose "${COMPOSE_ARGS[@]}" pull cloudflared || true
-  fi
+  docker compose "${COMPOSE_ARGS[@]}" pull caddy || true
 
   info "Building app image with plain progress output..."
   run_logged "$BUILD_LOG" docker compose "${COMPOSE_ARGS[@]}" --progress=plain build --no-cache app
@@ -282,9 +340,11 @@ main() {
   ensure_env_file
   ensure_docker
   ensure_compose
+  ensure_ufw
   ensure_docker_access
   load_env
   validate_env
+  configure_firewall
   compose_config_check
   prepare_dirs
   rebuild_stack

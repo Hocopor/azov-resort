@@ -1,220 +1,120 @@
-# 🌊 Гостевой дом на Азовском море — Сайт
+# Azov Resort
 
-Полнофункциональный сайт для гостевого дома с онлайн-бронированием, оплатой через ЮКассу, личными кабинетами и панелью администратора.
+Production deployment for the Azov Resort site on Ubuntu 24 with Docker Compose.
 
----
+## Direct domain branch
 
-## 🚀 Быстрый старт
+This branch is intended for direct public deployment without Cloudflare Tunnel.
 
-### 1. Клонируйте и настройте переменные окружения
+Traffic flow:
+
+`Internet -> Caddy (80/443) -> Next.js app (internal Docker network) -> PostgreSQL (internal Docker network)`
+
+Security defaults in this branch:
+
+- only `80/tcp` and `443/tcp` are exposed by Docker
+- PostgreSQL stays on an internal-only Docker network
+- the Next.js container is not published directly to the internet
+- HTTPS is terminated by Caddy with automatic certificates
+- HTTP is redirected to HTTPS
+- common security headers are enabled
+- deploy script can configure UFW to allow only `OpenSSH`, `80/tcp`, `443/tcp`
+
+## Required DNS
+
+Point your domain to the VPS before deployment:
+
+- `A` record for `your-domain.ru` -> your VPS IPv4
+- optionally `AAAA` record -> your VPS IPv6
+
+The DNS record must resolve directly to the server because this branch does not use Cloudflare Tunnel.
+
+## Environment
+
+Copy and fill the env file:
 
 ```bash
 cp .env.example .env
-nano .env   # Заполните все переменные
 ```
 
-### 2. Запустите деплой (на VPS Ubuntu 24)
+Important variables:
+
+- `APP_DOMAIN=your-domain.ru`
+- `NEXTAUTH_URL=https://your-domain.ru`
+- `NEXT_PUBLIC_SITE_URL=https://your-domain.ru`
+- `POSTGRES_PASSWORD=...`
+- `NEXTAUTH_SECRET=...`
+- `ADMIN_EMAIL=...`
+
+Generate a strong auth secret:
+
+```bash
+openssl rand -base64 32
+```
+
+## Deploy on Ubuntu 24
+
+Run as root for the safest setup because the script can also configure the firewall:
 
 ```bash
 chmod +x deploy.sh
-./deploy.sh
+sudo ./deploy.sh
 ```
 
-Скрипт автоматически:
-- Установит Docker (если не установлен)
-- Соберёт приложение
-- Запустит все контейнеры
-- Применит миграции БД
-- Создаст начальные данные
+What the script does:
 
----
+- installs Docker if needed
+- installs Docker Compose plugin if needed
+- installs UFW if needed
+- validates domain-related environment variables
+- configures firewall rules for `OpenSSH`, `80/tcp`, `443/tcp`
+- builds the app with plain logs
+- starts `postgres`, `app`, `caddy`
+- waits for PostgreSQL
+- runs Prisma migrations
+- runs seed
+- streams logs to console and files
 
-## ⚙️ Настройка переменных окружения `.env`
+## Useful commands
 
-| Переменная | Описание |
-|---|---|
-| `POSTGRES_PASSWORD` | Пароль БД (сгенерируйте случайный) |
-| `NEXTAUTH_SECRET` | Секрет для сессий (`openssl rand -base64 32`) |
-| `CLOUDFLARE_TUNNEL_TOKEN` | Токен из Cloudflare Zero Trust → Tunnels |
-| `NEXT_PUBLIC_SITE_URL` | Полный URL сайта (https://ваш-домен.ru) |
-| `VK_CLIENT_ID` / `VK_CLIENT_SECRET` | OAuth ВКонтакте |
-| `YANDEX_CLIENT_ID` / `YANDEX_CLIENT_SECRET` | OAuth Яндекс |
-| `YOOKASSA_SHOP_ID` / `YOOKASSA_SECRET_KEY` | ЮКасса |
-| `SMTP_*` | SMTP для email-уведомлений |
-| `ADMIN_EMAIL` | Email первого администратора |
+Build logs:
 
----
-
-## 🔧 Настройка внешних сервисов
-
-### Cloudflare Tunnel
-1. Зайдите в [Cloudflare Zero Trust](https://one.dash.cloudflare.com)
-2. Перейдите в **Access → Tunnels → Create Tunnel**
-3. Скопируйте токен в `.env` → `CLOUDFLARE_TUNNEL_TOKEN`
-4. В конфигурации туннеля добавьте роут:
-   - **Service**: `http://app:3000`
-   - **Domain**: ваш домен
-
-### ЮКасса
-1. Зарегистрируйтесь на [yookassa.ru](https://yookassa.ru)
-2. Получите `shopId` и `secretKey`
-3. В настройках ЮКассы укажите Webhook URL: `https://ваш-домен/api/payments/webhook`
-4. Выберите события: `payment.succeeded`, `payment.canceled`
-
-### OAuth ВКонтакте
-1. Создайте приложение на [vk.com/editapp](https://vk.com/editapp?act=create) (тип: Веб-сайт)
-2. Redirect URI: `https://ваш-домен/api/auth/callback/vk`
-
-### OAuth Яндекс
-1. Создайте приложение на [oauth.yandex.ru](https://oauth.yandex.ru)
-2. Redirect URI: `https://ваш-домен/api/auth/callback/yandex`
-3. Права: `login:email`, `login:info`, `login:avatar`
-
-### SMTP (email)
-Для Яндекс.Почты:
-- Включите «Пароли приложений» в настройках аккаунта
-- `SMTP_HOST=smtp.yandex.ru`, `SMTP_PORT=587`
-
----
-
-## 📁 Структура проекта
-
-```
-azov-resort/
-├── docker-compose.yml       # Оркестрация контейнеров
-├── .env.example             # Шаблон переменных окружения
-├── deploy.sh                # Скрипт деплоя
-└── app/
-    ├── Dockerfile
-    ├── prisma/
-    │   ├── schema.prisma    # Схема БД
-    │   └── seed.ts          # Начальные данные
-    └── src/
-        ├── app/             # Next.js App Router
-        │   ├── (public)/    # Публичные страницы
-        │   ├── admin/       # Панель управления
-        │   ├── account/     # Личный кабинет
-        │   ├── auth/        # Авторизация
-        │   └── api/         # API роуты
-        ├── components/      # React-компоненты
-        └── lib/             # Утилиты (DB, auth, email, payment)
-```
-
----
-
-## 🗂️ Страницы сайта
-
-| URL | Описание |
-|---|---|
-| `/` | Главная |
-| `/rooms` | Список номеров |
-| `/rooms/[slug]` | Карточка номера + бронирование |
-| `/blog` | Лента «Обстановка» |
-| `/services` | Услуги (включается в админке) |
-| `/account` | Личный кабинет |
-| `/account/bookings` | Мои брони |
-| `/admin` | Дашборд администратора |
-| `/admin/bookings` | Управление бронями |
-| `/admin/rooms` | Управление номерами |
-| `/admin/blog` | Редактор блога |
-| `/admin/users` | Пользователи |
-| `/admin/settings` | Настройки сайта |
-| `/legal/privacy` | Политика конфиденциальности |
-| `/legal/terms` | Пользовательское соглашение |
-| `/legal/booking-terms` | Условия бронирования |
-
----
-
-## 🛠️ Управление
-
-### Просмотр логов
 ```bash
-docker compose logs -f          # Все логи
-docker compose logs -f app      # Только приложение
-docker compose logs -f postgres # Только БД
+docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log
 ```
 
-### Перезапуск
+Start stack:
+
 ```bash
-docker compose restart app
+docker compose up -d 2>&1 | tee logs/logs-up.log
 ```
 
-### Обновление приложения
+App logs:
+
 ```bash
-git pull
-docker compose build --no-cache app
-docker compose up -d app
-
-или 
-
-docker compose up -d --build
+docker compose logs -f app 2>&1 | tee logs/logs-runtime.log
 ```
 
-### Prisma Studio (GUI для БД)
+Proxy logs:
+
 ```bash
-docker compose exec app npx prisma studio
+docker compose logs -f caddy
 ```
 
-### Ручное создание резервной копии БД
+Apply Prisma schema if needed:
+
 ```bash
-docker compose exec postgres pg_dump -U azov_user azov_resort > backup_$(date +%Y%m%d).sql
+docker compose exec -T app ./node_modules/.bin/prisma db push
 ```
 
----
+## Docker services
 
-## 📂 Загрузка изображений
+- `postgres` - PostgreSQL 16
+- `app` - Next.js application
+- `caddy` - reverse proxy with HTTPS
 
-После деплоя добавьте изображения в директорию `app/public/`:
+## Notes
 
-```
-public/
-├── images/
-│   ├── general/
-│   │   ├── hero-bg.jpg        # Фото для главного экрана (1920×1080)
-│   │   ├── og-image.jpg       # Open Graph (1200×630)
-│   │   ├── about-1.jpg        # Фото для раздела "О нас" (4 шт.)
-│   │   ├── about-2.jpg
-│   │   ├── about-3.jpg
-│   │   └── about-4.jpg
-│   └── rooms/
-│       ├── room-1-1.jpg       # Номер 1, фото 1
-│       ├── room-1-2.jpg       # Номер 1, фото 2
-│       └── ...                # Аналогично для номеров 2–7
-└── icons/
-    ├── favicon.ico
-    └── apple-touch-icon.png
-```
-
-Изображения номеров можно также управлять через интерфейс (в будущем).
-
----
-
-## 🔐 Безопасность
-
-- Пароли хранятся в зашифрованном виде (bcrypt, 12 rounds)
-- JWT токены для сессий с проверкой роли при каждом запросе
-- Все admin-роуты защищены middleware
-- Soft delete пользователей
-- CSRF защита через NextAuth
-- Webhook ЮКассы верифицируется через API
-- Rate limiting на загрузку файлов
-
----
-
-## 📊 Метрики и аналитика
-
-В панели администратора (`/admin`) доступны:
-- Воронка конверсии: просмотры → начало брони → оплата
-- Статистика броней за 30 дней
-- Занятость номеров
-- Сегодняшние заезды и выезды
-- Выручка (депозиты) за период
-
----
-
-## 🤝 Техническая поддержка
-
-При возникновении проблем проверьте логи:
-```bash
-docker compose logs --tail=100 app
-```
+- Uploaded media is stored in the `uploads` Docker volume.
+- Caddy certificates are stored in `caddy_data`.
+- If you change the domain, also update OAuth redirect URLs and payment webhooks.

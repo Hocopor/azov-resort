@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: azov_postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-azov_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -26,6 +28,8 @@ services:
         - NODE_ENV=production
     container_name: azov_app
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-azov_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-azov_resort}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
@@ -48,29 +52,54 @@ services:
         condition: service_healthy
     networks:
       - internal
+      - web
     volumes:
       - uploads:/app/uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: azov_tunnel
+  caddy:
+    image: caddy:2.10-alpine
+    container_name: azov_caddy
     restart: unless-stopped
-    profiles:
-      - tunnel
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
     depends_on:
-      - app
-    networks:
-      - internal
+      app:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
     environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+      APP_DOMAIN: ${APP_DOMAIN}
+    volumes:
+      - ./caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    networks:
+      - web
 
 volumes:
   postgres_data:
     driver: local
   uploads:
     driver: local
+  caddy_data:
+    driver: local
+  caddy_config:
+    driver: local
 
 networks:
   internal:
+    driver: bridge
+    internal: true
+  web:
     driver: bridge

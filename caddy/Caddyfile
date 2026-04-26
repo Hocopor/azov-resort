@@ -1,0 +1,41 @@
+{
+  auto_https disable_redirects
+}
+
+http://{$APP_DOMAIN} {
+  redir https://{$APP_DOMAIN}{uri} permanent
+}
+
+https://{$APP_DOMAIN} {
+  encode zstd gzip
+
+  @blocked {
+    path /.env*
+    path /docker-compose*
+    path /LIVE_PLAN.md
+    path /README.md
+    path /AGENTS.md
+    path /logs*
+  }
+  respond @blocked 404
+
+  request_body {
+    max_size 64MB
+  }
+
+  header {
+    -Server
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "SAMEORIGIN"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  }
+
+  reverse_proxy app:3000 {
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Real-IP {remote_host}
+  }
+}
