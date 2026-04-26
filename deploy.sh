@@ -199,10 +199,22 @@ validate_env() {
     info "APP_DOMAIN was not set explicitly. Using ${APP_DOMAIN}."
   fi
 
-  if [[ -z "${APP_PORT:-}" ]]; then
-    APP_PORT=4181
-    export APP_PORT
-    info "APP_PORT was not set explicitly. Using ${APP_PORT}."
+  if [[ -z "${APP_NETWORK_SUBNET:-}" ]]; then
+    APP_NETWORK_SUBNET="172.31.250.0/24"
+    export APP_NETWORK_SUBNET
+    info "APP_NETWORK_SUBNET was not set explicitly. Using ${APP_NETWORK_SUBNET}."
+  fi
+
+  if [[ -z "${APP_UPSTREAM_IP:-}" ]]; then
+    APP_UPSTREAM_IP="172.31.250.10"
+    export APP_UPSTREAM_IP
+    info "APP_UPSTREAM_IP was not set explicitly. Using ${APP_UPSTREAM_IP}."
+  fi
+
+  if [[ -z "${POSTGRES_UPSTREAM_IP:-}" ]]; then
+    POSTGRES_UPSTREAM_IP="172.31.250.11"
+    export POSTGRES_UPSTREAM_IP
+    info "POSTGRES_UPSTREAM_IP was not set explicitly. Using ${POSTGRES_UPSTREAM_IP}."
   fi
 
   if [[ "${NEXTAUTH_URL}" != https://* ]]; then
@@ -226,12 +238,8 @@ validate_env() {
     fail "NEXT_PUBLIC_SITE_URL host ($public_host) must match APP_DOMAIN ($APP_DOMAIN)."
   fi
 
-  if ! [[ "${APP_PORT}" =~ ^[0-9]+$ ]]; then
-    fail "APP_PORT must be a numeric TCP port."
-  fi
-
-  if (( APP_PORT < 1024 || APP_PORT > 65535 )); then
-    fail "APP_PORT must be between 1024 and 65535."
+  if [[ "${APP_UPSTREAM_IP}" == "${POSTGRES_UPSTREAM_IP}" ]]; then
+    fail "APP_UPSTREAM_IP and POSTGRES_UPSTREAM_IP must be different."
   fi
 
   log ".env validated"
@@ -338,7 +346,7 @@ show_summary() {
   echo
   echo "Admin URL: ${NEXT_PUBLIC_SITE_URL}/admin"
   echo "Admin email: ${ADMIN_EMAIL}"
-  echo "Local upstream for host reverse proxy: 127.0.0.1:${APP_PORT}"
+  echo "Static upstream for host reverse proxy: ${APP_UPSTREAM_IP}:3000"
   echo
   echo "Useful commands:"
   echo "  docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log"

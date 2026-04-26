@@ -13,7 +13,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
     networks:
-      - internal
+      internal:
+        ipv4_address: ${POSTGRES_UPSTREAM_IP:-172.31.250.11}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-azov_user} -d ${POSTGRES_DB:-azov_resort}"]
       interval: 10s
@@ -51,11 +52,10 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - internal
+      internal:
+        ipv4_address: ${APP_UPSTREAM_IP:-172.31.250.10}
     volumes:
       - uploads:/app/uploads
-    ports:
-      - "${APP_PORT:-4181}:3000"
     healthcheck:
       test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000 >/dev/null || exit 1"]
       interval: 30s
@@ -73,3 +73,6 @@ networks:
   internal:
     driver: bridge
     internal: true
+    ipam:
+      config:
+        - subnet: ${APP_NETWORK_SUBNET:-172.31.250.0/24}

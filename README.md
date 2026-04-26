@@ -8,18 +8,18 @@ This branch is intended for direct public deployment without Cloudflare Tunnel a
 
 Traffic flow:
 
-`Internet -> host Caddy/Nginx on VPS -> VPS:APP_PORT -> Next.js app container -> PostgreSQL container`
+`Internet -> host Caddy/Nginx on VPS -> static Docker IP of app container -> Next.js app -> PostgreSQL container`
 
-This avoids conflicts with neighbor sites on the same VPS, because this project does not occupy `80/443` and uses its own dedicated upstream port such as `4181`.
+This avoids conflicts with neighbor sites on the same VPS, because this project does not occupy `80/443` and does not rely on Docker host-port publishing for the app.
 
 ## Security model
 
-- Docker exposes the app on its own dedicated host port `${APP_PORT}`
+- the app gets a fixed Docker IP such as `${APP_UPSTREAM_IP}`
 - PostgreSQL stays on an internal-only Docker network
 - the Next.js app is never published directly to the internet
 - the host reverse proxy handles HTTPS certificates and domain routing
 - deploy script can configure UFW to allow only `OpenSSH`, `80/tcp`, `443/tcp`
-- external access to `${APP_PORT}` is blocked by UFW defaults
+- the host reverse proxy talks to the app by its fixed Docker IP
 
 ## Required DNS
 
@@ -39,7 +39,9 @@ cp .env.example .env
 Important variables:
 
 - `APP_DOMAIN=your-domain.ru`
-- `APP_PORT=4181`
+- `APP_NETWORK_SUBNET=172.31.250.0/24`
+- `APP_UPSTREAM_IP=172.31.250.10`
+- `POSTGRES_UPSTREAM_IP=172.31.250.11`
 - `NEXTAUTH_URL=https://your-domain.ru`
 - `NEXT_PUBLIC_SITE_URL=https://your-domain.ru`
 - `POSTGRES_PASSWORD=...`
@@ -86,11 +88,11 @@ For Caddy, point the domain to the app:
 
 ```caddyfile
 your-domain.ru {
-  reverse_proxy 127.0.0.1:4181
+  reverse_proxy 172.31.250.10:3000
 }
 ```
 
-If another project already uses `4180`, keep this one on `4181` or choose another free host port.
+If the chosen Docker subnet conflicts with another network on the VPS, change `APP_NETWORK_SUBNET`, `APP_UPSTREAM_IP`, and `POSTGRES_UPSTREAM_IP` together in `.env`.
 
 ## Useful commands
 
@@ -121,10 +123,10 @@ docker compose exec -T app ./node_modules/.bin/prisma db push
 ## Docker services
 
 - `postgres` - PostgreSQL 16
-- `app` - Next.js application bound to its own host port
+- `app` - Next.js application reachable by fixed Docker IP
 
 ## Notes
 
 - Uploaded media is stored in the `uploads` Docker volume.
 - If you change the domain, also update OAuth redirect URLs and payment webhooks.
-- If you change `APP_PORT`, update the host Caddy/Nginx upstream too.
+- If you change `APP_NETWORK_SUBNET` or `APP_UPSTREAM_IP`, update the host Caddy/Nginx upstream too.
