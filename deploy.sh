@@ -296,10 +296,27 @@ wait_for_postgres() {
   log "PostgreSQL is ready"
 }
 
+has_prisma_migrations() {
+  local migrations_dir="$ROOT_DIR/app/prisma/migrations"
+
+  if [[ ! -d "$migrations_dir" ]]; then
+    return 1
+  fi
+
+  find "$migrations_dir" -mindepth 1 -maxdepth 1 | grep -q .
+}
+
 run_migrations() {
-  info "Running Prisma migrations..."
-  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma migrate deploy
-  log "Prisma migrations applied"
+  if has_prisma_migrations; then
+    info "Running Prisma migrations..."
+    run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma migrate deploy
+    log "Prisma migrations applied"
+    return
+  fi
+
+  warn "Prisma migrations are missing or empty. Applying schema with prisma db push for first-run setup."
+  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma db push
+  log "Prisma schema pushed to database"
 }
 
 run_seed() {
