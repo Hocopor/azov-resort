@@ -8,17 +8,18 @@ This branch is intended for direct public deployment without Cloudflare Tunnel a
 
 Traffic flow:
 
-`Internet -> host Caddy/Nginx on VPS -> 127.0.0.1:APP_PORT -> Next.js app container -> PostgreSQL container`
+`Internet -> host Caddy/Nginx on VPS -> VPS:APP_PORT -> Next.js app container -> PostgreSQL container`
 
-This avoids conflicts with neighbor sites on the same VPS, because this project only binds a localhost port such as `127.0.0.1:4181`.
+This avoids conflicts with neighbor sites on the same VPS, because this project does not occupy `80/443` and uses its own dedicated upstream port such as `4181`.
 
 ## Security model
 
-- Docker exposes the app only on `127.0.0.1:${APP_PORT}`
+- Docker exposes the app on its own dedicated host port `${APP_PORT}`
 - PostgreSQL stays on an internal-only Docker network
 - the Next.js app is never published directly to the internet
 - the host reverse proxy handles HTTPS certificates and domain routing
 - deploy script can configure UFW to allow only `OpenSSH`, `80/tcp`, `443/tcp`
+- external access to `${APP_PORT}` is blocked by UFW defaults
 
 ## Required DNS
 
@@ -89,7 +90,7 @@ your-domain.ru {
 }
 ```
 
-If another project already uses `127.0.0.1:4180`, keep this one on `127.0.0.1:4181` or choose another free localhost port.
+If another project already uses `4180`, keep this one on `4181` or choose another free host port.
 
 ## Useful commands
 
@@ -120,7 +121,7 @@ docker compose exec -T app ./node_modules/.bin/prisma db push
 ## Docker services
 
 - `postgres` - PostgreSQL 16
-- `app` - Next.js application bound to localhost only
+- `app` - Next.js application bound to its own host port
 
 ## Notes
 
