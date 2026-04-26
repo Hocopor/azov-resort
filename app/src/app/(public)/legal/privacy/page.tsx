@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { getSettings } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Политика конфиденциальности' }
@@ -9,7 +9,7 @@ export default async function PrivacyPage() {
   const settings = await getSettings(['site_name', 'site_phone', 'site_address', 'admin_email'])
   const siteName = settings.site_name || 'Отдых на Азове'
   const phone = settings.site_phone || '+7 (XXX) XXX-XX-XX'
-  const address = settings.site_address || 'Краснодарский край'
+  const address = normalizeSiteAddress(settings.site_address)
 
   return (
     <div className="min-h-screen bg-sand-50">

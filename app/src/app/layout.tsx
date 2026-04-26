@@ -2,12 +2,12 @@ import type { Metadata, Viewport } from 'next'
 import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ToastProvider } from '@/components/providers/ToastProvider'
-import { getSettings } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings(['site_name', 'site_address', 'hero_subtitle', 'og_image'])
   const siteName = settings.site_name || 'Отдых на Азове'
-  const siteAddress = settings.site_address || 'Азовское море'
+  const siteAddress = normalizeSiteAddress(settings.site_address)
   const ogImage = settings.og_image || '/images/general/og-image.jpg'
   const metadataBase = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000')
 

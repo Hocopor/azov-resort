@@ -1,6 +1,6 @@
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { getSettings } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 
 export const dynamic = 'force-dynamic'
 
@@ -17,7 +17,7 @@ export default async function PublicLayout({ children }: { children: React.React
       <Footer
         siteName={settings.site_name || 'Отдых на Азове'}
         sitePhone={settings.site_phone || '+7 (XXX) XXX-XX-XX'}
-        siteAddress={settings.site_address || 'Краснодарский край, Темрюкский район, посёлок Кучугуры, ул. Зелёная 26.'}
+        siteAddress={normalizeSiteAddress(settings.site_address)}
       />
     </>
   )

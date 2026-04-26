@@ -2,7 +2,7 @@ import { CSSProperties } from 'react'
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
-import { getSettings } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
 import { AppImage } from '@/components/ui/AppImage'
 import {
@@ -112,8 +112,7 @@ export default async function HomePage() {
     settings.about_image_3 || '/images/general/about-3.jpg',
     settings.about_image_4 || '/images/general/about-4.jpg',
   ]
-  const siteAddress =
-    settings.site_address || 'Краснодарский край, Темрюкский район, посёлок Кучугуры, ул. Зелёная 26.'
+  const siteAddress = normalizeSiteAddress(settings.site_address)
 
   const features = [
     { icon: Waves, label: 'Море рядом', desc: 'Пляж в 5 минутах ходьбы', color: 'text-sea-600 bg-sea-50' },
