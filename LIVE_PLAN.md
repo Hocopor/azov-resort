@@ -1,44 +1,51 @@
-[x] Phase 1. Подготовка отдельной ветки для прямого деплоя
-- [x] Проверить текущее состояние репозитория и существующую схему деплоя
-- [x] Создать отдельную ветку `deploy/direct-domain-secure`
-- [x] Опубликовать отдельную ветку под прямой деплой без Cloudflare Tunnel
-- [x] Убедиться, что изменения изолированы от `main`
+[x] Phase 1. Direct deploy branch
+- [x] Check current repo state and deployment scheme
+- [x] Create branch `deploy/direct-domain-secure`
+- [x] Publish separate branch without Cloudflare Tunnel
+- [x] Keep changes isolated from `main`
 
-[x] Phase 2. Перевод деплоя на прямой HTTPS-доступ
-- [x] Найти текущие точки завязки на `cloudflared`
-- [x] Перевести ветку на прямой доменный доступ без конфликта с соседними сайтами на VPS
-- [x] Оставить приложение и PostgreSQL только во внутренней сети Docker
-- [x] Обновить docker compose и deploy script под новый режим
+[x] Phase 2. Direct HTTPS deployment path
+- [x] Find Cloudflare Tunnel dependencies
+- [x] Move branch to direct domain access without conflict with neighbor sites on the VPS
+- [x] Keep app and PostgreSQL inside Docker internal networking
+- [x] Update docker compose and deploy script for the new mode
 
-[x] Phase 3. Усиление безопасности VPS-деплоя
-- [x] Включить безопасные HTTP-заголовки и HTTPS-redirect
-- [x] Ограничить внешние порты до SSH, 80 и 443
-- [x] Добавить безопасную базовую настройку firewall в deploy script
-- [x] Проверить, что секреты и внутренние сервисы не торчат наружу
+[x] Phase 3. VPS security baseline
+- [x] Enable secure HTTP headers and HTTPS redirect strategy
+- [x] Limit exposed ports to SSH, 80, 443
+- [x] Add baseline firewall configuration to deploy script
+- [x] Verify secrets and internal services are not exposed publicly
 
-[~] Phase 4. Документация и проверка
-- [x] Обновить `.env.example` и README под новый способ подключения домена
-- [x] Проверить `docker compose config`
-- [x] Проверить build/скрипты локально
-- [x] Зафиксировать, что нужно сделать на VPS после pull
-- [x] Устранить сбой first-run deploy при пустых Prisma migrations
-- [~] Устранить несовместимость bind на `127.0.0.1:${APP_PORT}` на конкретном VPS
+[~] Phase 4. Deployment verification and ops hardening
+- [x] Update `.env.example` and `README.md` for the new domain setup
+- [x] Validate `docker compose config`
+- [x] Validate shell scripts locally
+- [x] Document required VPS steps after `git pull`
+- [x] Fix first-run deploy when Prisma migrations are empty
+- [~] Stabilize reverse proxy upstream strategy for this VPS
+
+[~] Phase 5. Dynamic room pricing by period
+- [x] Design price-period model without breaking existing bookings
+- [x] Add Prisma storage for room price periods and booking price snapshots
+- [x] Update room admin UI to edit multiple date-based prices
+- [x] Rework booking calculations to sum nightly prices across mixed periods
+- [x] Keep existing and cancelled bookings on their original prices
+- [x] Show active price range on room cards/pages
+- [x] Show per-day prices inside the booking calendar
+- [~] Verify totals, deposits, admin views, and booking history
 
 Blockers
-- `LIVE_PLAN.md` отсутствовал в репозитории, создан заново по правилам проекта.
-- Локально не удалось прогнать `caddy validate` через Docker, потому что Docker Desktop daemon на этой машине сейчас не поднят. `docker compose config` и `bash -n deploy.sh` при этом прошли.
+- `LIVE_PLAN.md` had broken encoding and was normalized.
+- Local Caddy validation through Docker was not possible earlier because the local Docker Desktop daemon was unavailable.
 
 Next Steps
-- На VPS подключить домен в существующем host-level Caddy или Nginx на upstream статического IP контейнера.
-- Убрать зависимость от Docker port publishing на этом VPS и перейти на фиксированный IP контейнера в bridge-сети.
-- При желании позже усилить VPS ещё и через fail2ban, но это отдельный шаг вне текущего минимума.
+- Finalize the reverse proxy upstream strategy used on the VPS.
+- Deploy the pricing changes and run `prisma db push` on the VPS.
+- Manually verify mixed-period bookings, admin manual booking totals, and saved booking history on the live environment.
 
 Durable Notes
-- Это стабилизация и отдельный deployment path, а не переработка приложения.
-- `main` не трогаем логически: новый режим деплоя выносим в отдельную ветку.
-- Цель: прямой доступ по домену без Cloudflare Tunnel, с упором на безопасность и воспроизводимый деплой на Ubuntu 24.
-- Уточнение по VPS-соседству: проект не занимает 80/443 внутри своего compose, потому что на сервере уже есть другие сайты за общим Caddy/Nginx.
-- Итоговый режим: приложение публикуется только на `127.0.0.1:<APP_PORT>`, а внешний Caddy/Nginx на хосте проксирует домен в этот порт.
-- Для первого развёртывания нельзя полагаться только на `prisma migrate deploy`, если `app/prisma/migrations` пустая: в этом случае нужно автоматически выполнять `prisma db push` до seed.
-- Практическое уточнение: на данном VPS bind именно к `127.0.0.1:${APP_PORT}` не работает корректно, хотя port binding числится в Docker. Для надёжности upstream лучше публиковать как `${APP_PORT}:3000` и полагаться на UFW, который уже закрывает все внешние порты кроме 22/80/443.
-- Более надёжный обход для этого VPS: вообще не использовать Docker port publishing для приложения, а закрепить за контейнером фиксированный IP в Docker bridge-сети и проксировать в него с хоста.
+- This is stabilization and extension of the current implementation, not a redesign.
+- Deployment changes stay isolated from `main` in the separate branch.
+- Existing bookings must preserve their original amounts even if room prices change later.
+- Dynamic pricing must support bookings that span multiple pricing periods with correct nightly totals.
+- Price periods for one room must never overlap; admin should see a warning and the save must be rejected until periods are corrected.

@@ -1,15 +1,16 @@
 import { Metadata } from 'next'
+import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/db'
 import { formatMoney } from '@/lib/utils'
 import { getSettings } from '@/lib/settings'
+import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { BookingForm } from '@/components/rooms/BookingForm'
 import { RoomGallery } from '@/components/rooms/RoomGallery'
 import {
   Users, Maximize2, Wind, Tv, Refrigerator, UtensilsCrossed,
   Wifi, Car, Bike, Waves, CheckCircle, ArrowLeft,
 } from 'lucide-react'
-import Link from 'next/link'
 
 interface Props {
   params: { id: string }
@@ -57,6 +58,9 @@ async function getRoomData(slug: string) {
     prisma.room.findUnique({
       where: { slug, isActive: true },
       include: {
+        pricePeriods: {
+          orderBy: { dateFrom: 'asc' },
+        },
         blockedDates: { where: { dateTo: { gte: new Date() } } },
         bookings: {
           where: {
@@ -89,6 +93,9 @@ export default async function RoomDetailPage({ params }: Props) {
       to: new Date(item.dateTo),
     })),
   ]
+
+  const normalizedPricePeriods = normalizeRoomPricePeriods(room.pricePeriods || [])
+  const priceRange = getRoomPriceRange(room.pricePerDay, normalizedPricePeriods)
 
   const amenitiesList = [
     { icon: Wifi, label: 'Wi-Fi бесплатно', always: true },
@@ -135,12 +142,21 @@ export default async function RoomDetailPage({ params }: Props) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</div>
-                  <div className="text-sm text-gray-400">за сутки</div>
+                  <div className="text-3xl font-bold text-sea-700">
+                    {priceRange.hasRange
+                      ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                      : formatMoney(priceRange.minPrice)}
+                  </div>
+                  <div className="text-sm text-gray-400">
+                    {priceRange.hasRange ? 'актуальная цена зависит от периода' : 'за сутки'}
+                  </div>
                 </div>
               </div>
 
-              <p className="text-gray-700 leading-relaxed text-lg mb-8">{room.description}</p>
+              <p className="text-gray-700 leading-relaxed text-lg mb-4">{room.description}</p>
+              {priceRange.hasRange && (
+                <p className="text-sm text-gray-500 mb-8">Если хотите актуальную стоимость — выберите период в календаре бронирования.</p>
+              )}
 
               <h2 className="font-display text-2xl font-semibold mb-5">Удобства</h2>
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -164,23 +180,31 @@ export default async function RoomDetailPage({ params }: Props) {
           <div className="mt-8 lg:mt-0" id="booking">
             <div className="card p-6 sticky top-28">
               <h2 className="font-display text-2xl font-semibold text-gray-900 mb-2">Забронировать</h2>
-              <div className="flex items-baseline gap-1 mb-6">
-                <span className="text-2xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</span>
+              <div className="flex items-baseline gap-1 mb-2">
+                <span className="text-2xl font-bold text-sea-700">
+                  {priceRange.hasRange
+                    ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                    : formatMoney(priceRange.minPrice)}
+                </span>
                 <span className="text-gray-400 text-sm">/ сутки</span>
               </div>
+              {priceRange.hasRange && (
+                <p className="mb-6 text-xs text-gray-500">Выберите даты — итог посчитается по дням с учётом всех периодов.</p>
+              )}
               <BookingForm
                 roomId={room.id}
                 roomSlug={room.slug}
                 roomName={room.name}
-                pricePerDay={room.pricePerDay}
+                basePricePerDay={room.pricePerDay}
+                pricePeriods={room.pricePeriods}
                 maxGuests={room.capacity}
                 occupiedRanges={occupiedRanges}
                 depositSettings={{
                   type: (settings.deposit_type as 'PERCENT' | 'FIXED') || 'PERCENT',
-                  percent: parseInt(settings.deposit_percent || '30'),
-                  fixed: parseInt(settings.deposit_fixed || '200000'),
+                  percent: parseInt(settings.deposit_percent || '30', 10),
+                  fixed: parseInt(settings.deposit_fixed || '200000', 10),
                 }}
-                minNights={parseInt(settings.min_booking_days || '1')}
+                minNights={parseInt(settings.min_booking_days || '1', 10)}
               />
             </div>
           </div>

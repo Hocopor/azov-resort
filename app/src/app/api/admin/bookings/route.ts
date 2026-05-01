@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseISO, differenceInCalendarDays } from 'date-fns'
+import { z } from 'zod'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { getDepositSettings, calculateDeposit } from '@/lib/settings'
-import { parseISO, differenceInCalendarDays } from 'date-fns'
-import { z } from 'zod'
+import {
+  buildNightlyPriceBreakdown,
+  calculateNightlyBreakdownTotal,
+  normalizeRoomPricePeriods,
+} from '@/lib/pricing'
 
 const schema = z.object({
   roomId: z.string(),
@@ -42,10 +48,16 @@ export async function POST(req: NextRequest) {
   const checkOut = parseISO(data.checkOut)
   const nights = differenceInCalendarDays(checkOut, checkIn)
 
-  const room = await prisma.room.findUnique({ where: { id: data.roomId } })
+  const room = await prisma.room.findUnique({
+    where: { id: data.roomId },
+    include: { pricePeriods: true },
+  })
   if (!room) return NextResponse.json({ error: 'Номер не найден' }, { status: 404 })
 
-  const totalPrice = data.totalPrice ?? room.pricePerDay * nights
+  const normalizedPricePeriods = normalizeRoomPricePeriods(room.pricePeriods)
+  const priceBreakdown = buildNightlyPriceBreakdown(checkIn, checkOut, room.pricePerDay, normalizedPricePeriods)
+  const calculatedTotalPrice = calculateNightlyBreakdownTotal(priceBreakdown)
+  const totalPrice = data.totalPrice ?? calculatedTotalPrice
   const depositSettings = await getDepositSettings()
   const depositAmount = calculateDeposit(totalPrice, depositSettings)
 
@@ -65,6 +77,7 @@ export async function POST(req: NextRequest) {
       guestEmail: data.guestEmail || null,
       comment: data.comment,
       totalPrice,
+      priceBreakdown: priceBreakdown as unknown as Prisma.InputJsonValue,
       depositAmount,
       depositType: depositSettings.type,
       depositValue: depositSettings.type === 'PERCENT' ? depositSettings.percent : depositSettings.fixed,

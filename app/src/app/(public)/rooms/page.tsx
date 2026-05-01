@@ -2,6 +2,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { formatMoney } from '@/lib/utils'
+import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { Waves, Wind, Tv, Refrigerator, UtensilsCrossed, Users, Maximize2, CheckCircle } from 'lucide-react'
 import { AppImage } from '@/components/ui/AppImage'
 
@@ -39,6 +40,11 @@ async function getRooms() {
   return prisma.room.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
+    include: {
+      pricePeriods: {
+        orderBy: { dateFrom: 'asc' },
+      },
+    },
   })
 }
 
@@ -71,6 +77,7 @@ export default async function RoomsPage() {
           <div className="space-y-8">
             {rooms.map((room) => {
               const customAmenities = normalizeAmenities(room.amenities)
+              const priceRange = getRoomPriceRange(room.pricePerDay, normalizeRoomPricePeriods(room.pricePeriods || []))
               const previewAmenities =
                 customAmenities.length > 0
                   ? customAmenities.slice(0, 7)
@@ -119,8 +126,14 @@ export default async function RoomsPage() {
                           <p className="text-gray-500 mt-1">{room.shortDescription}</p>
                         </div>
                         <div className="text-right flex-shrink-0">
-                          <div className="text-2xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</div>
-                          <div className="text-xs text-gray-400">за сутки</div>
+                          <div className="text-2xl font-bold text-sea-700">
+                            {priceRange.hasRange
+                              ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                              : formatMoney(priceRange.minPrice)}
+                          </div>
+                          <div className="text-xs text-gray-400">
+                            {priceRange.hasRange ? 'если хотите актуальную стоимость — выберите период' : 'за сутки'}
+                          </div>
                         </div>
                       </div>
 

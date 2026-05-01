@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
+import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { AppImage } from '@/components/ui/AppImage'
 import {
   Waves, Star, Shield, Car, Bike, Wifi, ChefHat,
@@ -53,6 +54,11 @@ async function getHomeData() {
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       take: 4,
+      include: {
+        pricePeriods: {
+          orderBy: { dateFrom: 'asc' },
+        },
+      },
     }),
     getSettings([
       'hero_title',
@@ -321,7 +327,10 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {rooms.map((room) => (
+            {rooms.map((room) => {
+              const priceRange = getRoomPriceRange(room.pricePerDay, normalizeRoomPricePeriods(room.pricePeriods || []))
+
+              return (
               <Link key={room.id} href={`/rooms/${room.slug}`} className="card card-hover group">
                 <div className="relative h-48 bg-gradient-to-br from-sea-100 to-sea-200 overflow-hidden">
                   {room.images[0] ? (
@@ -352,14 +361,20 @@ export default async function HomePage() {
                   <p className="text-xs text-gray-500 mb-4 line-clamp-2">{room.shortDescription}</p>
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</span>
-                      <span className="text-xs text-gray-400"> / сутки</span>
+                      <span className="text-xl font-bold text-sea-700">
+                        {priceRange.hasRange
+                          ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                          : formatMoney(priceRange.minPrice)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {priceRange.hasRange ? ' / выберите период' : ' / сутки'}
+                      </span>
                     </div>
                     <span className="text-xs font-semibold text-coral-600 group-hover:underline">Подробнее →</span>
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
 
           <div className="text-center mt-8 sm:hidden">

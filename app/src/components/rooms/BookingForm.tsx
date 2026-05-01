@@ -1,16 +1,30 @@
 'use client'
-import { useState, useMemo } from 'react'
+
+import { useMemo, useState } from 'react'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { addDays, isBefore, isWithinInterval } from 'date-fns'
 import { DayPicker, DateRange } from 'react-day-picker'
 import { ru } from 'date-fns/locale'
-import { addDays, differenceInCalendarDays, isWithinInterval, isBefore } from 'date-fns'
-import { formatMoney, formatDate, countNights, nightsLabel, guestsLabel, calculateDeposit } from '@/lib/utils'
+import {
+  formatMoney,
+  formatDate,
+  countNights,
+  nightsLabel,
+  guestsLabel,
+  calculateDeposit,
+} from '@/lib/utils'
+import {
+  buildNightlyPriceBreakdown,
+  calculateNightlyBreakdownTotal,
+  getNightlyPrice,
+  normalizeRoomPricePeriods,
+} from '@/lib/pricing'
 import { useToast } from '@/components/providers/ToastProvider'
-import { Calendar, User, Phone, Mail, Users, PawPrint, Car, MessageSquare, Loader2, AlertCircle } from 'lucide-react'
+import { Calendar, User, Users, PawPrint, Car, MessageSquare, Loader2, AlertCircle } from 'lucide-react'
 import 'react-day-picker/style.css'
 
 const schema = z.object({
@@ -30,14 +44,29 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-interface OccupiedRange { from: Date; to: Date }
-interface DepositSettings { type: 'PERCENT' | 'FIXED'; percent: number; fixed: number }
+interface OccupiedRange {
+  from: Date
+  to: Date
+}
+
+interface DepositSettings {
+  type: 'PERCENT' | 'FIXED'
+  percent: number
+  fixed: number
+}
+
+interface RoomPricePeriod {
+  pricePerDay: number
+  dateFrom: string | Date
+  dateTo: string | Date
+}
 
 interface Props {
   roomId: string
   roomSlug: string
   roomName: string
-  pricePerDay: number
+  basePricePerDay: number
+  pricePeriods: RoomPricePeriod[]
   maxGuests: number
   occupiedRanges: OccupiedRange[]
   depositSettings: DepositSettings
@@ -45,7 +74,15 @@ interface Props {
 }
 
 export function BookingForm({
-  roomId, roomSlug, roomName, pricePerDay, maxGuests, occupiedRanges, depositSettings, minNights
+  roomId,
+  roomSlug,
+  roomName,
+  basePricePerDay,
+  pricePeriods,
+  maxGuests,
+  occupiedRanges,
+  depositSettings,
+  minNights,
 }: Props) {
   const { data: session } = useSession()
   const router = useRouter()
@@ -53,6 +90,11 @@ export function BookingForm({
   const [range, setRange] = useState<DateRange | undefined>()
   const [step, setStep] = useState<'calendar' | 'form'>('calendar')
   const [loading, setLoading] = useState(false)
+
+  const normalizedPricePeriods = useMemo(
+    () => normalizeRoomPricePeriods(pricePeriods || []),
+    [pricePeriods],
+  )
 
   const { register, handleSubmit, watch, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -71,49 +113,57 @@ export function BookingForm({
   const transferUnknown = watch('transferUnknown')
   const hasPets = watch('hasPets')
 
-  // Calculate disabled days
   const disabledDays = useMemo(() => {
     const disabled: Date[] = []
-    // Past days
     const yesterday = new Date()
     yesterday.setDate(yesterday.getDate() - 1)
     disabled.push({ before: yesterday } as any)
 
-    // Occupied ranges
-    occupiedRanges.forEach((r) => {
-      let d = new Date(r.from)
-      while (isBefore(d, r.to)) {
-        disabled.push(new Date(d))
-        d = addDays(d, 1)
+    occupiedRanges.forEach((occupiedRange) => {
+      let currentDay = new Date(occupiedRange.from)
+      while (isBefore(currentDay, occupiedRange.to)) {
+        disabled.push(new Date(currentDay))
+        currentDay = addDays(currentDay, 1)
       }
     })
+
     return disabled
   }, [occupiedRanges])
 
   const isRangeOccupied = (from: Date, to: Date): boolean => {
-    return occupiedRanges.some((r) => {
-      return (
-        isWithinInterval(from, { start: r.from, end: addDays(r.to, -1) }) ||
-        isWithinInterval(to, { start: addDays(r.from, 1), end: r.to }) ||
-        (isBefore(from, r.from) && isBefore(r.to, to))
-      )
-    })
+    return occupiedRanges.some((occupiedRange) => (
+      isWithinInterval(from, { start: occupiedRange.from, end: addDays(occupiedRange.to, -1) }) ||
+      isWithinInterval(to, { start: addDays(occupiedRange.from, 1), end: occupiedRange.to }) ||
+      (isBefore(from, occupiedRange.from) && isBefore(occupiedRange.to, to))
+    ))
   }
 
   const nights = range?.from && range?.to ? countNights(range.from, range.to) : 0
-  const totalPrice = pricePerDay * nights
+  const priceBreakdown = useMemo(() => {
+    if (!range?.from || !range?.to || nights < 1) {
+      return []
+    }
+
+    return buildNightlyPriceBreakdown(range.from, range.to, basePricePerDay, normalizedPricePeriods)
+  }, [basePricePerDay, nights, normalizedPricePeriods, range?.from, range?.to])
+  const totalPrice = priceBreakdown.length > 0 ? calculateNightlyBreakdownTotal(priceBreakdown) : 0
   const depositAmount = calculateDeposit(totalPrice, depositSettings)
 
-  const handleRangeSelect = (r: DateRange | undefined) => {
-    if (r?.from && r?.to && isRangeOccupied(r.from, r.to)) {
+  const handleRangeSelect = (nextRange: DateRange | undefined) => {
+    if (nextRange?.from && nextRange?.to && isRangeOccupied(nextRange.from, nextRange.to)) {
       showError('Выбранный период недоступен — часть дат занята')
       setRange(undefined)
       return
     }
-    if (r?.from && r?.to && nights < minNights) {
-      showError(`Минимальное бронирование — ${minNights} ${nightsLabel(minNights)}`)
+
+    if (nextRange?.from && nextRange?.to) {
+      const selectedNights = countNights(nextRange.from, nextRange.to)
+      if (selectedNights < minNights) {
+        showError(`Минимальное бронирование — ${minNights} ${nightsLabel(minNights)}`)
+      }
     }
-    setRange(r)
+
+    setRange(nextRange)
   }
 
   const onSubmit = async (data: FormData) => {
@@ -121,6 +171,7 @@ export function BookingForm({
       showError('Выберите даты заезда и выезда')
       return
     }
+
     if (nights < minNights) {
       showError(`Минимальный срок — ${minNights} ${nightsLabel(minNights)}`)
       return
@@ -148,8 +199,8 @@ export function BookingForm({
         success('Бронь создана! Перенаправляем...')
         router.push(`/account/bookings?new=${result.bookingId}`)
       }
-    } catch (e: any) {
-      showError(e.message || 'Произошла ошибка. Попробуйте снова.')
+    } catch (error: any) {
+      showError(error.message || 'Произошла ошибка. Попробуйте снова.')
     } finally {
       setLoading(false)
     }
@@ -157,10 +208,9 @@ export function BookingForm({
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-      {/* Step 1: Calendar */}
       {step === 'calendar' && (
         <div>
-          <div className="flex items-center gap-2 mb-4 text-sm font-medium text-gray-700">
+          <div className="mb-4 flex items-center gap-2 text-sm font-medium text-gray-700">
             <Calendar className="w-4 h-4 text-sea-600" />
             Выберите даты заезда и выезда
           </div>
@@ -178,15 +228,32 @@ export function BookingForm({
                 selected: 'rdp-day_selected',
                 range_middle: 'rdp-day_range_middle',
               }}
+              components={{
+                DayButton: ({ day, modifiers, children, ...buttonProps }: any) => {
+                  const date = day.date as Date
+                  const disabled = Boolean(modifiers?.disabled)
+                  const dailyPrice = getNightlyPrice(basePricePerDay, normalizedPricePeriods, date)
+
+                  return (
+                    <button {...buttonProps} className={buttonProps.className}>
+                      <div className="flex min-h-[42px] w-full flex-col items-center justify-center leading-none">
+                        <span className="text-[12px]">{children}</span>
+                        {!disabled && (
+                          <span className="mt-1 text-[9px] text-gray-500">{Math.round(dailyPrice / 100)}</span>
+                        )}
+                      </div>
+                    </button>
+                  )
+                },
+              }}
               styles={{
                 root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif' },
               }}
             />
           </div>
 
-          {/* Selected dates summary */}
           {range?.from && range?.to && (
-            <div className="mt-4 p-4 bg-sea-50 rounded-2xl border border-sea-100">
+            <div className="mt-4 rounded-2xl border border-sea-100 bg-sea-50 p-4">
               <div className="grid grid-cols-2 gap-3 text-sm mb-3">
                 <div>
                   <div className="text-gray-400 text-xs mb-0.5">Заезд</div>
@@ -197,10 +264,16 @@ export function BookingForm({
                   <div className="font-semibold text-gray-900">{formatDate(range.to)}</div>
                 </div>
               </div>
-              <div className="border-t border-sea-200 pt-3 space-y-1.5">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">{formatMoney(pricePerDay)} × {nightsLabel(nights)}</span>
-                  <span className="font-medium">{formatMoney(totalPrice)}</span>
+              <div className="space-y-1.5 border-t border-sea-200 pt-3">
+                {priceBreakdown.map((item) => (
+                  <div key={item.date} className="flex justify-between text-sm">
+                    <span className="text-gray-500">{item.date}</span>
+                    <span className="font-medium">{formatMoney(item.pricePerDay)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between text-sm pt-1">
+                  <span className="text-gray-500">{nightsLabel(nights)}</span>
+                  <span className="font-semibold">{formatMoney(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-500">
@@ -224,10 +297,8 @@ export function BookingForm({
         </div>
       )}
 
-      {/* Step 2: Form */}
       {step === 'form' && (
         <div className="space-y-5">
-          {/* Back / Summary */}
           <div className="p-4 bg-sea-50 rounded-2xl border border-sea-100">
             <div className="flex items-center justify-between mb-2">
               <button type="button" onClick={() => setStep('calendar')} className="text-sea-700 text-sm font-medium hover:underline">
@@ -249,40 +320,24 @@ export function BookingForm({
             </div>
           )}
 
-          {/* Guest info */}
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <User className="w-4 h-4 text-sea-600" /> Данные гостя
             </h3>
             <div>
-              <input
-                {...register('guestName')}
-                placeholder="Имя и фамилия *"
-                className="input-field"
-              />
+              <input {...register('guestName')} placeholder="Имя и фамилия *" className="input-field" />
               {errors.guestName && <p className="text-red-500 text-xs mt-1">{errors.guestName.message}</p>}
             </div>
             <div>
-              <input
-                {...register('guestPhone')}
-                placeholder="Номер телефона *"
-                type="tel"
-                className="input-field"
-              />
+              <input {...register('guestPhone')} placeholder="Номер телефона *" type="tel" className="input-field" />
               {errors.guestPhone && <p className="text-red-500 text-xs mt-1">{errors.guestPhone.message}</p>}
             </div>
             <div>
-              <input
-                {...register('guestEmail')}
-                placeholder="Email (необязательно)"
-                type="email"
-                className="input-field"
-              />
+              <input {...register('guestEmail')} placeholder="Email (необязательно)" type="email" className="input-field" />
               {errors.guestEmail && <p className="text-red-500 text-xs mt-1">{errors.guestEmail.message}</p>}
             </div>
           </div>
 
-          {/* Guests & preferences */}
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <Users className="w-4 h-4 text-sea-600" /> О проживании
@@ -290,8 +345,8 @@ export function BookingForm({
             <div>
               <label className="text-xs text-gray-500 mb-1 block">Количество гостей *</label>
               <select {...register('guests', { valueAsNumber: true })} className="input-field">
-                {Array.from({ length: maxGuests }, (_, i) => i + 1).map((n) => (
-                  <option key={n} value={n}>{guestsLabel(n)}</option>
+                {Array.from({ length: maxGuests }, (_, index) => index + 1).map((guestCount) => (
+                  <option key={guestCount} value={guestCount}>{guestsLabel(guestCount)}</option>
                 ))}
               </select>
             </div>
@@ -317,7 +372,6 @@ export function BookingForm({
             </label>
           </div>
 
-          {/* Transfer */}
           <div className="space-y-3">
             <h3 className="font-semibold text-gray-800 flex items-center gap-2">
               <Car className="w-4 h-4 text-sea-600" /> Трансфер
@@ -349,19 +403,10 @@ export function BookingForm({
                     />
                   </>
                 )}
-
-                {transferUnknown && (
-                  <div className="p-3 bg-blue-50 rounded-xl text-xs text-blue-700 border border-blue-100">
-                    {countNights(new Date(), range?.from || new Date()) >= 14
-                      ? '📞 За 14 дней до заезда мы свяжемся с вами по телефону для уточнения деталей трансфера.'
-                      : '📞 В ближайшее время мы свяжемся с вами для уточнения деталей трансфера.'}
-                  </div>
-                )}
               </div>
             )}
           </div>
 
-          {/* Comment */}
           <div>
             <h3 className="font-semibold text-gray-800 flex items-center gap-2 mb-2">
               <MessageSquare className="w-4 h-4 text-sea-600" /> Комментарий
@@ -374,17 +419,9 @@ export function BookingForm({
             />
           </div>
 
-          {/* Deposit note */}
           <div className="p-4 bg-sand-100 rounded-2xl border border-sand-200 text-sm text-gray-600">
             <p className="font-medium text-gray-800 mb-1">Условия оплаты</p>
             <p>Сейчас оплачивается депозит <strong>{formatMoney(depositAmount)}</strong>. Оставшаяся сумма <strong>{formatMoney(totalPrice - depositAmount)}</strong> оплачивается при заезде.</p>
-          </div>
-
-          <div className="text-xs text-gray-400 leading-relaxed">
-            Нажимая «Перейти к оплате», вы соглашаетесь с{' '}
-            <a href="/legal/booking-terms" target="_blank" className="underline hover:text-gray-600">условиями бронирования</a>{' '}
-            и{' '}
-            <a href="/legal/privacy" target="_blank" className="underline hover:text-gray-600">политикой конфиденциальности</a>.
           </div>
 
           <button

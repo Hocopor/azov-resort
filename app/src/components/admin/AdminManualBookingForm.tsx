@@ -1,14 +1,20 @@
 'use client'
-import { useState } from 'react'
+import Link from 'next/link'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
-import { formatMoney } from '@/lib/utils'
-import { useToast } from '@/components/providers/ToastProvider'
 import { Loader2, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import { formatMoney } from '@/lib/utils'
+import {
+  buildNightlyPriceBreakdown,
+  calculateNightlyBreakdownTotal,
+  getRoomPriceRange,
+  normalizeRoomPricePeriods,
+} from '@/lib/pricing'
+import { useToast } from '@/components/providers/ToastProvider'
 
 const schema = z.object({
   roomId: z.string().min(1, 'Выберите номер'),
@@ -31,11 +37,18 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
+interface RoomPricePeriod {
+  pricePerDay: number
+  dateFrom: string | Date
+  dateTo: string | Date
+}
+
 interface Room {
   id: string
   name: string
   pricePerDay: number
   capacity: number
+  pricePeriods: RoomPricePeriod[]
 }
 
 export function AdminManualBookingForm({ rooms }: { rooms: Room[] }) {
@@ -60,11 +73,38 @@ export function AdminManualBookingForm({ rooms }: { rooms: Room[] }) {
   const checkIn = watch('checkIn')
   const checkOut = watch('checkOut')
 
-  const selectedRoom = rooms.find((r) => r.id === roomId)
+  const selectedRoom = rooms.find((room) => room.id === roomId)
+  const normalizedPricePeriods = useMemo(
+    () => normalizeRoomPricePeriods(selectedRoom?.pricePeriods || []),
+    [selectedRoom],
+  )
+  const roomPriceRange = useMemo(
+    () => (
+      selectedRoom
+        ? getRoomPriceRange(selectedRoom.pricePerDay, normalizedPricePeriods)
+        : null
+    ),
+    [normalizedPricePeriods, selectedRoom],
+  )
+
   const nights = checkIn && checkOut
     ? Math.max(0, differenceInCalendarDays(parseISO(checkOut), parseISO(checkIn)))
     : 0
-  const totalPrice = selectedRoom ? selectedRoom.pricePerDay * nights : 0
+
+  const priceBreakdown = useMemo(() => {
+    if (!selectedRoom || !checkIn || !checkOut || nights < 1) {
+      return []
+    }
+
+    return buildNightlyPriceBreakdown(
+      parseISO(checkIn),
+      parseISO(checkOut),
+      selectedRoom.pricePerDay,
+      normalizedPricePeriods,
+    )
+  }, [checkIn, checkOut, nights, normalizedPricePeriods, selectedRoom])
+
+  const totalPrice = priceBreakdown.length > 0 ? calculateNightlyBreakdownTotal(priceBreakdown) : 0
 
   const onSubmit = async (data: FormData) => {
     setLoading(true)
@@ -91,16 +131,24 @@ export function AdminManualBookingForm({ rooms }: { rooms: Room[] }) {
         <ArrowLeft className="w-4 h-4" /> Назад к списку
       </Link>
 
-      {/* Room & Dates */}
       <div className="admin-card space-y-4">
         <h2 className="font-semibold text-gray-800">Номер и даты</h2>
         <div>
           <label className="text-xs text-gray-500 mb-1 block">Номер *</label>
           <select {...register('roomId')} className="input-field">
             <option value="">Выберите номер</option>
-            {rooms.map((r) => (
-              <option key={r.id} value={r.id}>{r.name} — {formatMoney(r.pricePerDay)}/ночь</option>
-            ))}
+            {rooms.map((room) => {
+              const range = getRoomPriceRange(room.pricePerDay, normalizeRoomPricePeriods(room.pricePeriods || []))
+              const label = range.hasRange
+                ? `${formatMoney(range.minPrice)}-${formatMoney(range.maxPrice)}`
+                : formatMoney(range.minPrice)
+
+              return (
+                <option key={room.id} value={room.id}>
+                  {room.name} — {label}
+                </option>
+              )
+            })}
           </select>
           {errors.roomId && <p className="text-red-500 text-xs mt-1">{errors.roomId.message}</p>}
         </div>
@@ -116,17 +164,28 @@ export function AdminManualBookingForm({ rooms }: { rooms: Room[] }) {
             {errors.checkOut && <p className="text-red-500 text-xs mt-1">{errors.checkOut.message}</p>}
           </div>
         </div>
+        {selectedRoom && roomPriceRange && (
+          <p className="text-xs text-gray-500">
+            Базовая цена: {formatMoney(selectedRoom.pricePerDay)}.
+            {roomPriceRange.hasRange ? ` Активный диапазон цен: ${formatMoney(roomPriceRange.minPrice)}-${formatMoney(roomPriceRange.maxPrice)}.` : ''}
+          </p>
+        )}
         {nights > 0 && selectedRoom && (
-          <div className="p-4 bg-sea-50 rounded-xl border border-sea-100 text-sm">
-            <div className="flex justify-between">
-              <span className="text-gray-600">{nights} ночей × {formatMoney(selectedRoom.pricePerDay)}</span>
+          <div className="p-4 bg-sea-50 rounded-xl border border-sea-100 text-sm space-y-2">
+            {priceBreakdown.map((item) => (
+              <div key={item.date} className="flex justify-between text-gray-600">
+                <span>{item.date}</span>
+                <span>{formatMoney(item.pricePerDay)}</span>
+              </div>
+            ))}
+            <div className="flex justify-between border-t border-sea-200 pt-2">
+              <span className="text-gray-600">{nights} ночей</span>
               <span className="font-bold text-sea-700">{formatMoney(totalPrice)}</span>
             </div>
           </div>
         )}
       </div>
 
-      {/* Guest info */}
       <div className="admin-card space-y-4">
         <h2 className="font-semibold text-gray-800">Данные гостя</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -170,7 +229,6 @@ export function AdminManualBookingForm({ rooms }: { rooms: Room[] }) {
         </div>
       </div>
 
-      {/* Status */}
       <div className="admin-card space-y-4">
         <h2 className="font-semibold text-gray-800">Статус и источник</h2>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

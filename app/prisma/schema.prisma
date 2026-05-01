@@ -89,10 +89,25 @@ model Room {
   sortOrder         Int       @default(0)
   bookings          Booking[]
   blockedDates      BlockedDate[]
+  pricePeriods      RoomPricePeriod[]
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt
 
   @@map("rooms")
+}
+
+model RoomPricePeriod {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        Room     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  pricePerDay Int
+  dateFrom    DateTime
+  dateTo      DateTime
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([roomId, dateFrom, dateTo])
+  @@map("room_price_periods")
 }
 
 model BlockedDate {
@@ -138,6 +153,7 @@ model Booking {
   depositAmount    Int           // in kopecks
   depositType      DepositType
   depositValue     Int           // percent or fixed amount in kopecks
+  priceBreakdown   Json          @default("[]") // [{date: 'YYYY-MM-DD', pricePerDay: number}]
   // Status
   status           BookingStatus @default(PENDING)
   // Payment
