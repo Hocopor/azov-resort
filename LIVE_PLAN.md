@@ -52,6 +52,7 @@ Next Steps
 - Public booking calendar visual polish is completed locally: the range-fill height now matches the endpoint circle diameter, grouped period lines keep the price text on one line with day counts below on the right, and the month navigation arrows match the booking heading color.
 - One last geometry tweak remains for the public booking calendar: prevent the right endpoint circle from clipping by tuning internal DayPicker spacing instead of shrinking the calendar font.
 - The public booking calendar geometry tweak is completed locally: added inner horizontal breathing room and slightly tightened the day step width so the right endpoint circle fits without shrinking the calendar typography.
+- A follow-up geometry pass is still needed: the public booking calendar must avoid clipping the right endpoint circle and month caption by tuning DayPicker's internal spacing, not the outer frame.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.

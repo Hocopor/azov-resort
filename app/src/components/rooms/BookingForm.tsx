@@ -372,9 +372,18 @@ export function BookingForm({
                 },
               }}
               styles={{
-                root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif', width: '100%' },
+                root: {
+                  margin: '0 auto',
+                  fontFamily: 'Nunito, sans-serif',
+                  width: '100%',
+                  boxSizing: 'border-box',
+                  padding: '0 4px 6px',
+                },
+                month_caption: { padding: '0 4px 8px' },
+                nav: { paddingInline: '4px' },
                 cell: { padding: 0, height: '48px' },
-                day: { height: '48px', width: '52px', padding: 0 },
+                day: { height: '48px', width: '50px', padding: 0 },
+                weekday: { width: '50px' },
                 chevron: { color: '#1a6b8a' },
                 button_previous: { color: '#1a6b8a' },
                 button_next: { color: '#1a6b8a' },
