@@ -319,7 +319,7 @@ export function BookingForm({
             Выберите даты заезда и выезда
           </div>
 
-          <div className="overflow-hidden rounded-2xl border border-gray-100">
+          <div className="overflow-hidden rounded-2xl border border-gray-100 px-1">
             <DayPicker
               onDayClick={handleDayClick}
               locale={ru}
@@ -372,9 +372,9 @@ export function BookingForm({
                 },
               }}
               styles={{
-                root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif' },
+                root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif', width: '100%' },
                 cell: { padding: 0, height: '48px' },
-                day: { height: '48px', width: '56px', padding: 0 },
+                day: { height: '48px', width: '54px', padding: 0 },
                 chevron: { color: '#1a6b8a' },
                 button_previous: { color: '#1a6b8a' },
                 button_next: { color: '#1a6b8a' },

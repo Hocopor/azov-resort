@@ -50,6 +50,8 @@ Next Steps
 - Public booking calendar range selection is now fully owned by custom modifiers in `BookingForm`; the third click resets both calculations and highlight, and the endpoint circles were enlarged to sit flush with the range fill.
 - Final visual polish remains for the public booking calendar: reduce the range-fill height to match the endpoint circle diameter, keep price-period text on a single line with day counts stacked on the right, and align nav arrow color with the booking calendar heading.
 - Public booking calendar visual polish is completed locally: the range-fill height now matches the endpoint circle diameter, grouped period lines keep the price text on one line with day counts below on the right, and the month navigation arrows match the booking heading color.
+- One last geometry tweak remains for the public booking calendar: prevent the right endpoint circle from clipping by tuning internal DayPicker spacing instead of shrinking the calendar font.
+- The public booking calendar geometry tweak is completed locally: added inner horizontal breathing room and slightly tightened the day step width so the right endpoint circle fits without shrinking the calendar typography.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
