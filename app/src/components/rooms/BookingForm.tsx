@@ -1,21 +1,22 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { addDays, isBefore, isWithinInterval } from 'date-fns'
+import { ru } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
-import { addDays, isBefore, isWithinInterval } from 'date-fns'
 import { DayPicker, DateRange } from 'react-day-picker'
-import { ru } from 'date-fns/locale'
 import {
-  formatMoney,
-  formatDate,
-  countNights,
-  nightsLabel,
-  guestsLabel,
   calculateDeposit,
+  cn,
+  formatDate,
+  formatMoney,
+  guestsLabel,
+  nightsLabel,
+  countNights,
 } from '@/lib/utils'
 import {
   buildNightlyPriceBreakdown,
@@ -24,7 +25,7 @@ import {
   normalizeRoomPricePeriods,
 } from '@/lib/pricing'
 import { useToast } from '@/components/providers/ToastProvider'
-import { Calendar, User, Users, PawPrint, Car, MessageSquare, Loader2, AlertCircle } from 'lucide-react'
+import { AlertCircle, Calendar, Car, Loader2, MessageSquare, PawPrint, User, Users } from 'lucide-react'
 import 'react-day-picker/style.css'
 
 const schema = z.object({
@@ -71,6 +72,37 @@ interface Props {
   occupiedRanges: OccupiedRange[]
   depositSettings: DepositSettings
   minNights: number
+}
+
+function stayDaysLabel(days: number): string {
+  const mod10 = days % 10
+  const mod100 = days % 100
+
+  if (mod100 >= 11 && mod100 <= 19) return `${days} дней`
+  if (mod10 === 1) return `${days} день`
+  if (mod10 >= 2 && mod10 <= 4) return `${days} дня`
+  return `${days} дней`
+}
+
+function groupPriceBreakdown(items: Array<{ date: string; pricePerDay: number }>) {
+  return items.reduce<Array<{ startDate: string; endDate: string; pricePerDay: number; days: number }>>((groups, item) => {
+    const lastGroup = groups[groups.length - 1]
+
+    if (lastGroup && lastGroup.pricePerDay === item.pricePerDay) {
+      lastGroup.endDate = item.date
+      lastGroup.days += 1
+      return groups
+    }
+
+    groups.push({
+      startDate: item.date,
+      endDate: item.date,
+      pricePerDay: item.pricePerDay,
+      days: 1,
+    })
+
+    return groups
+  }, [])
 }
 
 export function BookingForm({
@@ -146,17 +178,34 @@ export function BookingForm({
 
     return buildNightlyPriceBreakdown(range.from, range.to, basePricePerDay, normalizedPricePeriods)
   }, [basePricePerDay, nights, normalizedPricePeriods, range?.from, range?.to])
+  const groupedPriceBreakdown = useMemo(() => groupPriceBreakdown(priceBreakdown), [priceBreakdown])
   const totalPrice = priceBreakdown.length > 0 ? calculateNightlyBreakdownTotal(priceBreakdown) : 0
   const depositAmount = calculateDeposit(totalPrice, depositSettings)
 
-  const handleRangeSelect = (nextRange: DateRange | undefined) => {
-    if (nextRange?.from && nextRange?.to && isRangeOccupied(nextRange.from, nextRange.to)) {
+  const handleDayClick = (date: Date, modifiers: Record<string, boolean>) => {
+    if (modifiers.disabled) {
+      return
+    }
+
+    if (!range?.from) {
+      setRange({ from: date, to: undefined })
+      return
+    }
+
+    if (range.from && range.to) {
+      setRange(undefined)
+      return
+    }
+
+    const nextRange = date < range.from ? { from: date, to: range.from } : { from: range.from, to: date }
+
+    if (nextRange.from && nextRange.to && isRangeOccupied(nextRange.from, nextRange.to)) {
       showError('Выбранный период недоступен — часть дат занята')
       setRange(undefined)
       return
     }
 
-    if (nextRange?.from && nextRange?.to) {
+    if (nextRange.from && nextRange.to) {
       const selectedNights = countNights(nextRange.from, nextRange.to)
       if (selectedNights < minNights) {
         showError(`Минимальное бронирование — ${minNights} ${nightsLabel(minNights)}`)
@@ -219,7 +268,7 @@ export function BookingForm({
             <DayPicker
               mode="range"
               selected={range}
-              onSelect={handleRangeSelect}
+              onDayClick={handleDayClick}
               locale={ru}
               disabled={disabledDays}
               fromDate={new Date()}
@@ -227,19 +276,32 @@ export function BookingForm({
               modifiersClassNames={{
                 selected: 'rdp-day_selected',
                 range_middle: 'rdp-day_range_middle',
+                range_start: 'rdp-day_range_start',
+                range_end: 'rdp-day_range_end',
               }}
               components={{
                 DayButton: ({ day, modifiers, children, ...buttonProps }: any) => {
                   const date = day.date as Date
                   const disabled = Boolean(modifiers?.disabled)
                   const dailyPrice = getNightlyPrice(basePricePerDay, normalizedPricePeriods, date)
+                  const isBoundary = Boolean(modifiers?.range_start || modifiers?.range_end || (modifiers?.selected && !modifiers?.range_middle))
 
                   return (
-                    <button {...buttonProps} className={buttonProps.className}>
+                    <button
+                      {...buttonProps}
+                      className={cn(
+                        buttonProps.className,
+                        'relative z-10 flex h-11 w-11 flex-col items-center justify-center rounded-full transition-colors',
+                        isBoundary ? 'bg-[#f5dc84] text-[#5b4a16] shadow-[0_4px_12px_rgba(189,158,62,0.25)]' : 'text-gray-700',
+                        modifiers?.range_middle && !isBoundary ? 'text-[#285b6a]' : '',
+                      )}
+                    >
                       <div className="flex min-h-[42px] w-full flex-col items-center justify-center leading-none">
                         <span className="text-[12px]">{children}</span>
                         {!disabled && (
-                          <span className="mt-1 text-[9px] text-gray-500">{Math.round(dailyPrice / 100)}</span>
+                          <span className={cn('mt-1 text-[9px]', isBoundary ? 'text-[#6b5720]' : 'text-gray-500')}>
+                            {Math.round(dailyPrice / 100)}
+                          </span>
                         )}
                       </div>
                     </button>
@@ -248,13 +310,16 @@ export function BookingForm({
               }}
               styles={{
                 root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif' },
+                range_middle: { backgroundColor: '#dceff8', color: '#285b6a' },
+                range_start: { background: 'linear-gradient(to right, transparent 50%, #dceff8 50%)' },
+                range_end: { background: 'linear-gradient(to right, #dceff8 50%, transparent 50%)' },
               }}
             />
           </div>
 
           {range?.from && range?.to && (
             <div className="mt-4 rounded-2xl border border-sea-100 bg-sea-50 p-4">
-              <div className="grid grid-cols-2 gap-3 text-sm mb-3">
+              <div className="mb-3 grid grid-cols-2 gap-3 text-sm">
                 <div>
                   <div className="text-gray-400 text-xs mb-0.5">Заезд</div>
                   <div className="font-semibold text-gray-900">{formatDate(range.from)}</div>
@@ -265,14 +330,16 @@ export function BookingForm({
                 </div>
               </div>
               <div className="space-y-1.5 border-t border-sea-200 pt-3">
-                {priceBreakdown.map((item) => (
-                  <div key={item.date} className="flex justify-between text-sm">
-                    <span className="text-gray-500">{item.date}</span>
-                    <span className="font-medium">{formatMoney(item.pricePerDay)}</span>
+                {groupedPriceBreakdown.map((item) => (
+                  <div key={`${item.startDate}-${item.endDate}-${item.pricePerDay}`} className="flex justify-between gap-3 text-sm">
+                    <span className="text-gray-500">
+                      {item.startDate}{item.startDate !== item.endDate ? `-${item.endDate}` : ''} — по {formatMoney(item.pricePerDay)}/сутки
+                    </span>
+                    <span className="font-medium whitespace-nowrap">{stayDaysLabel(item.days)}</span>
                   </div>
                 ))}
                 <div className="flex justify-between text-sm pt-1">
-                  <span className="text-gray-500">{nightsLabel(nights)}</span>
+                  <span className="text-gray-500">{stayDaysLabel(nights)}</span>
                   <span className="font-semibold">{formatMoney(totalPrice)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
@@ -307,7 +374,7 @@ export function BookingForm({
               <span className="text-sm font-semibold text-sea-700">{formatMoney(depositAmount)} депозит</span>
             </div>
             <div className="text-xs text-gray-500">
-              {formatDate(range!.from!)} — {formatDate(range!.to!)} · {nightsLabel(nights)} · итого {formatMoney(totalPrice)}
+              {formatDate(range!.from!)} — {formatDate(range!.to!)} · {stayDaysLabel(nights)} · итого {formatMoney(totalPrice)}
             </div>
           </div>
 

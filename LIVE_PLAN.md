@@ -43,6 +43,8 @@ Next Steps
 - Deploy the pricing changes and run `prisma db push` on the VPS.
 - Manually verify mixed-period bookings, admin manual booking totals, saved booking history, and period creation on the live environment.
 - Smooth admin UX for editing price periods so partial rows do not show blocking validation while the user is still filling them in.
+- Improve booking calendar UX: compact price summary, 3-click range selection reset, and softer range highlight styling.
+- User-facing booking summary now groups contiguous equal-price days; calendar selection resets on the third click and uses softer range colors.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
