@@ -37,12 +37,22 @@ export function formatDateOnly(date: Date): string {
 
 export function normalizeRoomPricePeriods(periods: RoomPricePeriodInput[]): NormalizedRoomPricePeriod[] {
   return periods
-    .filter((period) => period && period.pricePerDay > 0)
-    .map((period) => ({
-      pricePerDay: period.pricePerDay,
-      dateFrom: parseDateOnly(period.dateFrom),
-      dateTo: parseDateOnly(period.dateTo),
-    }))
+    .map((period) => {
+      const numericPrice = typeof period.pricePerDay === 'string'
+        ? Number.parseInt(period.pricePerDay, 10)
+        : period.pricePerDay
+
+      if (!period || !Number.isFinite(numericPrice) || numericPrice <= 0) {
+        return null
+      }
+
+      return {
+        pricePerDay: Math.round(numericPrice),
+        dateFrom: parseDateOnly(period.dateFrom),
+        dateTo: parseDateOnly(period.dateTo),
+      }
+    })
+    .filter((period): period is NormalizedRoomPricePeriod => Boolean(period))
     .sort((a, b) => a.dateFrom.getTime() - b.dateFrom.getTime())
 }
 

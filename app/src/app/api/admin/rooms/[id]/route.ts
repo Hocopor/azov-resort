@@ -4,7 +4,6 @@ import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import {
   normalizeRoomPricePeriods,
-  serializeRoomPricePeriods,
   validateRoomPricePeriods,
 } from '@/lib/pricing'
 
@@ -66,11 +65,11 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
 
       if (normalizedPricePeriods.length > 0) {
         await tx.roomPricePeriod.createMany({
-          data: serializeRoomPricePeriods(normalizedPricePeriods).map((period) => ({
+          data: normalizedPricePeriods.map((period) => ({
             roomId: params.id,
             pricePerDay: period.pricePerDay,
-            dateFrom: new Date(`${period.dateFrom}T00:00:00.000Z`),
-            dateTo: new Date(`${period.dateTo}T00:00:00.000Z`),
+            dateFrom: period.dateFrom,
+            dateTo: period.dateTo,
           })),
         })
       }

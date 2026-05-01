@@ -41,7 +41,7 @@ Blockers
 Next Steps
 - Finalize the reverse proxy upstream strategy used on the VPS.
 - Deploy the pricing changes and run `prisma db push` on the VPS.
-- Manually verify mixed-period bookings, admin manual booking totals, and saved booking history on the live environment.
+- Manually verify mixed-period bookings, admin manual booking totals, saved booking history, and period creation on the live environment.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
@@ -49,3 +49,4 @@ Durable Notes
 - Existing bookings must preserve their original amounts even if room prices change later.
 - Dynamic pricing must support bookings that span multiple pricing periods with correct nightly totals.
 - Price periods for one room must never overlap; admin should see a warning and the save must be rejected until periods are corrected.
+- A server-side save bug was found after first deploy: period prices must be written as normalized `number + Date` values, not re-serialized strings before `createMany`.
