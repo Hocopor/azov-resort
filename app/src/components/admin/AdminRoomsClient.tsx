@@ -126,6 +126,14 @@ function buildEditablePricePeriods(periods: RoomPricePeriod[]): EditableRoomPric
   }))
 }
 
+function isPricePeriodEmpty(period: EditableRoomPricePeriod): boolean {
+  return !period.pricePerDay.trim() && !period.dateFrom.trim() && !period.dateTo.trim()
+}
+
+function isPricePeriodComplete(period: EditableRoomPricePeriod): boolean {
+  return Boolean(period.pricePerDay.trim() && period.dateFrom.trim() && period.dateTo.trim())
+}
+
 export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -175,9 +183,17 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   }
 
   const updatePricePeriodsValidation = (periods: EditableRoomPricePeriod[]) => {
+    const nonEmptyPeriods = periods.filter((period) => !isPricePeriodEmpty(period))
+    const incompletePeriods = nonEmptyPeriods.filter((period) => !isPricePeriodComplete(period))
+
+    if (incompletePeriods.length > 0) {
+      setPricePeriodsError(null)
+      return
+    }
+
     try {
       const normalized = normalizeRoomPricePeriods(
-        periods.map((period) => ({
+        nonEmptyPeriods.map((period) => ({
           pricePerDay: parseInt(period.pricePerDay || '0', 10) * 100,
           dateFrom: period.dateFrom,
           dateTo: period.dateTo,
@@ -338,9 +354,19 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
     if (!editingRoom) return
 
     let serializedPricePeriods: Array<{ pricePerDay: number; dateFrom: string; dateTo: string }> = []
+    const nonEmptyPeriods = (editForm.pricePeriods || []).filter((period: EditableRoomPricePeriod) => !isPricePeriodEmpty(period))
+    const incompletePeriods = nonEmptyPeriods.filter((period: EditableRoomPricePeriod) => !isPricePeriodComplete(period))
+
+    if (incompletePeriods.length > 0) {
+      const validationMessage = 'Заполните цену и обе даты для каждого непустого периода.'
+      setPricePeriodsError(validationMessage)
+      showError(validationMessage)
+      return
+    }
+
     try {
       const normalized = normalizeRoomPricePeriods(
-        (editForm.pricePeriods || []).map((period: EditableRoomPricePeriod) => ({
+        nonEmptyPeriods.map((period: EditableRoomPricePeriod) => ({
           pricePerDay: parseInt(period.pricePerDay || '0', 10) * 100,
           dateFrom: period.dateFrom,
           dateTo: period.dateTo,
@@ -483,7 +509,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
 
                     {(editForm.pricePeriods || []).map((period: EditableRoomPricePeriod, index: number) => (
                       <div key={`${period.dateFrom}-${period.dateTo}-${index}`} className="rounded-2xl border border-gray-200 bg-white p-3">
-                        <div className="grid gap-3 md:grid-cols-[1fr_1fr_1fr_auto]">
+                        <div className="space-y-3">
                           <div>
                             <label className="mb-1 block text-xs text-gray-500">Цена (₽)</label>
                             <input
@@ -496,29 +522,30 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                               className="input-field"
                             />
                           </div>
-                          <div>
-                            <label className="mb-1 block text-xs text-gray-500">С даты включительно</label>
-                            <input
-                              type="date"
-                              value={period.dateFrom}
-                              onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
-                                itemIndex === index ? { ...item, dateFrom: e.target.value } : item
-                              )))}
-                              className="input-field"
-                            />
-                          </div>
-                          <div>
-                            <label className="mb-1 block text-xs text-gray-500">По дату включительно</label>
-                            <input
-                              type="date"
-                              value={period.dateTo}
-                              onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
-                                itemIndex === index ? { ...item, dateTo: e.target.value } : item
-                              )))}
-                              className="input-field"
-                            />
-                          </div>
-                          <div className="flex items-end">
+                          <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                            <div>
+                              <label className="mb-1 block text-xs text-gray-500">С даты включительно</label>
+                              <input
+                                type="date"
+                                value={period.dateFrom}
+                                onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
+                                  itemIndex === index ? { ...item, dateFrom: e.target.value } : item
+                                )))}
+                                className="input-field"
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs text-gray-500">По дату включительно</label>
+                              <input
+                                type="date"
+                                value={period.dateTo}
+                                onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
+                                  itemIndex === index ? { ...item, dateTo: e.target.value } : item
+                                )))}
+                                className="input-field"
+                              />
+                            </div>
+                            <div className="flex items-end">
                             <button
                               type="button"
                               onClick={() => setPricePeriods((items) => items.filter((_, itemIndex) => itemIndex !== index))}
@@ -527,6 +554,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                             >
                               <Trash2 className="h-4 w-4" />
                             </button>
+                            </div>
                           </div>
                         </div>
                       </div>

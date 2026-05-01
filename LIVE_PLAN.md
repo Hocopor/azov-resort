@@ -42,6 +42,7 @@ Next Steps
 - Finalize the reverse proxy upstream strategy used on the VPS.
 - Deploy the pricing changes and run `prisma db push` on the VPS.
 - Manually verify mixed-period bookings, admin manual booking totals, saved booking history, and period creation on the live environment.
+- Smooth admin UX for editing price periods so partial rows do not show blocking validation while the user is still filling them in.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
