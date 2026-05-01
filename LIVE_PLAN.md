@@ -56,6 +56,8 @@ Next Steps
 - The remaining calendar geometry task is to explicitly compress the DayPicker width and anchor it to the left, leaving a clean right-side inset so the endpoint circle stays inside the card.
 - The DayPicker is now explicitly compressed in width and anchored to the left so the right edge gets reserved breathing room without changing the calendar typography.
 - The next calendar pass should stop targeting the outer wrapper and instead compress the DayPicker month grid itself so the right endpoint circle fits inside the card.
+- Root cause found for the remaining right-edge clipping: the custom endpoint circle is slightly wider than the effective day cell, so the next fix must align day-cell and day-button geometry first, then reserve a small right inset for the month grid.
+- The right-edge clipping fix is now based on aligned geometry: the endpoint circle and DayPicker button width match the day cell width, with a small month-grid right inset preserved.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.

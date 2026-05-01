@@ -352,7 +352,7 @@ export function BookingForm({
                       {...buttonProps}
                       type="button"
                       className={cn(
-                        'relative z-10 flex h-12 w-12 flex-col items-center justify-center rounded-full border border-transparent transition-colors',
+                        'relative z-10 flex h-[46px] w-[46px] flex-col items-center justify-center rounded-full border border-transparent transition-colors',
                         isBoundary
                           ? 'border-[#ebd07b] bg-[#f6e3a2] text-[#5b4715] shadow-[0_4px_14px_rgba(210,175,76,0.28)]'
                           : 'bg-transparent text-gray-700 hover:bg-[#edf7fb]',
@@ -381,14 +381,14 @@ export function BookingForm({
                   ['--rdp-day-width' as any]: '46px',
                   ['--rdp-day-height' as any]: '48px',
                   ['--rdp-day_button-width' as any]: '46px',
-                  ['--rdp-day_button-height' as any]: '48px',
+                  ['--rdp-day_button-height' as any]: '46px',
                 },
                 month_caption: { padding: '0 4px 8px' },
                 nav: { paddingInline: '6px' },
                 cell: { padding: 0, height: '48px' },
                 day: { height: '48px', width: '46px', padding: 0 },
                 weekday: { width: '46px' },
-                month_grid: { marginRight: '8px' },
+                month_grid: { marginRight: '10px' },
                 chevron: { color: '#1a6b8a' },
                 button_previous: { color: '#1a6b8a' },
                 button_next: { color: '#1a6b8a' },
