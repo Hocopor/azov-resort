@@ -206,6 +206,32 @@ export function BookingForm({
     [priceBreakdown],
   )
 
+  const rangeModifiers = useMemo(() => {
+    if (!range?.from) {
+      return {}
+    }
+
+    if (!range.to) {
+      return {
+        selectedStart: range.from,
+      }
+    }
+
+    const middleDates: Date[] = []
+    let current = addDays(range.from, 1)
+
+    while (isBefore(current, range.to)) {
+      middleDates.push(new Date(current))
+      current = addDays(current, 1)
+    }
+
+    return {
+      selectedStart: range.from,
+      selectedEnd: range.to,
+      selectedMiddle: middleDates,
+    }
+  }, [range?.from, range?.to])
+
   const totalPrice = priceBreakdown.length > 0 ? calculateNightlyBreakdownTotal(priceBreakdown) : 0
   const depositAmount = calculateDeposit(totalPrice, depositSettings)
 
@@ -295,37 +321,45 @@ export function BookingForm({
 
           <div className="overflow-hidden rounded-2xl border border-gray-100">
             <DayPicker
-              mode="range"
-              selected={range}
               onDayClick={handleDayClick}
               locale={ru}
               disabled={disabledDays}
               fromDate={new Date()}
               numberOfMonths={1}
+              modifiers={rangeModifiers}
+              modifiersStyles={{
+                selectedMiddle: { backgroundColor: '#dceff8', color: '#285b6a' },
+                selectedStart: {
+                  background: 'linear-gradient(to right, transparent 0, transparent 50%, #dceff8 50%, #dceff8 100%)',
+                },
+                selectedEnd: {
+                  background: 'linear-gradient(to right, #dceff8 0, #dceff8 50%, transparent 50%, transparent 100%)',
+                },
+              }}
               components={{
                 DayButton: ({ day, modifiers, children, ...buttonProps }: any) => {
                   const date = day.date as Date
                   const disabled = Boolean(modifiers?.disabled)
                   const dailyPrice = getNightlyPrice(basePricePerDay, normalizedPricePeriods, date)
                   const isBoundary = Boolean(
-                    modifiers?.range_start ||
-                    modifiers?.range_end ||
-                    (modifiers?.selected && !modifiers?.range_middle),
+                    modifiers?.selectedStart ||
+                    modifiers?.selectedEnd,
                   )
+                  const isRangeMiddle = Boolean(modifiers?.selectedMiddle)
 
                   return (
                     <button
                       {...buttonProps}
                       type="button"
                       className={cn(
-                        'relative z-10 flex h-11 w-11 flex-col items-center justify-center rounded-full border border-transparent transition-colors',
+                        'relative z-10 flex h-12 w-12 flex-col items-center justify-center rounded-full border border-transparent transition-colors',
                         isBoundary
                           ? 'border-[#ebd07b] bg-[#f6e3a2] text-[#5b4715] shadow-[0_4px_14px_rgba(210,175,76,0.28)]'
                           : 'bg-transparent text-gray-700 hover:bg-[#edf7fb]',
-                        modifiers?.range_middle && !isBoundary ? 'text-[#285b6a]' : '',
+                        isRangeMiddle && !isBoundary ? 'text-[#285b6a]' : '',
                       )}
                     >
-                      <div className="flex min-h-[42px] w-full flex-col items-center justify-center leading-none">
+                      <div className="flex min-h-[46px] w-full flex-col items-center justify-center leading-none">
                         <span className="text-[12px]">{children}</span>
                         {!disabled && (
                           <span className={cn('mt-1 text-[9px]', isBoundary ? 'text-[#6b5720]' : 'text-gray-500')}>
@@ -339,16 +373,9 @@ export function BookingForm({
               }}
               styles={{
                 root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif' },
-                cell: { padding: 0, height: '52px' },
-                day: { height: '52px', width: '52px', padding: 0 },
+                cell: { padding: 0, height: '56px' },
+                day: { height: '56px', width: '56px', padding: 0 },
                 selected: { backgroundColor: 'transparent', color: 'inherit' },
-                range_middle: { backgroundColor: '#dceff8', color: '#285b6a' },
-                range_start: {
-                  background: 'linear-gradient(to right, transparent 0, transparent 50%, #dceff8 50%, #dceff8 100%)',
-                },
-                range_end: {
-                  background: 'linear-gradient(to right, #dceff8 0, #dceff8 50%, transparent 50%, transparent 100%)',
-                },
               }}
             />
           </div>

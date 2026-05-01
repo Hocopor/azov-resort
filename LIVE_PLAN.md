@@ -46,6 +46,8 @@ Next Steps
 - Improve booking calendar UX: compact price summary, 3-click range selection reset, and softer range highlight styling.
 - User-facing booking summary now groups contiguous equal-price days; calendar selection resets on the third click and uses softer range colors.
 - Booking calendar stabilization was completed locally: conflicting global DayPicker overrides were removed, the public booking form now owns its range visuals, and client booking dates are sent as `YYYY-MM-DD` to avoid one-day shifts.
+- Public booking calendar still needs one more stabilization pass: the click/reset logic must stop using DayPicker's residual range behavior, and the endpoint circles should be enlarged slightly to match the range fill.
+- Public booking calendar range selection is now fully owned by custom modifiers in `BookingForm`; the third click resets both calculations and highlight, and the endpoint circles were enlarged to sit flush with the range fill.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
