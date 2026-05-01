@@ -19,7 +19,7 @@ export interface NightlyPriceItem {
 
 function parseDateOnly(value: string | Date): Date {
   if (value instanceof Date) {
-    return new Date(Date.UTC(value.getUTCFullYear(), value.getUTCMonth(), value.getUTCDate()))
+    return new Date(Date.UTC(value.getFullYear(), value.getMonth(), value.getDate()))
   }
 
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value)
@@ -78,9 +78,10 @@ export function validateRoomPricePeriods(periods: NormalizedRoomPricePeriod[]): 
 export function getNightlyPrice(
   basePricePerDay: number,
   periods: NormalizedRoomPricePeriod[],
-  date: Date,
+  date: Date | string,
 ): number {
-  const timestamp = date.getTime()
+  const normalizedDate = parseDateOnly(date)
+  const timestamp = normalizedDate.getTime()
   const matchingPeriod = periods.find(
     (period) => timestamp >= period.dateFrom.getTime() && timestamp <= period.dateTo.getTime(),
   )
@@ -89,8 +90,8 @@ export function getNightlyPrice(
 }
 
 export function buildNightlyPriceBreakdown(
-  checkIn: Date,
-  checkOut: Date,
+  checkIn: Date | string,
+  checkOut: Date | string,
   basePricePerDay: number,
   periods: NormalizedRoomPricePeriod[],
 ): NightlyPriceItem[] {

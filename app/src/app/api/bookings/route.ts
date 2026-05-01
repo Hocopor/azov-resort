@@ -16,8 +16,8 @@ import { isBefore, isAfter, parseISO } from 'date-fns'
 
 const bookingSchema = z.object({
   roomId: z.string(),
-  checkIn: z.string().datetime(),
-  checkOut: z.string().datetime(),
+  checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата заезда'),
+  checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата выезда'),
   guests: z.number().min(1).max(30),
   hasPets: z.boolean().default(false),
   petsDescription: z.string().optional(),

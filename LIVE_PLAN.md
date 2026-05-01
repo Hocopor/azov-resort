@@ -45,6 +45,7 @@ Next Steps
 - Smooth admin UX for editing price periods so partial rows do not show blocking validation while the user is still filling them in.
 - Improve booking calendar UX: compact price summary, 3-click range selection reset, and softer range highlight styling.
 - User-facing booking summary now groups contiguous equal-price days; calendar selection resets on the third click and uses softer range colors.
+- Booking calendar stabilization was completed locally: conflicting global DayPicker overrides were removed, the public booking form now owns its range visuals, and client booking dates are sent as `YYYY-MM-DD` to avoid one-day shifts.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
