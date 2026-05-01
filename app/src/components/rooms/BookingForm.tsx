@@ -373,11 +373,11 @@ export function BookingForm({
               }}
               styles={{
                 root: {
-                  margin: '0 auto',
+                  margin: '0 auto 0 0',
                   fontFamily: 'Nunito, sans-serif',
-                  width: '100%',
+                  width: 'calc(100% - 14px)',
                   boxSizing: 'border-box',
-                  padding: '0 4px 6px',
+                  padding: '0 0 6px 0',
                 },
                 month_caption: { padding: '0 4px 8px' },
                 nav: { paddingInline: '4px' },

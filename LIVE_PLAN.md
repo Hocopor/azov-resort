@@ -53,6 +53,8 @@ Next Steps
 - One last geometry tweak remains for the public booking calendar: prevent the right endpoint circle from clipping by tuning internal DayPicker spacing instead of shrinking the calendar font.
 - The public booking calendar geometry tweak is completed locally: added inner horizontal breathing room and slightly tightened the day step width so the right endpoint circle fits without shrinking the calendar typography.
 - A follow-up geometry pass is still needed: the public booking calendar must avoid clipping the right endpoint circle and month caption by tuning DayPicker's internal spacing, not the outer frame.
+- The remaining calendar geometry task is to explicitly compress the DayPicker width and anchor it to the left, leaving a clean right-side inset so the endpoint circle stays inside the card.
+- The DayPicker is now explicitly compressed in width and anchored to the left so the right edge gets reserved breathing room without changing the calendar typography.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
