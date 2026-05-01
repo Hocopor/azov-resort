@@ -373,8 +373,11 @@ export function BookingForm({
               }}
               styles={{
                 root: { margin: '0 auto', fontFamily: 'Nunito, sans-serif' },
-                cell: { padding: 0, height: '56px' },
-                day: { height: '56px', width: '56px', padding: 0 },
+                cell: { padding: 0, height: '48px' },
+                day: { height: '48px', width: '56px', padding: 0 },
+                chevron: { color: '#1a6b8a' },
+                button_previous: { color: '#1a6b8a' },
+                button_next: { color: '#1a6b8a' },
                 selected: { backgroundColor: 'transparent', color: 'inherit' },
               }}
             />
@@ -398,11 +401,12 @@ export function BookingForm({
                   const formattedRange = formatPriceRangeLabel(item.startDate, item.endDate)
 
                   return (
-                    <div key={`${item.startDate}-${item.endDate}-${item.pricePerDay}`} className="grid grid-cols-[minmax(0,1fr)_auto] gap-3 text-sm">
-                      <span className="text-gray-500">
+                    <div key={`${item.startDate}-${item.endDate}-${item.pricePerDay}`} className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1 text-sm">
+                      <span className="col-span-2 overflow-x-auto whitespace-nowrap text-gray-500 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                         {formattedRange} — по {formatMoney(item.pricePerDay)}/сутки
                       </span>
-                      <span className="whitespace-nowrap font-medium">{stayDaysLabel(item.days)}</span>
+                      <span />
+                      <span className="whitespace-nowrap text-right font-medium">{stayDaysLabel(item.days)}</span>
                     </div>
                   )
                 })}

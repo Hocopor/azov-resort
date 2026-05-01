@@ -48,6 +48,8 @@ Next Steps
 - Booking calendar stabilization was completed locally: conflicting global DayPicker overrides were removed, the public booking form now owns its range visuals, and client booking dates are sent as `YYYY-MM-DD` to avoid one-day shifts.
 - Public booking calendar still needs one more stabilization pass: the click/reset logic must stop using DayPicker's residual range behavior, and the endpoint circles should be enlarged slightly to match the range fill.
 - Public booking calendar range selection is now fully owned by custom modifiers in `BookingForm`; the third click resets both calculations and highlight, and the endpoint circles were enlarged to sit flush with the range fill.
+- Final visual polish remains for the public booking calendar: reduce the range-fill height to match the endpoint circle diameter, keep price-period text on a single line with day counts stacked on the right, and align nav arrow color with the booking calendar heading.
+- Public booking calendar visual polish is completed locally: the range-fill height now matches the endpoint circle diameter, grouped period lines keep the price text on one line with day counts below on the right, and the month navigation arrows match the booking heading color.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.
