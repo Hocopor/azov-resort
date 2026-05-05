@@ -75,6 +75,8 @@ model Room {
   slug              String    @unique
   description       String    @db.Text
   shortDescription  String
+  baseCapacity      Int       @default(1)
+  extraCapacity     Int       @default(0)
   capacity          Int       // max guests
   area              Int?      // sq meters
   pricePerDay       Int       // in kopecks (kopecks = rubles * 100)

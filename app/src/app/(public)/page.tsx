@@ -338,6 +338,8 @@ export default async function HomePage() {
                       src={room.images[0]}
                       alt={room.name}
                       fill
+                      variant="card"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
@@ -425,7 +427,7 @@ export default async function HomePage() {
                   key={index}
                   className={`relative rounded-2xl overflow-hidden bg-sea-900 ${index === 0 ? 'col-span-2 h-52' : 'h-40'}`}
                 >
-                  <AppImage src={src} alt="" fill className="object-cover opacity-70" />
+                  <AppImage src={src} alt="" fill variant="content" sizes="(max-width: 768px) 100vw, 50vw" className="object-cover opacity-70" />
                   <div className="absolute inset-0 bg-gradient-to-t from-sea-900/40 to-transparent" />
                 </div>
               ))}

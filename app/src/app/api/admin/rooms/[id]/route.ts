@@ -23,6 +23,13 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     return NextResponse.json({ error: 'Room not found' }, { status: 404 })
   }
 
+  const hasBaseCapacity = body.baseCapacity !== undefined
+  const hasExtraCapacity = body.extraCapacity !== undefined
+  const hasLegacyCapacity = body.capacity !== undefined
+  const normalizedBaseCapacity = hasBaseCapacity ? Math.max(0, Number.parseInt(String(body.baseCapacity), 10) || 0) : undefined
+  const normalizedExtraCapacity = hasExtraCapacity ? Math.max(0, Number.parseInt(String(body.extraCapacity), 10) || 0) : undefined
+  const normalizedCapacity = hasLegacyCapacity ? Math.max(1, Number.parseInt(String(body.capacity), 10) || 1) : undefined
+
   let normalizedPricePeriods: ReturnType<typeof normalizeRoomPricePeriods> | null = null
   if (body.pricePeriods !== undefined) {
     try {
@@ -38,6 +45,25 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   }
 
   const room = await prisma.$transaction(async (tx) => {
+    const currentRoom = await tx.room.findUnique({
+      where: { id: params.id },
+      select: {
+        baseCapacity: true,
+        extraCapacity: true,
+        capacity: true,
+      },
+    })
+
+    if (!currentRoom) {
+      return null
+    }
+
+    const nextBaseCapacity = normalizedBaseCapacity ?? currentRoom.baseCapacity ?? currentRoom.capacity
+    const nextExtraCapacity = normalizedExtraCapacity ?? currentRoom.extraCapacity ?? 0
+    const nextCapacity = hasBaseCapacity || hasExtraCapacity
+      ? Math.max(1, nextBaseCapacity + nextExtraCapacity)
+      : (normalizedCapacity ?? currentRoom.capacity)
+
     await tx.room.update({
       where: { id: params.id },
       data: {
@@ -45,7 +71,9 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         ...(body.name !== undefined && { name: body.name }),
         ...(body.slug !== undefined && { slug: body.slug }),
         ...(body.pricePerDay !== undefined && { pricePerDay: body.pricePerDay }),
-        ...(body.capacity !== undefined && { capacity: body.capacity }),
+        ...(hasBaseCapacity && { baseCapacity: nextBaseCapacity }),
+        ...(hasExtraCapacity && { extraCapacity: nextExtraCapacity }),
+        capacity: nextCapacity,
         ...(body.shortDescription !== undefined && { shortDescription: body.shortDescription }),
         ...(body.description !== undefined && { description: body.description }),
         ...(body.area !== undefined && { area: body.area }),

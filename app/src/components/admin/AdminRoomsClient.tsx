@@ -23,6 +23,7 @@ import {
   ImageIcon,
 } from 'lucide-react'
 import { formatMoney, formatDate, getBookingStatusColor, getBookingStatusLabel } from '@/lib/utils'
+import { getRoomCapacityBreakdown } from '@/lib/utils'
 import {
   getRoomPriceRange,
   normalizeRoomPricePeriods,
@@ -59,6 +60,8 @@ interface Room {
   slug: string
   description: string
   shortDescription: string
+  baseCapacity: number
+  extraCapacity: number
   capacity: number
   area: number | null
   pricePerDay: number
@@ -288,6 +291,8 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
       shortDescription: room.shortDescription,
       description: room.description,
       pricePerDay: Math.round(room.pricePerDay / 100),
+      baseCapacity: room.baseCapacity ?? room.capacity,
+      extraCapacity: room.extraCapacity ?? 0,
       capacity: room.capacity,
       area: room.area ?? '',
       floor: room.floor ?? '',
@@ -400,15 +405,16 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           previousSlug: editingRoom.slug,
-          name: editForm.name,
-          slug: editForm.slug,
-          shortDescription: editForm.shortDescription,
-          description: editForm.description,
-          pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
-          capacity: parseInt(editForm.capacity || '1', 10),
-          area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
-          floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
-          sortOrder: parseInt(editForm.sortOrder || '0', 10),
+            name: editForm.name,
+            slug: editForm.slug,
+            shortDescription: editForm.shortDescription,
+            description: editForm.description,
+            pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
+            baseCapacity: Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0),
+            extraCapacity: Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0),
+            area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
+            floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
+            sortOrder: parseInt(editForm.sortOrder || '0', 10),
           hasAC: Boolean(editForm.hasAC),
           hasPrivateKitchen: Boolean(editForm.hasPrivateKitchen),
           hasTV: Boolean(editForm.hasTV),
@@ -432,15 +438,19 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
           room.id === editingRoom.id
             ? {
                 ...room,
-                name: editForm.name,
-                slug: editForm.slug,
-                shortDescription: editForm.shortDescription,
-                description: editForm.description,
-                pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
-                capacity: parseInt(editForm.capacity || '1', 10),
-                area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
-                floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
-                sortOrder: parseInt(editForm.sortOrder || '0', 10),
+                  name: editForm.name,
+                  slug: editForm.slug,
+                  shortDescription: editForm.shortDescription,
+                  description: editForm.description,
+                  pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
+                  baseCapacity: Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0),
+                  extraCapacity: Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0),
+                  capacity:
+                    Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0) +
+                    Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0) || 1,
+                  area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
+                  floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
+                  sortOrder: parseInt(editForm.sortOrder || '0', 10),
                 hasAC: Boolean(editForm.hasAC),
                 hasPrivateKitchen: Boolean(editForm.hasPrivateKitchen),
                 hasTV: Boolean(editForm.hasTV),
@@ -579,11 +589,27 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1 block text-xs text-gray-500">Вместимость</label>
-                    <input type="number" min={1} value={editForm.capacity} onChange={(e) => setEditForm((prev) => ({ ...prev, capacity: e.target.value }))} className="input-field" />
+                    <input
+                      type="number"
+                      min={1}
+                      value={(Math.max(0, parseInt(editForm.baseCapacity || '0', 10) || 0) + Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0)) || 1}
+                      readOnly
+                      className="input-field bg-gray-50 text-gray-500"
+                    />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-gray-500">Сортировка</label>
                     <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((prev) => ({ ...prev, sortOrder: e.target.value }))} className="input-field" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">РћСЃРЅРѕРІРЅС‹Рµ РјРµСЃС‚Р°</label>
+                    <input type="number" min={0} value={editForm.baseCapacity} onChange={(e) => setEditForm((prev) => ({ ...prev, baseCapacity: e.target.value }))} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РјРµСЃС‚Р°</label>
+                    <input type="number" min={0} value={editForm.extraCapacity} onChange={(e) => setEditForm((prev) => ({ ...prev, extraCapacity: e.target.value }))} className="input-field" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -735,7 +761,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                       <h3 className="font-semibold text-gray-900">{room.name}</h3>
                       <div className="mt-1 flex flex-wrap gap-2">
                         <span className="badge-sea">
-                          <Users className="h-3 w-3" /> до {room.capacity} чел.
+                          <Users className="h-3 w-3" /> {getRoomCapacityBreakdown(room.baseCapacity ?? room.capacity, room.extraCapacity ?? 0)}
                         </span>
                         <span className="badge bg-sand-200 text-sand-800">
                           {priceRange.hasRange

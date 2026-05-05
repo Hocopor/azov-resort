@@ -1,9 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { readFile } from 'fs/promises'
-import { extname, join, resolve } from 'path'
+import { mkdir, readFile, writeFile } from 'fs/promises'
+import { extname, join, parse, resolve } from 'path'
+import sharp from 'sharp'
 
 const UPLOAD_ROOT = join(process.cwd(), 'uploads')
 const LEGACY_UPLOAD_ROOT = join(process.cwd(), 'public', 'uploads')
+const DERIVED_ROOT = join(UPLOAD_ROOT, '.derived')
+const IMAGE_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'])
 
 function getContentType(path: string) {
   switch (extname(path).toLowerCase()) {
@@ -60,20 +63,89 @@ async function readUploadFile(parts: string[]) {
   }
 }
 
-export async function GET(_req: NextRequest, context: { params: { path: string[] } }) {
+function isImageFile(path: string) {
+  return IMAGE_EXTENSIONS.has(extname(path).toLowerCase())
+}
+
+function clamp(value: number, min: number, max: number) {
+  return Math.min(Math.max(value, min), max)
+}
+
+function getTransformOptions(req: NextRequest) {
+  const widthParam = req.nextUrl.searchParams.get('w')
+  const qualityParam = req.nextUrl.searchParams.get('q')
+  const formatParam = req.nextUrl.searchParams.get('fm')
+
+  const width = widthParam ? clamp(Number.parseInt(widthParam, 10), 32, 2400) : null
+  const quality = qualityParam ? clamp(Number.parseInt(qualityParam, 10), 40, 90) : 76
+  const format: 'webp' | null = formatParam === 'webp' ? 'webp' : null
+
+  if (!width || !Number.isFinite(width) || !format) {
+    return null
+  }
+
+  return { width, quality, format }
+}
+
+async function readDerivedImage(parts: string[], transform: { width: number; quality: number; format: 'webp' }, sourcePath: string) {
+  const base = parse(parts[parts.length - 1])
+  const nestedParts = parts.slice(0, -1)
+  const derivedDir = resolve(DERIVED_ROOT, ...nestedParts)
+  const derivedRoot = resolve(DERIVED_ROOT)
+
+  if (!derivedDir.startsWith(derivedRoot)) {
+    return null
+  }
+
+  await mkdir(derivedDir, { recursive: true })
+
+  const derivedFilename = `${base.name}.w${transform.width}.q${transform.quality}.${transform.format}`
+  const derivedPath = resolve(derivedDir, derivedFilename)
+
+  if (!derivedPath.startsWith(derivedRoot)) {
+    return null
+  }
+
+  try {
+    const file = await readFile(derivedPath)
+    return { file, path: derivedPath, derived: true }
+  } catch {
+    const sourceBuffer = await readFile(sourcePath)
+    const transformed = await sharp(sourceBuffer)
+      .rotate()
+      .resize({
+        width: transform.width,
+        withoutEnlargement: true,
+      })
+      .webp({ quality: transform.quality })
+      .toBuffer()
+
+    await writeFile(derivedPath, transformed)
+
+    return { file: transformed, path: derivedPath, derived: true }
+  }
+}
+
+export async function GET(req: NextRequest, context: { params: { path: string[] } }) {
   const result = await readUploadFile(context.params.path)
 
   if (!result) {
     return new NextResponse('Not found', { status: 404 })
   }
 
-  return new NextResponse(result.file, {
+  const transform = getTransformOptions(req)
+  const transformedResult =
+    transform && isImageFile(result.path)
+      ? await readDerivedImage(context.params.path, transform, result.path)
+      : null
+
+  const fileResult = transformedResult || result
+
+  return new NextResponse(new Uint8Array(fileResult.file), {
     status: 200,
     headers: {
-      'Content-Type': getContentType(result.path),
-      'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
-      Pragma: 'no-cache',
-      Expires: '0',
+      'Content-Type': getContentType(fileResult.path),
+      'Cache-Control': 'public, max-age=31536000, immutable',
     },
   })
 }

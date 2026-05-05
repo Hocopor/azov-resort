@@ -100,6 +100,18 @@ export function isAdmin(role?: string | null): boolean {
   return role === 'ADMIN'
 }
 
+export function getRoomCapacityBreakdown(baseCapacity: number, extraCapacity: number): string {
+  const safeBaseCapacity = Math.max(0, baseCapacity || 0)
+  const safeExtraCapacity = Math.max(0, extraCapacity || 0)
+  const totalCapacity = safeBaseCapacity + safeExtraCapacity
+
+  if (safeExtraCapacity === 0) {
+    return `Р”Рѕ ${totalCapacity} ${pluralize(totalCapacity, ['РіРѕСЃС‚СЏ', 'РіРѕСЃС‚РµР№', 'РіРѕСЃС‚РµР№'])}`
+  }
+
+  return `${safeBaseCapacity} РѕСЃРЅ. + ${safeExtraCapacity} РґРѕРї., РІСЃРµРіРѕ РґРѕ ${totalCapacity}`
+}
+
 export function generateBookingNumber(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }

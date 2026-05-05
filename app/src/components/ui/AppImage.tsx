@@ -1,25 +1,51 @@
 'use client'
 
 import Image, { ImageProps } from 'next/image'
+import {
+  buildUploadedImageSrcSet,
+  getUploadedImageFallbackSrc,
+  getUploadedImageSizes,
+  isUploadedImagePath,
+  type UploadedImageVariant,
+} from '@/lib/media'
 
-function isUploadedImage(src: string) {
-  return src.startsWith('/uploads/')
+type Props = ImageProps & {
+  variant?: UploadedImageVariant
 }
 
-type Props = ImageProps
-
 export function AppImage(props: Props) {
-  const { src, alt, className, fill, width, height, sizes, style, ...rest } = props
+  const {
+    src,
+    alt,
+    className,
+    fill,
+    width,
+    height,
+    sizes,
+    style,
+    priority,
+    variant = 'content',
+    ...rest
+  } = props
   const srcValue = typeof src === 'string' ? src : src.toString()
 
-  if (isUploadedImage(srcValue)) {
+  if (isUploadedImagePath(srcValue)) {
+    const uploadedSizes = sizes || getUploadedImageSizes(variant)
+    const uploadedSrc = getUploadedImageFallbackSrc(srcValue, variant)
+    const uploadedSrcSet = buildUploadedImageSrcSet(srcValue, variant)
+    const loading = priority ? undefined : 'lazy'
+
     if (fill) {
       return (
         <img
-          src={srcValue}
+          src={uploadedSrc}
+          srcSet={uploadedSrcSet}
+          sizes={uploadedSizes}
           alt={alt}
           className={className}
-          sizes={sizes}
+          loading={loading}
+          decoding="async"
+          fetchPriority={priority ? 'high' : 'auto'}
           style={{
             position: 'absolute',
             inset: 0,
@@ -33,12 +59,16 @@ export function AppImage(props: Props) {
 
     return (
       <img
-        src={srcValue}
+        src={uploadedSrc}
+        srcSet={uploadedSrcSet}
+        sizes={uploadedSizes}
         alt={alt}
         width={typeof width === 'number' ? width : undefined}
         height={typeof height === 'number' ? height : undefined}
         className={className}
-        sizes={sizes}
+        loading={loading}
+        decoding="async"
+        fetchPriority={priority ? 'high' : 'auto'}
         style={style}
       />
     )
@@ -54,6 +84,7 @@ export function AppImage(props: Props) {
       height={height}
       sizes={sizes}
       style={style}
+      priority={priority}
       {...rest}
     />
   )
