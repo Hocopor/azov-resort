@@ -32,7 +32,12 @@ export function RoomImageCarousel({ images, name, className, priority = false }:
   }
 
   return (
-    <div className={cn('relative overflow-hidden bg-gradient-to-br from-sea-100 to-sea-200', className)}>
+    <div
+      className={cn(
+        'relative overflow-hidden bg-gradient-to-br from-sea-100 to-sea-200',
+        className,
+      )}
+    >
       {currentImage ? (
         <AppImage
           src={currentImage}

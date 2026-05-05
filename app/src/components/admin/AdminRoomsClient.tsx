@@ -604,11 +604,11 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className="mb-1 block text-xs text-gray-500">РћСЃРЅРѕРІРЅС‹Рµ РјРµСЃС‚Р°</label>
+                    <label className="mb-1 block text-xs text-gray-500">Основные места</label>
                     <input type="number" min={0} value={editForm.baseCapacity} onChange={(e) => setEditForm((prev) => ({ ...prev, baseCapacity: e.target.value }))} className="input-field" />
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs text-gray-500">Р”РѕРїРѕР»РЅРёС‚РµР»СЊРЅС‹Рµ РјРµСЃС‚Р°</label>
+                    <label className="mb-1 block text-xs text-gray-500">Дополнительные места</label>
                     <input type="number" min={0} value={editForm.extraCapacity} onChange={(e) => setEditForm((prev) => ({ ...prev, extraCapacity: e.target.value }))} className="input-field" />
                   </div>
                 </div>

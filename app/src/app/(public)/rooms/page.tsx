@@ -60,7 +60,8 @@ export default async function RoomsPage() {
             Наши номера для отдыха на Азовском море
           </h1>
           <p className="text-lg text-white/80">
-            Уютные номера, фото, цены и удобства. Выберите вариант, который подходит именно вам.
+            Уютные номера, фото, цены и удобства. Выберите вариант, который подходит
+            именно вам.
           </p>
         </div>
       </section>
@@ -87,7 +88,15 @@ export default async function RoomsPage() {
               const previewAmenities =
                 customAmenities.length > 0
                   ? customAmenities.slice(0, 7)
-                  : ['Душ', 'Туалет', 'Wi-Fi', 'Мангальная зона', 'Парковка', 'Сапборды', 'Велосипеды']
+                  : [
+                      'Душ',
+                      'Туалет',
+                      'Wi-Fi',
+                      'Мангальная зона',
+                      'Парковка',
+                      'Сапборды',
+                      'Велосипеды',
+                    ]
 
               return (
                 <RoomCard

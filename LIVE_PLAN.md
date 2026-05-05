@@ -39,6 +39,7 @@ Blockers
 - Local Caddy validation through Docker was not possible earlier because the local Docker Desktop daemon was unavailable.
 
 Next Steps
+- [x] Normalize broken UTF-8/mojibake strings introduced in the recent rooms/capacity/media changes, then rerun the build.
 - Finalize the reverse proxy upstream strategy used on the VPS.
 - Deploy the pricing changes and run `prisma db push` on the VPS.
 - Manually verify mixed-period bookings, admin manual booking totals, saved booking history, and period creation on the live environment.
@@ -156,7 +157,15 @@ Next Steps
   - Shared media rendering now prefers lighter image variants and video metadata preload.
   - Local `npm run build` passes after the room/media implementation.
 - Deployment note for the current room/media implementation:
-  - The VPS will require `prisma db push` before restart because the `Room` schema gained `baseCapacity` and `extraCapacity`.
+- The VPS will require `prisma db push` before restart because the `Room` schema gained `baseCapacity` and `extraCapacity`.
+- A follow-up UTF-8 cleanup was completed for the newly touched room/capacity files:
+  - public `/rooms` listing page,
+  - public `/rooms/[id]` detail page,
+  - `RoomCard`,
+  - `RoomImageCarousel`,
+  - `getRoomCapacityBreakdown()` and related room/payment labels in `utils`,
+  - new capacity labels in `AdminRoomsClient`.
+- Local `npm run build` passes after the encoding cleanup.
 
 Durable Notes
 - This is stabilization and extension of the current implementation, not a redesign.

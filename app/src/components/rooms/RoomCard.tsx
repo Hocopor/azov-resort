@@ -82,11 +82,7 @@ export function RoomCard({
       className="card group cursor-pointer overflow-hidden transition-shadow duration-300 hover:shadow-card-hover lg:flex"
     >
       <div className="lg:w-80 lg:flex-shrink-0 xl:w-96">
-        <RoomImageCarousel
-          images={images}
-          name={name}
-          className="h-60 lg:h-full"
-        />
+        <RoomImageCarousel images={images} name={name} className="h-60 lg:h-full" />
       </div>
 
       <div className="flex-1 p-7 lg:flex lg:flex-col lg:justify-between">
@@ -103,7 +99,9 @@ export function RoomCard({
                   : formatMoney(minPrice)}
               </div>
               <div className="text-xs text-gray-400">
-                {hasPriceRange ? 'если хотите актуальную стоимость — выберите период' : 'за сутки'}
+                {hasPriceRange
+                  ? 'если хотите актуальную стоимость — выберите период'
+                  : 'за сутки'}
               </div>
             </div>
           </div>
@@ -112,14 +110,20 @@ export function RoomCard({
 
           <div className="mb-5 flex flex-wrap gap-2">
             <span className="badge-sea">
-              <Users className="h-3 w-3" /> {getRoomCapacityBreakdown(baseCapacity, extraCapacity || Math.max(0, capacity - baseCapacity))}
+              <Users className="h-3 w-3" />{' '}
+              {getRoomCapacityBreakdown(
+                baseCapacity,
+                extraCapacity || Math.max(0, capacity - baseCapacity),
+              )}
             </span>
             {area ? (
               <span className="badge-sea">
                 <Maximize2 className="h-3 w-3" /> {area} м²
               </span>
             ) : null}
-            {floor !== null && floor !== undefined ? <span className="badge-sea">Этаж {floor}</span> : null}
+            {floor !== null && floor !== undefined ? (
+              <span className="badge-sea">Этаж {floor}</span>
+            ) : null}
             {hasAC ? (
               <span className="badge bg-blue-100 text-blue-700">
                 <Wind className="h-3 w-3" /> Кондиционер
@@ -135,8 +139,15 @@ export function RoomCard({
                 <Refrigerator className="h-3 w-3" /> Холодильник
               </span>
             ) : null}
-            <span className={hasPrivateKitchen ? 'badge bg-green-100 text-green-700' : 'badge bg-yellow-100 text-yellow-700'}>
-              <UtensilsCrossed className="h-3 w-3" /> {hasPrivateKitchen ? 'Своя кухня' : 'Общая кухня'}
+            <span
+              className={
+                hasPrivateKitchen
+                  ? 'badge bg-green-100 text-green-700'
+                  : 'badge bg-yellow-100 text-yellow-700'
+              }
+            >
+              <UtensilsCrossed className="h-3 w-3" />{' '}
+              {hasPrivateKitchen ? 'Своя кухня' : 'Общая кухня'}
             </span>
           </div>
 

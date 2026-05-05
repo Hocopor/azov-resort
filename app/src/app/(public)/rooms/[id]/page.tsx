@@ -119,7 +119,11 @@ export default async function RoomDetailPage({ params }: Props) {
     { icon: Wind, label: 'Кондиционер', condition: room.hasAC },
     { icon: Tv, label: 'Телевизор', condition: room.hasTV },
     { icon: Refrigerator, label: 'Холодильник', condition: room.hasFridge },
-    { icon: UtensilsCrossed, label: room.hasPrivateKitchen ? 'Своя кухня' : 'Общая кухня', always: true },
+    {
+      icon: UtensilsCrossed,
+      label: room.hasPrivateKitchen ? 'Своя кухня' : 'Общая кухня',
+      always: true,
+    },
     { icon: CheckCircle, label: 'Душ и туалет', always: true },
     { icon: CheckCircle, label: 'Мангальная зона', always: true },
     { icon: Car, label: 'Парковка бесплатно', always: true },
@@ -130,12 +134,18 @@ export default async function RoomDetailPage({ params }: Props) {
   ].filter((item) => item.always || item.condition)
 
   const customAmenities = normalizeAmenities(room.amenities)
-  const capacityLabel = getRoomCapacityBreakdown(room.baseCapacity ?? room.capacity, room.extraCapacity ?? 0)
+  const capacityLabel = getRoomCapacityBreakdown(
+    room.baseCapacity ?? room.capacity,
+    room.extraCapacity ?? 0,
+  )
 
   return (
     <div className="min-h-screen bg-sand-50">
       <div className="mx-auto max-w-7xl px-4 pb-16 pt-28 sm:px-6 lg:px-8">
-        <Link href="/rooms" className="mb-8 inline-flex items-center gap-2 font-medium text-sea-700 hover:underline">
+        <Link
+          href="/rooms"
+          className="mb-8 inline-flex items-center gap-2 font-medium text-sea-700 hover:underline"
+        >
           <ArrowLeft className="h-4 w-4" /> Все номера
         </Link>
 
@@ -186,13 +196,19 @@ export default async function RoomDetailPage({ params }: Props) {
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
                 {customAmenities.length > 0
                   ? customAmenities.map((item) => (
-                      <div key={item} className="flex items-center gap-2.5 rounded-xl bg-sand-50 p-3">
+                      <div
+                        key={item}
+                        className="flex items-center gap-2.5 rounded-xl bg-sand-50 p-3"
+                      >
                         <CheckCircle className="h-5 w-5 flex-shrink-0 text-sea-600" />
                         <span className="text-sm text-gray-700">{item}</span>
                       </div>
                     ))
                   : amenitiesList.map((item) => (
-                      <div key={item.label} className="flex items-center gap-2.5 rounded-xl bg-sand-50 p-3">
+                      <div
+                        key={item.label}
+                        className="flex items-center gap-2.5 rounded-xl bg-sand-50 p-3"
+                      >
                         <item.icon className="h-5 w-5 flex-shrink-0 text-sea-600" />
                         <span className="text-sm text-gray-700">{item.label}</span>
                       </div>
@@ -203,7 +219,9 @@ export default async function RoomDetailPage({ params }: Props) {
 
           <div id="booking" className="mt-8 lg:mt-0">
             <div className="card sticky top-28 p-6">
-              <h2 className="mb-2 font-display text-2xl font-semibold text-gray-900">Забронировать</h2>
+              <h2 className="mb-2 font-display text-2xl font-semibold text-gray-900">
+                Забронировать
+              </h2>
               <div className="mb-2 flex items-baseline gap-1">
                 <span className="text-2xl font-bold text-sea-700">
                   {priceRange.hasRange
