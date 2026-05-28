@@ -1,132 +1,39 @@
-# Azov Resort
+# Отдых на Азове (azov-resort)
 
-Production deployment for the Azov Resort site on Ubuntu 24 with Docker Compose.
+## Описание
+Платформа для бронирования номеров в гостевом доме, с административной панелью, отзывами, уведомлениями в ВК и интеграцией электронной почты.
 
-## Shared reverse proxy branch
+## Настройка окружения
+Для работы приложения необходимо создать файл `.env` на основе `.env.example` со следующими переменными:
 
-This branch is intended for direct public deployment without Cloudflare Tunnel and without grabbing `80/443` inside its own Compose stack.
+### База данных
+- `POSTGRES_USER`: Пользователь БД.
+- `POSTGRES_PASSWORD`: Пароль БД.
+- `POSTGRES_DB`: Название БД PostgreSQL.
 
-Traffic flow:
+### Аутентификация (NextAuth)
+- `NEXTAUTH_SECRET`: Секретный ключ для шифрования сессий браузера.
+- `NEXTAUTH_URL`: Базовый URL вашего сайта (в разработке: `http://localhost:3000`).
 
-`Internet -> host Caddy/Nginx on VPS -> static Docker IP of app container -> Next.js app -> PostgreSQL container`
+### Провайдеры OAuth (опционально)
+- `VK_CLIENT_ID` и `VK_CLIENT_SECRET`: Для авторизации пользователей через ВКонтакте.
+- `YANDEX_CLIENT_ID` и `YANDEX_CLIENT_SECRET`: Для авторизации через Яндекс.
 
-This avoids conflicts with neighbor sites on the same VPS, because this project does not occupy `80/443` and does not rely on Docker host-port publishing for the app.
+### Настройки SMTP почты (обязательно для верификации и уведомлений)
+- `SMTP_HOST`: Адрес SMTP-сервера (например, `smtp.bz` или `smtp.mail.ru`).
+- `SMTP_PORT`: Порт сервера (часто 2525, 465, 587).
+- `SMTP_USER`: Логин (как правило, email) для подключения.
+- `SMTP_PASSWORD`: Пароль (или пароль для внешних приложений).
+- `SMTP_FROM`: От какого адреса будут приходить письма пользователям.
 
-## Security model
+### Уведомления администратору на Email
+- `ADMIN_EMAIL`: Адрес, на который будут приходить уведомления о новых бронированиях.
 
-- the app gets a fixed Docker IP such as `${APP_UPSTREAM_IP}`
-- PostgreSQL stays on an internal-only Docker network
-- the Next.js app is never published directly to the internet
-- the host reverse proxy handles HTTPS certificates and domain routing
-- deploy script can configure UFW to allow only `OpenSSH`, `80/tcp`, `443/tcp`
-- the host reverse proxy talks to the app by its fixed Docker IP
+### Настройки подключения ВКонтакте (для уведомлений администратору)
+- `VK_GROUP_TOKEN`: Токен сообщества (группы) ВКонтакте, через которое бот будет присылать уведомления. Создается в настройках группы ВК ("Работа с API"). (Необходимы права на отправку сообщений).
+- `VK_ADMIN_ID`: Цифровой ID вашей личной страницы ВКонтакте, куда бот группы должен писать уведомления о новых бронях (Вам нужно предварительно написать любое сообщение этой группе, чтобы она могла вам отвечать!).
 
-## Required DNS
-
-Point your domain to the VPS:
-
-- `A` record for `your-domain.ru` -> your VPS IPv4
-- optionally `AAAA` record -> your VPS IPv6
-
-## Environment
-
-Copy and fill the env file:
-
-```bash
-cp .env.example .env
-```
-
-Important variables:
-
-- `APP_DOMAIN=your-domain.ru`
-- `APP_NETWORK_SUBNET=172.31.250.0/24`
-- `APP_UPSTREAM_IP=172.31.250.10`
-- `POSTGRES_UPSTREAM_IP=172.31.250.11`
-- `NEXTAUTH_URL=https://your-domain.ru`
-- `NEXT_PUBLIC_SITE_URL=https://your-domain.ru`
-- `POSTGRES_PASSWORD=...`
-- `NEXTAUTH_SECRET=...`
-- `ADMIN_EMAIL=...`
-
-Generate a strong auth secret:
-
-```bash
-openssl rand -base64 32
-```
-
-## Deploy on Ubuntu 24
-
-```bash
-chmod +x deploy.sh
-sudo ./deploy.sh
-```
-
-What the script does:
-
-- installs Docker if needed
-- installs Docker Compose plugin if needed
-- installs UFW if needed
-- validates domain and port environment variables
-- configures firewall rules for `OpenSSH`, `80/tcp`, `443/tcp`
-- builds the app with plain logs
-- starts `postgres` and `app`
-- waits for PostgreSQL
-- runs Prisma migrations
-- runs seed
-- streams logs to console and files
-
-## Reverse proxy on the host
-
-This branch expects an existing host-level Caddy or Nginx.
-
-Ready-made examples:
-
-- Caddy: `ops/caddy/azov-resort.Caddyfile.example`
-- Nginx: `ops/nginx/azov-resort.conf.example`
-
-For Caddy, point the domain to the app:
-
-```caddyfile
-your-domain.ru {
-  reverse_proxy 172.31.250.10:3000
-}
-```
-
-If the chosen Docker subnet conflicts with another network on the VPS, change `APP_NETWORK_SUBNET`, `APP_UPSTREAM_IP`, and `POSTGRES_UPSTREAM_IP` together in `.env`.
-
-## Useful commands
-
-Build logs:
-
-```bash
-docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log
-```
-
-Start stack:
-
-```bash
-docker compose up -d 2>&1 | tee logs/logs-up.log
-```
-
-App logs:
-
-```bash
-docker compose logs -f app 2>&1 | tee logs/logs-runtime.log
-```
-
-Apply Prisma schema if needed:
-
-```bash
-docker compose exec -T app ./node_modules/.bin/prisma db push
-```
-
-## Docker services
-
-- `postgres` - PostgreSQL 16
-- `app` - Next.js application reachable by fixed Docker IP
-
-## Notes
-
-- Uploaded media is stored in the `uploads` Docker volume.
-- If you change the domain, also update OAuth redirect URLs and payment webhooks.
-- If you change `APP_NETWORK_SUBNET` or `APP_UPSTREAM_IP`, update the host Caddy/Nginx upstream too.
+## Запуск
+1. Установите зависимости `npm install`
+2. Настройте БД с помощью `npx prisma db push`
+3. Запустите в dev-режиме `npm run dev`

@@ -23,7 +23,7 @@ services:
 
   app:
     build:
-      context: ./app
+      context: .
       dockerfile: Dockerfile
       args:
         - NODE_ENV=production
