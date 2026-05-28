@@ -16,13 +16,14 @@
 - [x] Add baseline firewall configuration to deploy script
 - [x] Verify secrets and internal services are not exposed publicly
 
-[~] Phase 4. Deployment verification and ops hardening
+[x] Phase 4. Deployment verification and ops hardening
 - [x] Update `.env.example` and `README.md` for the new domain setup
 - [x] Validate `docker compose config`
 - [x] Validate shell scripts locally
 - [x] Document required VPS steps after `git pull`
 - [x] Fix first-run deploy when Prisma migrations are empty
-- [~] Stabilize reverse proxy upstream strategy for this VPS
+- [x] Stabilize reverse proxy upstream strategy for this VPS
+- [x] Откат мусора от Gemini AI Studio: удалён дублированный src/, prisma/, public/ и Vite-файлы из корня репо; починен docker-compose.yml (context: ./app → правильная папка с Dockerfile); убраны папки с фигурными скобками из app/src/; LIVE_PLAN убран из .gitignore
 
 [~] Phase 5. Dynamic room pricing by period
 - [x] Design price-period model without breaking existing bookings

@@ -10,8 +10,8 @@ node_modules
 
 # next.js
 /.next/
-/out/
 .next
+/out/
 
 # production
 /build
@@ -40,9 +40,12 @@ logs.txt
 
 # ai studio context
 metadata.json
+LIVE_PLAN.md
 
 # user uploaded files
 /uploads/
 /public/uploads/
-.env2
+.gitignore
 читай.md
+LIVE_PLAN.md
+.env2
