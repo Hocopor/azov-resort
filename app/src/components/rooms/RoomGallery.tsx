@@ -38,7 +38,15 @@ export function RoomGallery({ images, name }: Props) {
           } h-72 md:h-96`}
           onClick={() => setLightboxIdx(0)}
         >
-          <AppImage src={images[0]} alt={name} fill className="object-cover" priority />
+          <AppImage
+            src={images[0]}
+            alt={name}
+            fill
+            variant="gallery"
+            sizes="(max-width: 1024px) 100vw, 66vw"
+            className="object-cover"
+            priority
+          />
           <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
             <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
           </div>
@@ -51,7 +59,14 @@ export function RoomGallery({ images, name }: Props) {
             className="relative cursor-pointer group h-48 md:h-48"
             onClick={() => setLightboxIdx(i + 1)}
           >
-            <AppImage src={img} alt={`${name} ${i + 2}`} fill className="object-cover" />
+            <AppImage
+              src={img}
+              alt={`${name} ${i + 2}`}
+              fill
+              variant="card"
+              sizes="(max-width: 1024px) 33vw, 20vw"
+              className="object-cover"
+            />
             <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
             {i === 2 && images.length > 4 && (
               <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
@@ -100,7 +115,10 @@ export function RoomGallery({ images, name }: Props) {
               src={images[lightboxIdx]}
               alt={`${name} ${lightboxIdx + 1}`}
               fill
+              variant="lightbox"
+              sizes="100vw"
               className="object-contain"
+              priority
             />
           </div>
 
@@ -114,7 +132,7 @@ export function RoomGallery({ images, name }: Props) {
                   i === lightboxIdx ? 'border-white scale-110' : 'border-white/30'
                 }`}
               >
-                <AppImage src={img} alt="" width={48} height={32} className="object-cover w-full h-full" />
+                <AppImage src={img} alt="" variant="thumb" width={48} height={32} className="object-cover w-full h-full" />
               </button>
             ))}
           </div>

@@ -23,6 +23,12 @@ import {
   ImageIcon,
 } from 'lucide-react'
 import { formatMoney, formatDate, getBookingStatusColor, getBookingStatusLabel } from '@/lib/utils'
+import { getRoomCapacityBreakdown } from '@/lib/utils'
+import {
+  getRoomPriceRange,
+  normalizeRoomPricePeriods,
+  validateRoomPricePeriods,
+} from '@/lib/pricing'
 import { useToast } from '@/components/providers/ToastProvider'
 import { AdminFileDropzone } from '@/components/admin/AdminFileDropzone'
 import { AppImage } from '@/components/ui/AppImage'
@@ -42,15 +48,24 @@ interface BlockedDate {
   reason?: string | null
 }
 
+interface RoomPricePeriod {
+  pricePerDay: number
+  dateFrom: string | Date
+  dateTo: string | Date
+}
+
 interface Room {
   id: string
   name: string
   slug: string
   description: string
   shortDescription: string
+  baseCapacity: number
+  extraCapacity: number
   capacity: number
   area: number | null
   pricePerDay: number
+  pricePeriods: RoomPricePeriod[]
   images: string[]
   amenities: unknown
   hasAC: boolean
@@ -63,6 +78,12 @@ interface Room {
   _count: { bookings: number }
   blockedDates: BlockedDate[]
   bookings: Booking[]
+}
+
+interface EditableRoomPricePeriod {
+  pricePerDay: string
+  dateFrom: string
+  dateTo: string
 }
 
 function normalizeAmenitiesInput(value: unknown): string[] {
@@ -92,6 +113,30 @@ function normalizeAmenitiesInput(value: unknown): string[] {
   return []
 }
 
+function normalizePricePeriodDate(value: string | Date): string {
+  if (typeof value === 'string') {
+    return value.slice(0, 10)
+  }
+
+  return new Date(value).toISOString().slice(0, 10)
+}
+
+function buildEditablePricePeriods(periods: RoomPricePeriod[]): EditableRoomPricePeriod[] {
+  return periods.map((period) => ({
+    pricePerDay: String(Math.round(period.pricePerDay / 100)),
+    dateFrom: normalizePricePeriodDate(period.dateFrom),
+    dateTo: normalizePricePeriodDate(period.dateTo),
+  }))
+}
+
+function isPricePeriodEmpty(period: EditableRoomPricePeriod): boolean {
+  return !period.pricePerDay.trim() && !period.dateFrom.trim() && !period.dateTo.trim()
+}
+
+function isPricePeriodComplete(period: EditableRoomPricePeriod): boolean {
+  return Boolean(period.pricePerDay.trim() && period.dateFrom.trim() && period.dateTo.trim())
+}
+
 export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const router = useRouter()
   const { success, error: showError } = useToast()
@@ -104,6 +149,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const [editingRoom, setEditingRoom] = useState<Room | null>(null)
   const [editForm, setEditForm] = useState<Record<string, any>>({})
   const [removedImageUrls, setRemovedImageUrls] = useState<string[]>([])
+  const [pricePeriodsError, setPricePeriodsError] = useState<string | null>(null)
 
   const uploadFiles = async (files: File[], folder: string) => {
     const uploadedUrls: string[] = []
@@ -136,6 +182,37 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ url }),
+    })
+  }
+
+  const updatePricePeriodsValidation = (periods: EditableRoomPricePeriod[]) => {
+    const nonEmptyPeriods = periods.filter((period) => !isPricePeriodEmpty(period))
+    const incompletePeriods = nonEmptyPeriods.filter((period) => !isPricePeriodComplete(period))
+
+    if (incompletePeriods.length > 0) {
+      setPricePeriodsError(null)
+      return
+    }
+
+    try {
+      const normalized = normalizeRoomPricePeriods(
+        nonEmptyPeriods.map((period) => ({
+          pricePerDay: parseInt(period.pricePerDay || '0', 10) * 100,
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
+        })),
+      )
+      setPricePeriodsError(validateRoomPricePeriods(normalized))
+    } catch {
+      setPricePeriodsError('Проверьте периоды цен: нужна цена и корректные даты.')
+    }
+  }
+
+  const setPricePeriods = (updater: (periods: EditableRoomPricePeriod[]) => EditableRoomPricePeriod[]) => {
+    setEditForm((prev) => {
+      const nextPricePeriods = updater([...(prev.pricePeriods || [])])
+      updatePricePeriodsValidation(nextPricePeriods)
+      return { ...prev, pricePeriods: nextPricePeriods }
     })
   }
 
@@ -207,12 +284,15 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const startEdit = (room: Room) => {
     setEditingRoom(room)
     setRemovedImageUrls([])
+    setPricePeriodsError(null)
     setEditForm({
       name: room.name,
       slug: room.slug,
       shortDescription: room.shortDescription,
       description: room.description,
       pricePerDay: Math.round(room.pricePerDay / 100),
+      baseCapacity: room.baseCapacity ?? room.capacity,
+      extraCapacity: room.extraCapacity ?? 0,
       capacity: room.capacity,
       area: room.area ?? '',
       floor: room.floor ?? '',
@@ -223,6 +303,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
       hasFridge: room.hasFridge,
       amenitiesText: normalizeAmenitiesInput(room.amenities).join('\n'),
       images: [...room.images],
+      pricePeriods: buildEditablePricePeriods(room.pricePeriods || []),
     })
   }
 
@@ -277,6 +358,45 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
   const saveEdit = async () => {
     if (!editingRoom) return
 
+    let serializedPricePeriods: Array<{ pricePerDay: number; dateFrom: string; dateTo: string }> = []
+    const nonEmptyPeriods = (editForm.pricePeriods || []).filter((period: EditableRoomPricePeriod) => !isPricePeriodEmpty(period))
+    const incompletePeriods = nonEmptyPeriods.filter((period: EditableRoomPricePeriod) => !isPricePeriodComplete(period))
+
+    if (incompletePeriods.length > 0) {
+      const validationMessage = 'Заполните цену и обе даты для каждого непустого периода.'
+      setPricePeriodsError(validationMessage)
+      showError(validationMessage)
+      return
+    }
+
+    try {
+      const normalized = normalizeRoomPricePeriods(
+        nonEmptyPeriods.map((period: EditableRoomPricePeriod) => ({
+          pricePerDay: parseInt(period.pricePerDay || '0', 10) * 100,
+          dateFrom: period.dateFrom,
+          dateTo: period.dateTo,
+        })),
+      )
+      const validationError = validateRoomPricePeriods(normalized)
+      if (validationError) {
+        setPricePeriodsError(validationError)
+        showError(validationError)
+        return
+      }
+
+      serializedPricePeriods = normalized.map((period) => ({
+        pricePerDay: period.pricePerDay,
+        dateFrom: period.dateFrom.toISOString().slice(0, 10),
+        dateTo: period.dateTo.toISOString().slice(0, 10),
+      }))
+      setPricePeriodsError(null)
+    } catch {
+      const validationMessage = 'Проверьте периоды цен: укажите цену и корректные даты.'
+      setPricePeriodsError(validationMessage)
+      showError(validationMessage)
+      return
+    }
+
     setSavingId(`edit-${editingRoom.id}`)
 
     try {
@@ -285,15 +405,16 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           previousSlug: editingRoom.slug,
-          name: editForm.name,
-          slug: editForm.slug,
-          shortDescription: editForm.shortDescription,
-          description: editForm.description,
-          pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
-          capacity: parseInt(editForm.capacity || '1', 10),
-          area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
-          floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
-          sortOrder: parseInt(editForm.sortOrder || '0', 10),
+            name: editForm.name,
+            slug: editForm.slug,
+            shortDescription: editForm.shortDescription,
+            description: editForm.description,
+            pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
+            baseCapacity: Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0),
+            extraCapacity: Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0),
+            area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
+            floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
+            sortOrder: parseInt(editForm.sortOrder || '0', 10),
           hasAC: Boolean(editForm.hasAC),
           hasPrivateKitchen: Boolean(editForm.hasPrivateKitchen),
           hasTV: Boolean(editForm.hasTV),
@@ -303,10 +424,12 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
             .map((item) => item.trim())
             .filter(Boolean),
           images: editForm.images || [],
+          pricePeriods: serializedPricePeriods,
         }),
       })
 
-      if (!res.ok) throw new Error()
+      const payload = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(payload?.error || 'Ошибка сохранения')
 
       await Promise.all(removedImageUrls.map((url) => deleteUploadedFile(url)))
 
@@ -315,15 +438,19 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
           room.id === editingRoom.id
             ? {
                 ...room,
-                name: editForm.name,
-                slug: editForm.slug,
-                shortDescription: editForm.shortDescription,
-                description: editForm.description,
-                pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
-                capacity: parseInt(editForm.capacity || '1', 10),
-                area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
-                floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
-                sortOrder: parseInt(editForm.sortOrder || '0', 10),
+                  name: editForm.name,
+                  slug: editForm.slug,
+                  shortDescription: editForm.shortDescription,
+                  description: editForm.description,
+                  pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
+                  baseCapacity: Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0),
+                  extraCapacity: Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0),
+                  capacity:
+                    Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0) +
+                    Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0) || 1,
+                  area: editForm.area === '' ? null : parseInt(editForm.area || '0', 10),
+                  floor: editForm.floor === '' ? null : parseInt(editForm.floor || '0', 10),
+                  sortOrder: parseInt(editForm.sortOrder || '0', 10),
                 hasAC: Boolean(editForm.hasAC),
                 hasPrivateKitchen: Boolean(editForm.hasPrivateKitchen),
                 hasTV: Boolean(editForm.hasTV),
@@ -333,17 +460,19 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                   .map((item) => item.trim())
                   .filter(Boolean),
                 images: editForm.images || [],
+                pricePeriods: serializedPricePeriods,
               }
-            : room
-        )
+            : room,
+        ),
       )
 
       success('Номер обновлён')
       setEditingRoom(null)
       setRemovedImageUrls([])
+      setPricePeriodsError(null)
       router.refresh()
-    } catch {
-      showError('Ошибка сохранения')
+    } catch (err) {
+      showError(err instanceof Error ? err.message : 'Ошибка сохранения')
     } finally {
       setSavingId(null)
     }
@@ -361,7 +490,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
               </button>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
+            <div className="grid gap-6 lg:grid-cols-[380px_minmax(0,1fr)]">
               <div className="space-y-4">
                 <div>
                   <label className="mb-1 block text-xs text-gray-500">Название</label>
@@ -379,18 +508,108 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                   <label className="mb-1 block text-xs text-gray-500">Полное описание</label>
                   <textarea value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} rows={7} className="input-field resize-none" />
                 </div>
-                <div>
-                  <label className="mb-1 block text-xs text-gray-500">Цена за ночь (₽)</label>
-                  <input type="number" value={editForm.pricePerDay} onChange={(e) => setEditForm((prev) => ({ ...prev, pricePerDay: e.target.value }))} className="input-field" />
+                <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Цена</div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-500">Базовая цена за ночь (₽)</label>
+                      <input type="number" min={0} value={editForm.pricePerDay} onChange={(e) => setEditForm((prev) => ({ ...prev, pricePerDay: e.target.value }))} className="input-field" />
+                      <p className="mt-1 text-xs text-gray-400">Используется вне специальных периодов.</p>
+                    </div>
+
+                    {(editForm.pricePeriods || []).map((period: EditableRoomPricePeriod, index: number) => (
+                      <div key={`${period.dateFrom}-${period.dateTo}-${index}`} className="rounded-2xl border border-gray-200 bg-white p-3">
+                        <div className="space-y-3">
+                          <div>
+                            <label className="mb-1 block text-xs text-gray-500">Цена (₽)</label>
+                            <input
+                              type="number"
+                              min={0}
+                              value={period.pricePerDay}
+                              onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
+                                itemIndex === index ? { ...item, pricePerDay: e.target.value } : item
+                              )))}
+                              className="input-field"
+                            />
+                          </div>
+                          <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto]">
+                            <div>
+                              <label className="mb-1 block text-xs text-gray-500">С даты включительно</label>
+                              <input
+                                type="date"
+                                value={period.dateFrom}
+                                onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
+                                  itemIndex === index ? { ...item, dateFrom: e.target.value } : item
+                                )))}
+                                className="input-field"
+                              />
+                            </div>
+                            <div>
+                              <label className="mb-1 block text-xs text-gray-500">По дату включительно</label>
+                              <input
+                                type="date"
+                                value={period.dateTo}
+                                onChange={(e) => setPricePeriods((items) => items.map((item, itemIndex) => (
+                                  itemIndex === index ? { ...item, dateTo: e.target.value } : item
+                                )))}
+                                className="input-field"
+                              />
+                            </div>
+                            <div className="flex items-end">
+                            <button
+                              type="button"
+                              onClick={() => setPricePeriods((items) => items.filter((_, itemIndex) => itemIndex !== index))}
+                              className="rounded-xl p-3 text-red-500 transition-colors hover:bg-red-50"
+                              title="Удалить период"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </button>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+
+                    <button
+                      type="button"
+                      onClick={() => setPricePeriods((items) => ([...items, { pricePerDay: '', dateFrom: '', dateTo: '' }]))}
+                      className="inline-flex items-center gap-2 rounded-xl border border-dashed border-sea-300 px-3 py-2 text-sm font-medium text-sea-700 hover:bg-sea-50"
+                    >
+                      <Plus className="h-4 w-4" /> Добавить период цены
+                    </button>
+
+                    {pricePeriodsError && (
+                      <div className="rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+                        {pricePeriodsError}
+                      </div>
+                    )}
+                  </div>
                 </div>
+
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className="mb-1 block text-xs text-gray-500">Вместимость</label>
-                    <input type="number" min={1} value={editForm.capacity} onChange={(e) => setEditForm((prev) => ({ ...prev, capacity: e.target.value }))} className="input-field" />
+                    <input
+                      type="number"
+                      min={1}
+                      value={(Math.max(0, parseInt(editForm.baseCapacity || '0', 10) || 0) + Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0)) || 1}
+                      readOnly
+                      className="input-field bg-gray-50 text-gray-500"
+                    />
                   </div>
                   <div>
                     <label className="mb-1 block text-xs text-gray-500">Сортировка</label>
                     <input type="number" value={editForm.sortOrder} onChange={(e) => setEditForm((prev) => ({ ...prev, sortOrder: e.target.value }))} className="input-field" />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Основные места</label>
+                    <input type="number" min={0} value={editForm.baseCapacity} onChange={(e) => setEditForm((prev) => ({ ...prev, baseCapacity: e.target.value }))} className="input-field" />
+                  </div>
+                  <div>
+                    <label className="mb-1 block text-xs text-gray-500">Дополнительные места</label>
+                    <input type="number" min={0} value={editForm.extraCapacity} onChange={(e) => setEditForm((prev) => ({ ...prev, extraCapacity: e.target.value }))} className="input-field" />
                   </div>
                 </div>
                 <div className="grid grid-cols-2 gap-3">
@@ -447,7 +666,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
 
                 <AdminFileDropzone
                   title={savingId === `images-${editingRoom.id}` ? 'Загрузка...' : 'Перетащите фото номера сюда'}
-                  hint="Можно загружать сколько угодно изображений. Новые фото добавляются в конец галереи"
+                  hint="Можно загружать сколько угодно изображений. Новые фото добавляются в конец галереи."
                   multiple
                   disabled={savingId === `images-${editingRoom.id}`}
                   onFilesSelected={handleRoomImageUpload}
@@ -521,6 +740,7 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
           const isExpanded = expandedId === room.id
           const isBlocking = blockingId === room.id
           const upcomingBookings = room.bookings.filter((booking) => new Date(booking.checkIn) >= new Date())
+          const priceRange = getRoomPriceRange(room.pricePerDay, normalizeRoomPricePeriods(room.pricePeriods || []))
 
           return (
             <div key={room.id} className={`admin-card overflow-hidden ${!room.isActive ? 'opacity-70' : ''}`}>
@@ -541,9 +761,16 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                       <h3 className="font-semibold text-gray-900">{room.name}</h3>
                       <div className="mt-1 flex flex-wrap gap-2">
                         <span className="badge-sea">
-                          <Users className="h-3 w-3" /> до {room.capacity} чел.
+                          <Users className="h-3 w-3" /> {getRoomCapacityBreakdown(room.baseCapacity ?? room.capacity, room.extraCapacity ?? 0)}
                         </span>
-                        <span className="badge bg-sand-200 text-sand-800">{formatMoney(room.pricePerDay)} / ночь</span>
+                        <span className="badge bg-sand-200 text-sand-800">
+                          {priceRange.hasRange
+                            ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)} / ночь`
+                            : `${formatMoney(priceRange.minPrice)} / ночь`}
+                        </span>
+                        {room.pricePeriods.length > 0 && (
+                          <span className="badge bg-blue-100 text-blue-700">{room.pricePeriods.length} периодов цен</span>
+                        )}
                         <span className="badge bg-gray-100 text-gray-600">slug: {room.slug}</span>
                         <span className={`badge ${room.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-600'}`}>
                           {room.isActive ? 'Активен' : 'Скрыт'}
@@ -589,14 +816,30 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                       <div className="mt-1 text-gray-700">{room.sortOrder}</div>
                     </div>
                     <div className="rounded-2xl bg-gray-50 p-4 text-sm">
-                      <div className="text-xs uppercase tracking-wide text-gray-400">Базовые удобства</div>
+                      <div className="text-xs uppercase tracking-wide text-gray-400">Текущий диапазон цен</div>
                       <div className="mt-1 text-gray-700">
-                        {[room.hasAC && 'AC', room.hasTV && 'TV', room.hasFridge && 'Fridge', room.hasPrivateKitchen ? 'Kitchen' : 'Shared kitchen']
-                          .filter(Boolean)
-                          .join(', ')}
+                        {priceRange.hasRange
+                          ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                          : formatMoney(priceRange.minPrice)}
                       </div>
                     </div>
                   </div>
+
+                  {room.pricePeriods.length > 0 && (
+                    <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
+                      <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Периоды цен</div>
+                      <div className="space-y-2">
+                        {room.pricePeriods.map((period, index) => (
+                          <div key={`${period.dateFrom}-${period.dateTo}-${index}`} className="flex flex-wrap items-center justify-between gap-2 rounded-xl bg-white px-3 py-2">
+                            <span className="font-medium">{formatMoney(period.pricePerDay)}</span>
+                            <span className="text-gray-500">
+                              {formatDate(period.dateFrom, 'd MMM yyyy')} — {formatDate(period.dateTo, 'd MMM yyyy')}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
                   <div className="rounded-2xl bg-gray-50 p-4 text-sm text-gray-700">
                     <div className="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-400">Полное описание</div>

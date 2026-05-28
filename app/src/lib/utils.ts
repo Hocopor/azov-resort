@@ -31,7 +31,7 @@ export function calculateTotalPrice(pricePerDay: number, nights: number): number
 
 export function calculateDeposit(
   totalPrice: number,
-  settings: { type: 'PERCENT' | 'FIXED'; percent: number; fixed: number }
+  settings: { type: 'PERCENT' | 'FIXED'; percent: number; fixed: number },
 ): number {
   if (settings.type === 'PERCENT') {
     return Math.round(totalPrice * (settings.percent / 100))
@@ -100,11 +100,24 @@ export function isAdmin(role?: string | null): boolean {
   return role === 'ADMIN'
 }
 
+export function getRoomCapacityBreakdown(baseCapacity: number, extraCapacity: number): string {
+  const safeBaseCapacity = Math.max(0, baseCapacity || 0)
+  const safeExtraCapacity = Math.max(0, extraCapacity || 0)
+  const totalCapacity = safeBaseCapacity + safeExtraCapacity
+
+  if (safeExtraCapacity === 0) {
+    return `До ${totalCapacity} ${pluralize(totalCapacity, ['гостя', 'гостей', 'гостей'])}`
+  }
+
+  return `${safeBaseCapacity} осн. + ${safeExtraCapacity} доп., всего до ${totalCapacity}`
+}
+
 export function generateBookingNumber(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase()
 }
 
-export const PHONE_REGEX = /^(\+7|8)[\s\-]?\(?(\d{3})\)?[\s\-]?(\d{3})[\s\-]?(\d{2})[\s\-]?(\d{2})$/
+export const PHONE_REGEX =
+  /^(\+7|8)[\s\-]?\(?(\d{3})\)?[\s\-]?(\d{3})[\s\-]?(\d{2})[\s\-]?(\d{2})$/
 
 export function formatPhone(phone: string): string {
   const digits = phone.replace(/\D/g, '')

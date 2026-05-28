@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { getDepositSettings, calculateDeposit } from '@/lib/settings'
 import { createPayment } from '@/lib/yookassa'
 import { sendBookingConfirmation, sendAdminBookingNotification } from '@/lib/email'
 import { countNights } from '@/lib/utils'
+import {
+  buildNightlyPriceBreakdown,
+  calculateNightlyBreakdownTotal,
+  normalizeRoomPricePeriods,
+} from '@/lib/pricing'
 import { z } from 'zod'
 import { isBefore, isAfter, parseISO } from 'date-fns'
 
 const bookingSchema = z.object({
   roomId: z.string(),
-  checkIn: z.string().datetime(),
-  checkOut: z.string().datetime(),
+  checkIn: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата заезда'),
+  checkOut: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Некорректная дата выезда'),
   guests: z.number().min(1).max(30),
   hasPets: z.boolean().default(false),
   petsDescription: z.string().optional(),
@@ -56,6 +62,7 @@ export async function POST(req: NextRequest) {
     // Check room exists
     const room = await prisma.room.findUnique({
       where: { id: data.roomId, isActive: true },
+      include: { pricePeriods: true },
     })
 
     if (!room) {
@@ -94,7 +101,9 @@ export async function POST(req: NextRequest) {
     }
 
     // Calculate price
-    const totalPrice = room.pricePerDay * nights
+    const normalizedPricePeriods = normalizeRoomPricePeriods(room.pricePeriods)
+    const priceBreakdown = buildNightlyPriceBreakdown(checkIn, checkOut, room.pricePerDay, normalizedPricePeriods)
+    const totalPrice = calculateNightlyBreakdownTotal(priceBreakdown)
     const depositSettings = await getDepositSettings()
     const depositAmount = calculateDeposit(totalPrice, depositSettings)
 
@@ -122,6 +131,7 @@ export async function POST(req: NextRequest) {
         depositAmount,
         depositType: depositSettings.type,
         depositValue: depositSettings.type === 'PERCENT' ? depositSettings.percent : depositSettings.fixed,
+        priceBreakdown: priceBreakdown as unknown as Prisma.InputJsonValue,
         status: 'PENDING',
         paymentStatus: 'UNPAID',
         source: session ? 'WEBSITE' : 'WEBSITE',

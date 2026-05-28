@@ -216,21 +216,6 @@ h1, h2, h3, h4 {
   animation: bubble-rise linear infinite;
 }
 
-/* Calendar overrides */
-.rdp-day_selected, .rdp-day_selected:hover {
-  background-color: #1a6b8a !important;
-  color: white !important;
-}
-
-.rdp-day_range_middle {
-  background-color: rgba(26, 107, 138, 0.15) !important;
-  color: #1a6b8a !important;
-}
-
-.rdp-button:hover:not([disabled]):not(.rdp-day_selected) {
-  background-color: rgba(26, 107, 138, 0.08) !important;
-}
-
 /* Swiper customisation */
 .swiper-pagination-bullet-active {
   background: #e8735a !important;

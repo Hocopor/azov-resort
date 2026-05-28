@@ -4,6 +4,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 import { formatMoney } from '@/lib/utils'
+import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { AppImage } from '@/components/ui/AppImage'
 import {
   Waves, Star, Shield, Car, Bike, Wifi, ChefHat,
@@ -53,6 +54,11 @@ async function getHomeData() {
       where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       take: 4,
+      include: {
+        pricePeriods: {
+          orderBy: { dateFrom: 'asc' },
+        },
+      },
     }),
     getSettings([
       'hero_title',
@@ -321,7 +327,10 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {rooms.map((room) => (
+            {rooms.map((room) => {
+              const priceRange = getRoomPriceRange(room.pricePerDay, normalizeRoomPricePeriods(room.pricePeriods || []))
+
+              return (
               <Link key={room.id} href={`/rooms/${room.slug}`} className="card card-hover group">
                 <div className="relative h-48 bg-gradient-to-br from-sea-100 to-sea-200 overflow-hidden">
                   {room.images[0] ? (
@@ -329,6 +338,8 @@ export default async function HomePage() {
                       src={room.images[0]}
                       alt={room.name}
                       fill
+                      variant="card"
+                      sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 25vw"
                       className="object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                   ) : (
@@ -352,14 +363,20 @@ export default async function HomePage() {
                   <p className="text-xs text-gray-500 mb-4 line-clamp-2">{room.shortDescription}</p>
                   <div className="flex items-center justify-between">
                     <div>
-                      <span className="text-xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</span>
-                      <span className="text-xs text-gray-400"> / сутки</span>
+                      <span className="text-xl font-bold text-sea-700">
+                        {priceRange.hasRange
+                          ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                          : formatMoney(priceRange.minPrice)}
+                      </span>
+                      <span className="text-xs text-gray-400">
+                        {priceRange.hasRange ? ' / выберите период' : ' / сутки'}
+                      </span>
                     </div>
                     <span className="text-xs font-semibold text-coral-600 group-hover:underline">Подробнее →</span>
                   </div>
                 </div>
               </Link>
-            ))}
+            )})}
           </div>
 
           <div className="text-center mt-8 sm:hidden">
@@ -410,7 +427,7 @@ export default async function HomePage() {
                   key={index}
                   className={`relative rounded-2xl overflow-hidden bg-sea-900 ${index === 0 ? 'col-span-2 h-52' : 'h-40'}`}
                 >
-                  <AppImage src={src} alt="" fill className="object-cover opacity-70" />
+                  <AppImage src={src} alt="" fill variant="content" sizes="(max-width: 768px) 100vw, 50vw" className="object-cover opacity-70" />
                   <div className="absolute inset-0 bg-gradient-to-t from-sea-900/40 to-transparent" />
                 </div>
               ))}

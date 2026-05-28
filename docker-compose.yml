@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: azov_postgres
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-azov_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
@@ -11,7 +13,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
     networks:
-      - internal
+      internal:
+        ipv4_address: ${POSTGRES_UPSTREAM_IP:-172.31.250.11}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-azov_user} -d ${POSTGRES_DB:-azov_resort}"]
       interval: 10s
@@ -26,6 +29,8 @@ services:
         - NODE_ENV=production
     container_name: azov_app
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       DATABASE_URL: postgresql://${POSTGRES_USER:-azov_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-azov_resort}
       NEXTAUTH_URL: ${NEXTAUTH_URL}
@@ -47,23 +52,16 @@ services:
       postgres:
         condition: service_healthy
     networks:
-      - internal
+      internal:
+        ipv4_address: ${APP_UPSTREAM_IP:-172.31.250.10}
     volumes:
       - uploads:/app/uploads
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: azov_tunnel
-    restart: unless-stopped
-    profiles:
-      - tunnel
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
-    depends_on:
-      - app
-    networks:
-      - internal
-    environment:
-      TUNNEL_TOKEN: ${CLOUDFLARE_TUNNEL_TOKEN}
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1:3000 >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
 
 volumes:
   postgres_data:
@@ -74,3 +72,7 @@ volumes:
 networks:
   internal:
     driver: bridge
+    internal: true
+    ipam:
+      config:
+        - subnet: ${APP_NETWORK_SUBNET:-172.31.250.0/24}

@@ -1,11 +1,13 @@
 import { Metadata } from 'next'
-import Link from 'next/link'
+import { Waves } from 'lucide-react'
 import { prisma } from '@/lib/db'
-import { formatMoney } from '@/lib/utils'
-import { Waves, Wind, Tv, Refrigerator, UtensilsCrossed, Users, Maximize2, CheckCircle } from 'lucide-react'
-import { AppImage } from '@/components/ui/AppImage'
+import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
+import { RoomCard } from '@/components/rooms/RoomCard'
 
-export const metadata: Metadata = { title: 'Номера на Азовском море — цены, фото, удобства' }
+export const metadata: Metadata = {
+  title: 'Номера на Азовском море — цены, фото, удобства',
+}
+
 export const revalidate = 60
 
 function normalizeAmenities(value: unknown): string[] {
@@ -39,6 +41,11 @@ async function getRooms() {
   return prisma.room.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
+    include: {
+      pricePeriods: {
+        orderBy: { dateFrom: 'asc' },
+      },
+    },
   })
 }
 
@@ -47,17 +54,20 @@ export default async function RoomsPage() {
 
   return (
     <div className="min-h-screen">
-      <section className="bg-gradient-to-br from-deep-900 to-sea-700 text-white pt-32 pb-20">
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <h1 className="font-display text-5xl md:text-6xl font-bold mb-4">Наши номера, для отдыха на Азовском море</h1>
-          <p className="text-white/80 text-lg">
-            7 уютных номеров — фото, цены и удобства. Выберите то, что подходит именно вам.
+      <section className="bg-gradient-to-br from-deep-900 to-sea-700 pb-20 pt-32 text-white">
+        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
+          <h1 className="mb-4 font-display text-5xl font-bold md:text-6xl">
+            Наши номера для отдыха на Азовском море
+          </h1>
+          <p className="text-lg text-white/80">
+            Уютные номера, фото, цены и удобства. Выберите вариант, который подходит
+            именно вам.
           </p>
         </div>
       </section>
 
-      <section className="bg-white border-b border-gray-100 sticky top-16 md:top-20 z-30">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3">
+      <section className="sticky top-16 z-30 border-b border-gray-100 bg-white md:top-20">
+        <div className="mx-auto max-w-7xl px-4 py-3 sm:px-6">
           <div className="flex flex-wrap items-center gap-2 text-sm text-gray-600">
             <span className="font-medium">Доступно {rooms.length} номеров</span>
             <span className="text-gray-300">|</span>
@@ -67,128 +77,60 @@ export default async function RoomsPage() {
       </section>
 
       <section className="bg-sand-50 py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="space-y-8">
             {rooms.map((room) => {
               const customAmenities = normalizeAmenities(room.amenities)
+              const priceRange = getRoomPriceRange(
+                room.pricePerDay,
+                normalizeRoomPricePeriods(room.pricePeriods || []),
+              )
               const previewAmenities =
                 customAmenities.length > 0
                   ? customAmenities.slice(0, 7)
-                  : ['Душ', 'Туалет', 'Wi-Fi', 'Мангальная зона', 'Парковка', 'Сапборды', 'Велосипеды']
+                  : [
+                      'Душ',
+                      'Туалет',
+                      'Wi-Fi',
+                      'Мангальная зона',
+                      'Парковка',
+                      'Сапборды',
+                      'Велосипеды',
+                    ]
 
               return (
-                <div
+                <RoomCard
                   key={room.id}
-                  className="card overflow-hidden lg:flex group hover:shadow-card-hover transition-shadow duration-300"
-                >
-                  <div className="relative lg:w-80 xl:w-96 h-60 lg:h-auto flex-shrink-0 bg-gradient-to-br from-sea-100 to-sea-200">
-                    {room.images[0] ? (
-                      <AppImage
-                        src={room.images[0]}
-                        alt={room.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-500"
-                      />
-                    ) : (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Waves className="w-20 h-20 text-sea-300" />
-                      </div>
-                    )}
-
-                    {room.images.length > 1 && (
-                      <div className="absolute bottom-2 left-2 flex gap-1">
-                        {room.images.slice(1, 4).map((img, index) => (
-                          <div key={index} className="w-10 h-10 rounded-lg overflow-hidden border-2 border-white">
-                            <AppImage src={img} alt="" width={40} height={40} className="object-cover w-full h-full" />
-                          </div>
-                        ))}
-                        {room.images.length > 4 && (
-                          <div className="w-10 h-10 rounded-lg bg-black/60 border-2 border-white flex items-center justify-center text-white text-xs font-bold">
-                            +{room.images.length - 4}
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="flex-1 p-7 lg:flex lg:flex-col lg:justify-between">
-                    <div>
-                      <div className="flex flex-wrap items-start justify-between gap-4 mb-3">
-                        <div>
-                          <h2 className="font-display text-2xl font-semibold text-gray-900">{room.name}</h2>
-                          <p className="text-gray-500 mt-1">{room.shortDescription}</p>
-                        </div>
-                        <div className="text-right flex-shrink-0">
-                          <div className="text-2xl font-bold text-sea-700">{formatMoney(room.pricePerDay)}</div>
-                          <div className="text-xs text-gray-400">за сутки</div>
-                        </div>
-                      </div>
-
-                      <p className="text-gray-600 text-sm leading-relaxed mb-5">{room.description}</p>
-
-                      <div className="flex flex-wrap gap-2 mb-5">
-                        <span className="badge-sea">
-                          <Users className="w-3 h-3" /> До {room.capacity} гостей
-                        </span>
-                        {room.area && (
-                          <span className="badge-sea">
-                            <Maximize2 className="w-3 h-3" /> {room.area} м²
-                          </span>
-                        )}
-                        {room.floor !== null && room.floor !== undefined && <span className="badge-sea">Этаж {room.floor}</span>}
-                        {room.hasAC && (
-                          <span className="badge bg-blue-100 text-blue-700">
-                            <Wind className="w-3 h-3" /> Кондиционер
-                          </span>
-                        )}
-                        {room.hasTV && (
-                          <span className="badge-sand">
-                            <Tv className="w-3 h-3" /> Телевизор
-                          </span>
-                        )}
-                        {room.hasFridge && (
-                          <span className="badge-sand">
-                            <Refrigerator className="w-3 h-3" /> Холодильник
-                          </span>
-                        )}
-                        {room.hasPrivateKitchen ? (
-                          <span className="badge bg-green-100 text-green-700">
-                            <UtensilsCrossed className="w-3 h-3" /> Своя кухня
-                          </span>
-                        ) : (
-                          <span className="badge bg-yellow-100 text-yellow-700">
-                            <UtensilsCrossed className="w-3 h-3" /> Общая кухня
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
-                        {previewAmenities.map((item) => (
-                          <span key={item} className="flex items-center gap-1">
-                            <CheckCircle className="w-3 h-3 text-green-500" /> {item}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col sm:flex-row gap-3 mt-6">
-                      <Link href={`/rooms/${room.slug}`} className="btn-outline flex-1 justify-center">
-                        Подробнее
-                      </Link>
-                      <Link href={`/rooms/${room.slug}#booking`} className="btn-primary flex-1 justify-center">
-                        Забронировать
-                      </Link>
-                    </div>
-                  </div>
-                </div>
+                  href={`/rooms/${room.slug}`}
+                  bookingHref={`/rooms/${room.slug}#booking`}
+                  name={room.name}
+                  shortDescription={room.shortDescription}
+                  description={room.description}
+                  images={room.images}
+                  capacity={room.capacity}
+                  baseCapacity={room.baseCapacity ?? room.capacity}
+                  extraCapacity={room.extraCapacity ?? 0}
+                  area={room.area}
+                  floor={room.floor}
+                  hasAC={room.hasAC}
+                  hasPrivateKitchen={room.hasPrivateKitchen}
+                  hasTV={room.hasTV}
+                  hasFridge={room.hasFridge}
+                  previewAmenities={previewAmenities}
+                  minPrice={priceRange.minPrice}
+                  maxPrice={priceRange.maxPrice}
+                  hasPriceRange={priceRange.hasRange}
+                />
               )
             })}
           </div>
 
           {rooms.length === 0 && (
-            <div className="text-center py-20">
-              <Waves className="w-16 h-16 text-sea-200 mx-auto mb-4" />
-              <p className="text-gray-500">Номера временно недоступны. Пожалуйста, свяжитесь с нами напрямую.</p>
+            <div className="py-20 text-center">
+              <Waves className="mx-auto mb-4 h-16 w-16 text-sea-200" />
+              <p className="text-gray-500">
+                Номера временно недоступны. Пожалуйста, свяжитесь с нами напрямую.
+              </p>
             </div>
           )}
         </div>

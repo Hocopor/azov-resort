@@ -126,6 +126,23 @@ ensure_compose() {
   log "Docker Compose plugin installed"
 }
 
+ensure_ufw() {
+  if command -v ufw >/dev/null 2>&1; then
+    log "UFW already installed"
+    return
+  fi
+
+  if [[ "${EUID}" -ne 0 ]]; then
+    warn "UFW is not installed and deploy.sh is not running as root. Firewall setup will be skipped."
+    return
+  fi
+
+  info "Installing UFW..."
+  apt-get update -qq
+  apt-get install -y ufw
+  log "UFW installed"
+}
+
 load_env() {
   set -a
   # shellcheck disable=SC1091
@@ -137,6 +154,7 @@ validate_env() {
   local required_vars=(
     POSTGRES_PASSWORD
     NEXTAUTH_SECRET
+    NEXTAUTH_URL
     NEXT_PUBLIC_SITE_URL
     ADMIN_EMAIL
   )
@@ -173,15 +191,79 @@ validate_env() {
     info "DATABASE_URL was not set explicitly. Using compose internal URL."
   fi
 
-  if [[ -n "${CLOUDFLARE_TUNNEL_TOKEN:-}" ]]; then
-    COMPOSE_ARGS+=(--profile tunnel)
-    LOG_SERVICES+=(cloudflared)
-    log "Cloudflare tunnel profile enabled"
-  else
-    warn "CLOUDFLARE_TUNNEL_TOKEN is empty, deploy will start without cloudflared"
+  if [[ -z "${APP_DOMAIN:-}" ]]; then
+    APP_DOMAIN="${NEXT_PUBLIC_SITE_URL#https://}"
+    APP_DOMAIN="${APP_DOMAIN#http://}"
+    APP_DOMAIN="${APP_DOMAIN%%/*}"
+    export APP_DOMAIN
+    info "APP_DOMAIN was not set explicitly. Using ${APP_DOMAIN}."
+  fi
+
+  if [[ -z "${APP_NETWORK_SUBNET:-}" ]]; then
+    APP_NETWORK_SUBNET="172.31.250.0/24"
+    export APP_NETWORK_SUBNET
+    info "APP_NETWORK_SUBNET was not set explicitly. Using ${APP_NETWORK_SUBNET}."
+  fi
+
+  if [[ -z "${APP_UPSTREAM_IP:-}" ]]; then
+    APP_UPSTREAM_IP="172.31.250.10"
+    export APP_UPSTREAM_IP
+    info "APP_UPSTREAM_IP was not set explicitly. Using ${APP_UPSTREAM_IP}."
+  fi
+
+  if [[ -z "${POSTGRES_UPSTREAM_IP:-}" ]]; then
+    POSTGRES_UPSTREAM_IP="172.31.250.11"
+    export POSTGRES_UPSTREAM_IP
+    info "POSTGRES_UPSTREAM_IP was not set explicitly. Using ${POSTGRES_UPSTREAM_IP}."
+  fi
+
+  if [[ "${NEXTAUTH_URL}" != https://* ]]; then
+    fail "NEXTAUTH_URL must start with https:// for direct secure deployment."
+  fi
+
+  if [[ "${NEXT_PUBLIC_SITE_URL}" != https://* ]]; then
+    fail "NEXT_PUBLIC_SITE_URL must start with https:// for direct secure deployment."
+  fi
+
+  local nextauth_host="${NEXTAUTH_URL#https://}"
+  nextauth_host="${nextauth_host%%/*}"
+  local public_host="${NEXT_PUBLIC_SITE_URL#https://}"
+  public_host="${public_host%%/*}"
+
+  if [[ "$nextauth_host" != "$APP_DOMAIN" ]]; then
+    fail "NEXTAUTH_URL host ($nextauth_host) must match APP_DOMAIN ($APP_DOMAIN)."
+  fi
+
+  if [[ "$public_host" != "$APP_DOMAIN" ]]; then
+    fail "NEXT_PUBLIC_SITE_URL host ($public_host) must match APP_DOMAIN ($APP_DOMAIN)."
+  fi
+
+  if [[ "${APP_UPSTREAM_IP}" == "${POSTGRES_UPSTREAM_IP}" ]]; then
+    fail "APP_UPSTREAM_IP and POSTGRES_UPSTREAM_IP must be different."
   fi
 
   log ".env validated"
+}
+
+configure_firewall() {
+  if ! command -v ufw >/dev/null 2>&1; then
+    warn "UFW is unavailable. Skipping firewall configuration."
+    return
+  fi
+
+  if [[ "${EUID}" -ne 0 ]]; then
+    warn "Not running as root. Skipping firewall configuration."
+    return
+  fi
+
+  info "Configuring UFW firewall..."
+  ufw allow OpenSSH >/dev/null
+  ufw allow 80/tcp >/dev/null
+  ufw allow 443/tcp >/dev/null
+  ufw --force default deny incoming >/dev/null
+  ufw --force default allow outgoing >/dev/null
+  ufw --force enable >/dev/null 2>&1 || true
+  log "Firewall configured: OpenSSH, 80/tcp, 443/tcp allowed"
 }
 
 compose_config_check() {
@@ -197,11 +279,6 @@ prepare_dirs() {
 rebuild_stack() {
   info "Stopping previous containers..."
   docker compose "${COMPOSE_ARGS[@]}" down --remove-orphans || true
-
-  info "Pulling external images..."
-  if [[ " ${COMPOSE_ARGS[*]} " == *" --profile tunnel "* ]]; then
-    docker compose "${COMPOSE_ARGS[@]}" pull cloudflared || true
-  fi
 
   info "Building app image with plain progress output..."
   run_logged "$BUILD_LOG" docker compose "${COMPOSE_ARGS[@]}" --progress=plain build --no-cache app
@@ -227,10 +304,27 @@ wait_for_postgres() {
   log "PostgreSQL is ready"
 }
 
+has_prisma_migrations() {
+  local migrations_dir="$ROOT_DIR/app/prisma/migrations"
+
+  if [[ ! -d "$migrations_dir" ]]; then
+    return 1
+  fi
+
+  find "$migrations_dir" -mindepth 1 -maxdepth 1 | grep -q .
+}
+
 run_migrations() {
-  info "Running Prisma migrations..."
-  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma migrate deploy
-  log "Prisma migrations applied"
+  if has_prisma_migrations; then
+    info "Running Prisma migrations..."
+    run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma migrate deploy
+    log "Prisma migrations applied"
+    return
+  fi
+
+  warn "Prisma migrations are missing or empty. Applying schema with prisma db push for first-run setup."
+  run_logged "$MIGRATE_LOG" docker compose "${COMPOSE_ARGS[@]}" exec -T app ./node_modules/.bin/prisma db push
+  log "Prisma schema pushed to database"
 }
 
 run_seed() {
@@ -252,6 +346,7 @@ show_summary() {
   echo
   echo "Admin URL: ${NEXT_PUBLIC_SITE_URL}/admin"
   echo "Admin email: ${ADMIN_EMAIL}"
+  echo "Static upstream for host reverse proxy: ${APP_UPSTREAM_IP}:3000"
   echo
   echo "Useful commands:"
   echo "  docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log"
@@ -282,9 +377,11 @@ main() {
   ensure_env_file
   ensure_docker
   ensure_compose
+  ensure_ufw
   ensure_docker_access
   load_env
   validate_env
+  configure_firewall
   compose_config_check
   prepare_dirs
   rebuild_stack

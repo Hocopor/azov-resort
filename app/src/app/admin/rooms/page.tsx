@@ -1,7 +1,4 @@
 import { prisma } from '@/lib/db'
-import { formatMoney } from '@/lib/utils'
-import Link from 'next/link'
-import Image from 'next/image'
 import { AdminRoomsClient } from '@/components/admin/AdminRoomsClient'
 
 export const metadata = { title: 'Номера — Панель управления' }
@@ -11,6 +8,9 @@ export default async function AdminRoomsPage() {
   const rooms = await prisma.room.findMany({
     orderBy: { sortOrder: 'asc' },
     include: {
+      pricePeriods: {
+        orderBy: { dateFrom: 'asc' },
+      },
       _count: { select: { bookings: true } },
       blockedDates: { where: { dateTo: { gte: new Date() } } },
       bookings: {

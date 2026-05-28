@@ -20,7 +20,14 @@ export function MediaRenderer({ mediaItems }: { mediaItems: MediaItem[] }) {
         <div key={idx}>
           {item.type === 'image' && item.url && (
             <div className="relative w-full overflow-hidden rounded-2xl bg-gray-100" style={{ aspectRatio: '16/9' }}>
-              <AppImage src={item.url} alt={item.caption || ''} fill className="object-cover" />
+              <AppImage
+                src={item.url}
+                alt={item.caption || ''}
+                fill
+                variant="content"
+                sizes="(max-width: 768px) 100vw, 80vw"
+                className="object-cover"
+              />
               {item.caption && (
                 <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-4">
                   <p className="text-sm text-white">{item.caption}</p>
@@ -31,7 +38,7 @@ export function MediaRenderer({ mediaItems }: { mediaItems: MediaItem[] }) {
 
           {item.type === 'video' && item.url && (
             <div className="overflow-hidden rounded-2xl bg-black">
-              <video src={item.url} controls className="w-full max-h-[520px] object-contain" playsInline />
+              <video src={item.url} controls preload="metadata" className="w-full max-h-[520px] object-contain" playsInline />
               {item.caption && <p className="px-4 py-3 text-sm text-gray-500">{item.caption}</p>}
             </div>
           )}
@@ -40,7 +47,7 @@ export function MediaRenderer({ mediaItems }: { mediaItems: MediaItem[] }) {
             <div className={`grid gap-2 ${item.items.length === 1 ? 'grid-cols-1' : item.items.length === 2 ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-3'}`}>
               {item.items.map((src, index) => (
                 <div key={index} className="relative overflow-hidden rounded-2xl bg-gray-100" style={{ aspectRatio: '1/1' }}>
-                  <AppImage src={src} alt="" fill className="object-cover" />
+                  <AppImage src={src} alt="" fill variant="card" sizes="(max-width: 768px) 50vw, 33vw" className="object-cover" />
                 </div>
               ))}
             </div>

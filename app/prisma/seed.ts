@@ -71,6 +71,8 @@ async function main() {
       slug: 'standart-briz',
       shortDescription: 'Уютный номер с видом на сад для пары или одного гостя',
       description: 'Светлый и уютный номер с двуспальной кроватью, собственной ванной комнатой и небольшим холодильником. Идеально подходит для пары или одного гостя, желающего спокойного отдыха у моря.',
+      baseCapacity: 2,
+      extraCapacity: 0,
       capacity: 2,
       area: 18,
       pricePerDay: 400000, // 4000 руб
@@ -87,6 +89,8 @@ async function main() {
       slug: 'standart-priboj',
       shortDescription: 'Просторный номер с отдельной кухней для двух гостей',
       description: 'Просторный номер с отдельной кухней, всем необходимым для самостоятельного приготовления пищи. Оснащён кондиционером для комфорта в жаркие дни.',
+      baseCapacity: 2,
+      extraCapacity: 0,
       capacity: 2,
       area: 24,
       pricePerDay: 500000, // 5000 руб
@@ -103,6 +107,8 @@ async function main() {
       slug: 'semejnyj-laguna',
       shortDescription: 'Большой номер для семьи с детьми до 4 человек',
       description: 'Просторный семейный номер с двуспальной кроватью и двумя односпальными. Собственная кухня, ванная комната и кондиционер. Идеален для семьи с детьми.',
+      baseCapacity: 2,
+      extraCapacity: 2,
       capacity: 4,
       area: 35,
       pricePerDay: 700000, // 7000 руб
@@ -119,6 +125,8 @@ async function main() {
       slug: 'ekonom-rakushka',
       shortDescription: 'Бюджетный вариант с общей кухней',
       description: 'Экономичный номер с двуспальной кроватью и душевой кабиной. Общая кухня на три номера полностью оборудована всей необходимой техникой и посудой.',
+      baseCapacity: 2,
+      extraCapacity: 0,
       capacity: 2,
       area: 15,
       pricePerDay: 280000, // 2800 руб
@@ -135,6 +143,8 @@ async function main() {
       slug: 'ekonom-yakor',
       shortDescription: 'Уютный эконом с общей кухней и видом на двор',
       description: 'Компактный и уютный номер с двуспальной кроватью, небольшой верандой и доступом к общей кухне. Отличный выбор для тех, кто ценит экономию.',
+      baseCapacity: 2,
+      extraCapacity: 0,
       capacity: 2,
       area: 16,
       pricePerDay: 280000,
@@ -151,6 +161,8 @@ async function main() {
       slug: 'ekonom-volna',
       shortDescription: 'Эконом номер с общей кухней, подходит для 2-3 человек',
       description: 'Просторный эконом-номер с возможностью размещения третьего человека на раскладном диване. Доступ к общей кухне, бесплатный вай-фай.',
+      baseCapacity: 2,
+      extraCapacity: 1,
       capacity: 3,
       area: 20,
       pricePerDay: 320000, // 3200 руб
@@ -167,6 +179,8 @@ async function main() {
       slug: 'lyuks-azovskij',
       shortDescription: 'Просторный люкс с кондиционером, кухней и верандой',
       description: 'Наш лучший номер! Просторные апартаменты с отдельной спальней, гостиной, полностью оборудованной кухней и собственной верандой. Кондиционер, Smart TV, большой холодильник.',
+      baseCapacity: 2,
+      extraCapacity: 2,
       capacity: 4,
       area: 45,
       pricePerDay: 900000, // 9000 руб

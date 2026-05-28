@@ -7,7 +7,16 @@ export default async function NewBookingPage() {
   const rooms = await prisma.room.findMany({
     where: { isActive: true },
     orderBy: { sortOrder: 'asc' },
-    select: { id: true, name: true, pricePerDay: true, capacity: true },
+    select: {
+      id: true,
+      name: true,
+      pricePerDay: true,
+      capacity: true,
+      pricePeriods: {
+        orderBy: { dateFrom: 'asc' },
+        select: { pricePerDay: true, dateFrom: true, dateTo: true },
+      },
+    },
   })
 
   return (
