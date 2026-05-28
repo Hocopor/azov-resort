@@ -3,37 +3,115 @@
 ## Описание
 Платформа для бронирования номеров в гостевом доме, с административной панелью, отзывами, уведомлениями в ВК и интеграцией электронной почты.
 
-## Настройка окружения
-Для работы приложения необходимо создать файл `.env` на основе `.env.example` со следующими переменными:
+## Структура репозитория
+
+```
+azov-resort/
+├── app/              ← Весь Next.js код (Dockerfile, src/, prisma/, etc.)
+├── caddy/            ← Конфиг Caddy (reverse proxy)
+├── ops/              ← Операционные скрипты
+├── postgres/         ← Init-скрипты для PostgreSQL
+├── docker-compose.yml
+├── deploy.sh         ← Скрипт полного деплоя (первый запуск)
+└── .env              ← Переменные окружения (не в git)
+```
+
+> **Важно:** Весь исходный код приложения живёт в папке `app/`. Docker собирает образ именно из неё (`context: ./app`). Не переносите файлы из `app/` в корень репозитория.
+
+---
+
+## Деплой на сервер
+
+### Первый запуск (полный деплой)
+```bash
+cd /srv/domiki/azov-resort
+cp .env.example .env
+nano .env   # заполните все переменные
+bash deploy.sh
+```
+
+### Обновление после `git pull` (стандартная процедура)
+
+```bash
+# 1. Переходим в корень репозитория
+cd /srv/domiki/azov-resort
+
+# 2. Подтягиваем новый код
+git fetch origin
+git reset --hard origin/deploy/direct-domain-secure
+
+# 3. Пересобираем и перезапускаем контейнер приложения
+docker compose --progress=plain build --no-cache app 2>&1 | tee logs/logs-build-app.log
+
+# 4. Перезапускаем контейнеры
+docker compose up -d --force-recreate --remove-orphans
+
+# 5. Применяем миграции БД (если были изменения схемы)
+docker compose exec -T app ./node_modules/.bin/prisma migrate deploy
+
+# 6. Проверяем статус
+docker compose ps
+docker compose logs --tail=50 app
+```
+
+### Если в схеме Prisma новые поля (без файлов миграций)
+```bash
+docker compose exec -T app ./node_modules/.bin/prisma db push
+```
+
+### Перезагрузить Caddy после правки конфига
+```bash
+sudo caddy reload --config /home/devops-agent/caddy/Caddyfile
+```
+
+### Просмотр логов приложения
+```bash
+docker compose logs -f app
+```
+
+---
+
+## Локальная разработка
+
+```bash
+cd app
+npm install
+npx prisma db push
+npm run dev
+```
+
+---
+
+## Настройка переменных окружения
+
+Создайте `.env` на основе `.env.example` в **корне репозитория**:
 
 ### База данных
-- `POSTGRES_USER`: Пользователь БД.
-- `POSTGRES_PASSWORD`: Пароль БД.
-- `POSTGRES_DB`: Название БД PostgreSQL.
+- `POSTGRES_USER` — пользователь БД
+- `POSTGRES_PASSWORD` — пароль БД (**обязательно**)
+- `POSTGRES_DB` — название БД PostgreSQL
 
 ### Аутентификация (NextAuth)
-- `NEXTAUTH_SECRET`: Секретный ключ для шифрования сессий браузера.
-- `NEXTAUTH_URL`: Базовый URL вашего сайта (в разработке: `http://localhost:3000`).
+- `NEXTAUTH_SECRET` — секретный ключ для шифрования сессий (**обязательно**)
+- `NEXTAUTH_URL` — базовый URL сайта с https:// (**обязательно**)
+- `NEXT_PUBLIC_SITE_URL` — публичный URL сайта (**обязательно**)
 
-### Провайдеры OAuth (опционально)
-- `VK_CLIENT_ID` и `VK_CLIENT_SECRET`: Для авторизации пользователей через ВКонтакте.
-- `YANDEX_CLIENT_ID` и `YANDEX_CLIENT_SECRET`: Для авторизации через Яндекс.
+### OAuth провайдеры (опционально)
+- `VK_CLIENT_ID` и `VK_CLIENT_SECRET` — авторизация через ВКонтакте
+- `YANDEX_CLIENT_ID` и `YANDEX_CLIENT_SECRET` — авторизация через Яндекс
 
-### Настройки SMTP почты (обязательно для верификации и уведомлений)
-- `SMTP_HOST`: Адрес SMTP-сервера (например, `smtp.bz` или `smtp.mail.ru`).
-- `SMTP_PORT`: Порт сервера (часто 2525, 465, 587).
-- `SMTP_USER`: Логин (как правило, email) для подключения.
-- `SMTP_PASSWORD`: Пароль (или пароль для внешних приложений).
-- `SMTP_FROM`: От какого адреса будут приходить письма пользователям.
+### SMTP почта
+- `SMTP_HOST` — адрес SMTP-сервера
+- `SMTP_PORT` — порт (587, 465 или 2525)
+- `SMTP_USER` — логин (email)
+- `SMTP_PASSWORD` — пароль
+- `SMTP_FROM` — адрес отправителя
 
-### Уведомления администратору на Email
-- `ADMIN_EMAIL`: Адрес, на который будут приходить уведомления о новых бронированиях.
+### Уведомления администратору
+- `ADMIN_EMAIL` — email для уведомлений о новых бронированиях (**обязательно**)
+- `VK_GROUP_TOKEN` — токен группы ВКонтакте для уведомлений
+- `VK_ADMIN_ID` — ID страницы ВКонтакте администратора
 
-### Настройки подключения ВКонтакте (для уведомлений администратору)
-- `VK_GROUP_TOKEN`: Токен сообщества (группы) ВКонтакте, через которое бот будет присылать уведомления. Создается в настройках группы ВК ("Работа с API"). (Необходимы права на отправку сообщений).
-- `VK_ADMIN_ID`: Цифровой ID вашей личной страницы ВКонтакте, куда бот группы должен писать уведомления о новых бронях (Вам нужно предварительно написать любое сообщение этой группе, чтобы она могла вам отвечать!).
-
-## Запуск
-1. Установите зависимости `npm install`
-2. Настройте БД с помощью `npx prisma db push`
-3. Запустите в dev-режиме `npm run dev`
+### ЮКасса (оплата, опционально)
+- `YOOKASSA_SHOP_ID` — ID магазина
+- `YOOKASSA_SECRET_KEY` — секретный ключ

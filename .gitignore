@@ -40,9 +40,9 @@ logs.txt
 
 # ai studio context
 metadata.json
-LIVE_PLAN.md
 
 # user uploaded files
 /uploads/
 /public/uploads/
 .env2
+читай.md
