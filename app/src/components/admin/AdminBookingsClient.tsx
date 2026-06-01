@@ -38,6 +38,7 @@ interface RoomPricePeriod {
 interface Booking {
   id: string
   bookingNumber: string
+  roomId: string
   checkIn: string | Date
   checkOut: string | Date
   nights: number
