@@ -130,3 +130,4 @@ docker compose exec -T app ./node_modules/.bin/prisma db push
 - Uploaded media is stored in the `uploads` Docker volume.
 - If you change the domain, also update OAuth redirect URLs and payment webhooks.
 - If you change `APP_NETWORK_SUBNET` or `APP_UPSTREAM_IP`, update the host Caddy/Nginx upstream too.
+ 1
