@@ -93,43 +93,50 @@ interface UIStatusInfo {
 const CUSTOM_STATUS_MAP: Record<string, UIStatusInfo> = {
   PENDING: {
     key: 'PENDING',
-    label: 'Ожидает оплаты',
-    color: 'bg-yellow-50 text-yellow-800 border-yellow-200',
+    label: 'На согласовании',
+    color: 'bg-yellow-50 text-yellow-805 border-yellow-250 font-semibold',
     dbStatus: 'PENDING',
+    dbPaymentStatus: 'UNPAID',
+  },
+  CONFIRMED: {
+    key: 'CONFIRMED',
+    label: 'Согласован',
+    color: 'bg-indigo-50 text-indigo-805 border-indigo-200 font-semibold',
+    dbStatus: 'CONFIRMED',
     dbPaymentStatus: 'UNPAID',
   },
   DEPOSIT_PAID: {
     key: 'DEPOSIT_PAID',
     label: 'Внесена предоплата',
-    color: 'bg-sky-50 text-sky-800 border-sky-200',
+    color: 'bg-sky-50 text-sky-805 border-sky-200 font-semibold',
     dbStatus: 'CONFIRMED',
     dbPaymentStatus: 'DEPOSIT_PAID',
   },
   FULLY_PAID: {
     key: 'FULLY_PAID',
-    label: 'Оплачено полностью',
-    color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
+    label: 'Оплачено',
+    color: 'bg-emerald-50 text-emerald-805 border-emerald-250 font-semibold',
     dbStatus: 'CONFIRMED',
     dbPaymentStatus: 'FULLY_PAID',
   },
   COMPLETED: {
     key: 'COMPLETED',
-    label: 'Завершено (выехал)',
-    color: 'bg-blue-50 text-blue-800 border-blue-200',
+    label: 'Завершено',
+    color: 'bg-blue-50 text-blue-805 border-blue-200 font-semibold',
     dbStatus: 'COMPLETED',
     dbPaymentStatus: 'FULLY_PAID',
   },
   CANCELLED: {
     key: 'CANCELLED',
     label: 'Отменено',
-    color: 'bg-red-50 text-red-800 border-red-200',
+    color: 'bg-red-50 text-red-800 border-red-200 font-medium',
     dbStatus: 'CANCELLED',
     dbPaymentStatus: 'UNPAID',
   },
   BLOCKED: {
     key: 'BLOCKED',
     label: 'Заблокировано',
-    color: 'bg-gray-100 text-gray-800 border-gray-250',
+    color: 'bg-gray-100 text-gray-800 border-gray-250 font-medium',
     dbStatus: 'BLOCKED',
     dbPaymentStatus: 'UNPAID',
   }
@@ -156,7 +163,7 @@ export function getBookingCustomStatusKey(booking: { status: string; paymentStat
     
     if (booking.paymentStatus === 'FULLY_PAID') return 'FULLY_PAID'
     if (booking.paymentStatus === 'DEPOSIT_PAID') return 'DEPOSIT_PAID'
-    return 'DEPOSIT_PAID'
+    return 'CONFIRMED'
   }
   
   return booking.status
@@ -215,12 +222,30 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
     }
   }
 
-  // Update max scroll bounds
+  // Update max scroll bounds dynamically with resizing and layout paint tracking
   useEffect(() => {
-    if (calendarRef.current) {
-      const { scrollWidth, clientWidth } = calendarRef.current
-      setMaxScroll(Math.max(scrollWidth - clientWidth, 1))
+    const updateMaxScroll = () => {
+      if (calendarRef.current) {
+        const { scrollWidth, clientWidth } = calendarRef.current
+        setMaxScroll(Math.max(scrollWidth - clientWidth, 1))
+      }
     }
+
+    updateMaxScroll()
+    const timer = setTimeout(updateMaxScroll, 350)
+
+    if (typeof window !== 'undefined' && 'ResizeObserver' in window && calendarRef.current) {
+      const observer = new ResizeObserver(() => {
+        updateMaxScroll()
+      })
+      observer.observe(calendarRef.current)
+      return () => {
+        observer.disconnect()
+        clearTimeout(timer)
+      }
+    }
+
+    return () => clearTimeout(timer)
   }, [currentMonth, currentYear, bookings])
 
   const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -230,6 +255,49 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
       calendarRef.current.scrollLeft = val
     }
   }
+
+  // Ref and states for Bookings List Table horizontal scroll
+  const listTableRef = useRef<HTMLDivElement>(null)
+  const [listTableScrollVal, setListTableScrollVal] = useState(0)
+  const [listTableMaxScroll, setListTableMaxScroll] = useState(0)
+
+  const handleListTableScroll = () => {
+    if (listTableRef.current) {
+      setListTableScrollVal(listTableRef.current.scrollLeft)
+    }
+  }
+
+  const handleListTableSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value)
+    setListTableScrollVal(val)
+    if (listTableRef.current) {
+      listTableRef.current.scrollLeft = val
+    }
+  }
+
+  useEffect(() => {
+    const updateListMaxScroll = () => {
+      if (listTableRef.current) {
+        const { scrollWidth, clientWidth } = listTableRef.current
+        setListTableMaxScroll(Math.max(scrollWidth - clientWidth, 0))
+      }
+    }
+    
+    updateListMaxScroll()
+    const timer = setTimeout(updateListMaxScroll, 350)
+    
+    if (typeof window !== 'undefined' && 'ResizeObserver' in window && listTableRef.current) {
+      const observer = new ResizeObserver(() => {
+        updateListMaxScroll()
+      })
+      observer.observe(listTableRef.current)
+      return () => {
+        observer.disconnect()
+        clearTimeout(timer)
+      }
+    }
+    return () => clearTimeout(timer)
+  }, [filteredBookingsForList])
 
   // Scroll to active booking area or start on render
   useEffect(() => {
@@ -657,14 +725,14 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-hidden focus:ring-1 focus:ring-sea-300"
+              className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-hidden focus:ring-1 focus:ring-sea-300 cursor-pointer font-medium"
             >
-              <option value="ALL">Все статусы (включая отмененные)</option>
-              <option value="PENDING">Ожидает оплаты (PENDING)</option>
-              <option value="CONFIRMED">Подтверждено (CONFIRMED)</option>
+              <option value="ALL">Все статусы (включая архивные)</option>
+              <option value="PENDING">На согласовании (автоматический PENDING)</option>
+              <option value="CONFIRMED">Активные (Согласован / Предоплата / Оплачено)</option>
               <option value="CANCELLED">Отменено (CANCELLED)</option>
-              <option value="COMPLETED">Выехал / Завершено (COMPLETED)</option>
-              <option value="BLOCKED">Заблокировано (BLOCKED)</option>
+              <option value="COMPLETED">Завершено (COMPLETED)</option>
+              <option value="BLOCKED">Заблокировано (Служебное блокирование)</option>
             </select>
           </div>
 
@@ -737,69 +805,94 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             Бронирований с выбранными фильтрами не обнаружено.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-100">
-            <table className="w-full text-left text-xs sm:text-sm">
-              <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 font-medium">
-                <tr>
-                  <th className="px-4 py-3">ID зак.</th>
-                  <th className="px-4 py-3">Категория</th>
-                  <th className="px-4 py-3">ФИО гостя</th>
-                  <th className="px-4 py-3 text-center">Заезд — Выезд</th>
-                  <th className="px-4 py-3 text-center">Дней/Челт.</th>
-                  <th className="px-4 py-3 text-right">Сумма</th>
-                  <th className="px-4 py-3 text-center">Статус</th>
-                  <th className="px-4 py-3 text-center">Управление</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-50 text-gray-700">
-                {filteredBookingsForList.map((b) => {
-                  const customStatusKey = getBookingCustomStatusKey(b)
-                  const customStatus = CUSTOM_STATUS_MAP[customStatusKey] || { label: b.status, color: 'bg-gray-100 text-gray-600' }
-                  
-                  return (
-                    <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
-                      <td className="px-4 py-3 font-mono font-bold text-gray-400">
-                        #{b.bookingNumber.slice(-6).toUpperCase()}
-                      </td>
-                      <td className="px-4 py-3 font-medium text-gray-800">
-                        {b.room.name}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="font-bold text-gray-900">{b.guestName}</div>
-                        <div className="text-[10px] text-gray-400 font-mono">{b.guestPhone}</div>
-                      </td>
-                      <td className="px-4 py-3 text-center text-xs whitespace-nowrap font-medium text-gray-600">
-                        {formatDate(b.checkIn, 'dd.MM')} — {formatDate(b.checkOut, 'dd.MM.yyyy')}
-                      </td>
-                      <td className="px-4 py-3 text-center text-xs text-gray-500 whitespace-nowrap">
-                        {b.nights}н / {b.guests}чел
-                        {b.transferNeeded && (
-                          <span className="ml-1 inline-block text-orange-500 font-bold" title="Нужен трансфер">
-                            🚗
+          <div className="space-y-2">
+            <div 
+              ref={listTableRef}
+              onScroll={handleListTableScroll}
+              className="overflow-x-auto rounded-xl border border-gray-200"
+            >
+              <table className="w-full text-left text-[11px] sm:text-xs border-collapse">
+                <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
+                  <tr className="divide-x divide-gray-200">
+                    <th className="px-1.5 py-2 text-center w-14">ID зак.</th>
+                    <th className="px-1.5 py-2">Категория</th>
+                    <th className="px-1.5 py-2">ФИО гостя / Телефон</th>
+                    <th className="px-1.5 py-2 text-center">Заезд — Выезд</th>
+                    <th className="px-1.5 py-2 text-center">Дней/Челт.</th>
+                    <th className="px-1.5 py-2 text-right">Сумма</th>
+                    <th className="px-1.5 py-2 text-center">Статус</th>
+                    <th className="px-1.5 py-2 text-center">Управление</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-200 text-gray-700">
+                  {filteredBookingsForList.map((b) => {
+                    const customStatusKey = getBookingCustomStatusKey(b)
+                    const customStatus = CUSTOM_STATUS_MAP[customStatusKey] || { label: b.status, color: 'bg-gray-100 text-gray-600' }
+                    
+                    return (
+                      <tr key={b.id} className="hover:bg-gray-50/50 transition-colors divide-x divide-gray-200">
+                        <td className="px-1.5 py-2 font-mono font-bold text-gray-400 text-center">
+                          #{b.bookingNumber.slice(-6).toUpperCase()}
+                        </td>
+                        <td className="px-1.5 py-2 font-medium text-gray-800">
+                          {b.room.name}
+                        </td>
+                        <td className="px-1.5 py-2">
+                          <div className="font-extrabold text-gray-900 leading-tight">{b.guestName}</div>
+                          <div className="text-[10px] text-gray-400 font-mono mt-0.5">{b.guestPhone}</div>
+                        </td>
+                        <td className="px-1.5 py-2 text-center font-bold text-gray-600 whitespace-nowrap">
+                          {formatDate(b.checkIn, 'dd.MM')} — {formatDate(b.checkOut, 'dd.MM.yyyy')}
+                        </td>
+                        <td className="px-1.5 py-2 text-center text-gray-500 whitespace-nowrap">
+                          {b.nights}н / {b.guests}чел
+                          {b.transferNeeded && (
+                            <span className="ml-1 inline-block text-orange-500 font-bold" title="Нужен трансфер">
+                              🚗
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-1.5 py-2 text-right font-extrabold text-gray-950 font-mono">
+                          {formatMoney(b.totalPrice).replace(',00', '')}
+                        </td>
+                        <td className="px-1.5 py-2 text-center whitespace-nowrap">
+                          <span className={`inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${customStatus.color}`}>
+                            {customStatus.label}
                           </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3 text-right font-extrabold text-gray-900 font-mono">
-                        {formatMoney(b.totalPrice).replace(',00', '')}
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${customStatus.color}`}>
-                          {customStatus.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center">
-                        <button
-                          onClick={() => openBookingDetails(b)}
-                          className="px-3 py-1.5 text-xs font-bold bg-sea-50 hover:bg-sea-100 border border-sea-150 text-sea-700 rounded-lg cursor-pointer transition-all"
-                        >
-                          Детали
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                        </td>
+                        <td className="px-1.5 py-2 text-center">
+                          <button
+                            onClick={() => openBookingDetails(b)}
+                            className="px-2 py-1 text-[10px] font-bold bg-sea-50 hover:bg-sea-100 border border-sea-150 text-sea-750 rounded-md cursor-pointer transition-all active:scale-95"
+                          >
+                            Детали
+                          </button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Table Scroll Movement Slider as requested */}
+            {listTableMaxScroll > 5 && (
+              <div className="p-2.5 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center gap-3">
+                <span className="text-[10px] text-gray-400 font-extrabold uppercase select-none flex items-center gap-1.5">
+                  <SlidersHorizontal className="w-3.5 h-3.5" /> Прокрутка таблицы:
+                </span>
+                <input 
+                  type="range"
+                  min={0}
+                  max={listTableMaxScroll}
+                  value={listTableScrollVal}
+                  onChange={handleListTableSliderChange}
+                  className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sea-600 focus:outline-hidden"
+                  style={{ outline: 'none' }}
+                  title="Перемещайте ползунок для просмотра правых колонок таблицы"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>

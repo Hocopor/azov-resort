@@ -46,8 +46,8 @@ export function truncate(str: string, maxLen: number): string {
 
 export function getBookingStatusLabel(status: string): string {
   const labels: Record<string, string> = {
-    PENDING: 'Ожидает оплаты',
-    CONFIRMED: 'Подтверждено',
+    PENDING: 'На согласовании',
+    CONFIRMED: 'Согласован',
     CANCELLED: 'Отменено',
     COMPLETED: 'Завершено',
     BLOCKED: 'Заблокировано',
@@ -69,13 +69,49 @@ export function getPaymentStatusLabel(status: string): string {
 
 export function getBookingStatusColor(status: string): string {
   const colors: Record<string, string> = {
-    PENDING: 'bg-yellow-100 text-yellow-800',
-    CONFIRMED: 'bg-green-100 text-green-800',
-    CANCELLED: 'bg-red-100 text-red-800',
-    COMPLETED: 'bg-blue-100 text-blue-800',
-    BLOCKED: 'bg-gray-100 text-gray-800',
+    PENDING: 'bg-yellow-50 text-yellow-800 border border-yellow-200',
+    CONFIRMED: 'bg-indigo-50 text-indigo-800 border border-indigo-200',
+    CANCELLED: 'bg-red-50 text-red-800 border border-red-200',
+    COMPLETED: 'bg-blue-50 text-blue-800 border border-blue-200',
+    BLOCKED: 'bg-gray-100 text-gray-800 border border-gray-200',
   }
-  return colors[status] || 'bg-gray-100 text-gray-800'
+  return colors[status] || 'bg-gray-100 text-gray-800 border border-gray-200'
+}
+
+export function getUnifiedStatusLabel(status: string, paymentStatus: string, checkOut?: Date | string | null): string {
+  if (status === 'CANCELLED') return 'Отменено'
+  if (status === 'BLOCKED') return 'Заблокировано'
+  if (status === 'COMPLETED') return 'Завершено'
+  if (status === 'PENDING') return 'На согласовании'
+  
+  if (status === 'CONFIRMED') {
+    if (checkOut) {
+      const checkOutDate = typeof checkOut === 'string' ? new Date(checkOut) : checkOut
+      const now = new Date()
+      const endOfCheckout = new Date(checkOutDate)
+      endOfCheckout.setHours(23, 59, 59, 999)
+      if (now > endOfCheckout && paymentStatus === 'FULLY_PAID') {
+        return 'Завершено'
+      }
+    }
+    
+    if (paymentStatus === 'FULLY_PAID') return 'Оплачено'
+    if (paymentStatus === 'DEPOSIT_PAID') return 'Внесена предоплата'
+    return 'Согласован'
+  }
+  
+  return status
+}
+
+export function getUnifiedStatusColor(status: string, paymentStatus: string, checkOut?: Date | string | null): string {
+  const lbl = getUnifiedStatusLabel(status, paymentStatus, checkOut)
+  if (lbl === 'На согласовании') return 'bg-yellow-50 text-yellow-850 border border-yellow-250 font-semibold'
+  if (lbl === 'Согласован') return 'bg-indigo-50 text-indigo-850 border border-indigo-200 font-semibold'
+  if (lbl === 'Внесена предоплата') return 'bg-sky-50 text-sky-850 border border-sky-200 font-semibold'
+  if (lbl === 'Оплачено') return 'bg-emerald-50 text-emerald-850 border border-emerald-250 font-semibold'
+  if (lbl === 'Завершено') return 'bg-blue-50 text-blue-850 border border-blue-200 font-semibold'
+  if (lbl === 'Отменено') return 'bg-red-50 text-red-800 border border-red-200 font-medium'
+  return 'bg-gray-100 text-gray-800 border border-gray-200 font-medium pb-px'
 }
 
 export function pluralize(count: number, forms: [string, string, string]): string {

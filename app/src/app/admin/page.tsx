@@ -8,6 +8,7 @@ import {
   ArrowRight, AlertCircle, CheckCircle, Clock,
   Eye, MousePointerClick, Sparkles
 } from 'lucide-react'
+import { RecentBookingsClient } from '@/components/admin/RecentBookingsClient'
 
 export const metadata = { title: 'Дашборд' }
 export const revalidate = 10 // Refresh quite frequently in admin panel
@@ -148,7 +149,7 @@ export default async function AdminDashboard() {
 
   const statCards = [
     { label: 'Броней за 30 дней', value: String(metrics.totalBookings), sub: `${metrics.confirmedBookings} подтверждено`, icon: Calendar, color: 'text-sea-600 bg-sea-50' },
-    { label: 'Ожидают оплаты', value: String(metrics.pendingBookings), sub: 'требуют внимания', icon: AlertCircle, color: 'text-yellow-600 bg-yellow-50', urgent: metrics.pendingBookings > 0 },
+    { label: 'На согласовании', value: String(metrics.pendingBookings), sub: 'требуют внимания', icon: AlertCircle, color: 'text-yellow-600 bg-yellow-50', urgent: metrics.pendingBookings > 0 },
     { label: 'Выручка (депозиты)', value: formatMoney(metrics.revenue), sub: 'за 30 дней', icon: CreditCard, color: 'text-green-600 bg-green-50' },
     { label: 'Уникальных посетителей', value: String(metrics.uniqueVisitors), sub: 'за 30 дней', icon: Users, color: 'text-purple-600 bg-purple-50' },
   ]
@@ -314,41 +315,7 @@ export default async function AdminDashboard() {
       </div>
 
       {/* Recent bookings */}
-      <div className="admin-card">
-        <div className="flex items-center justify-between mb-5">
-          <h3 className="font-semibold text-gray-800">Последние бронирования</h3>
-          <Link href="/admin/bookings" className="text-sm text-sea-700 font-medium hover:underline flex items-center gap-1">
-            Все брони <ArrowRight className="w-3.5 h-3.5" />
-          </Link>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-100">
-                {['ID', 'Номер', 'Гость', 'Телефон', 'Заезд', 'Выезд', 'Сумма', 'Статус'].map((h) => (
-                  <th key={h} className="text-left text-xs text-gray-400 font-medium pb-3 pr-4">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {recentBookings.map((b) => (
-                <tr key={b.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="py-3 pr-4 text-gray-400 text-xs">#{b.bookingNumber.slice(-6).toUpperCase()}</td>
-                  <td className="py-3 pr-4 font-medium text-gray-800">{b.room.name}</td>
-                  <td className="py-3 pr-4 text-gray-700">{b.guestName}</td>
-                  <td className="py-3 pr-4 text-gray-500">{b.guestPhone}</td>
-                  <td className="py-3 pr-4 text-gray-600">{formatDate(b.checkIn, 'd MMM')}</td>
-                  <td className="py-3 pr-4 text-gray-600">{formatDate(b.checkOut, 'd MMM')}</td>
-                  <td className="py-3 pr-4 font-semibold text-gray-900">{formatMoney(b.depositAmount)}</td>
-                  <td className="py-3">
-                    <span className={`badge ${getBookingStatusColor(b.status)}`}>{getBookingStatusLabel(b.status)}</span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <RecentBookingsClient bookings={JSON.parse(JSON.stringify(recentBookings))} />
     </div>
   )
 }

@@ -242,17 +242,17 @@ export function AdminManualBookingForm({ rooms }: { rooms: Room[] }) {
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Статус брони</label>
-            <select {...register('status')} className="input-field">
-              <option value="CONFIRMED">Подтверждено</option>
-              <option value="PENDING">Ожидает</option>
+            <select {...register('status')} className="input-field font-sans">
+              <option value="PENDING">На согласовании</option>
+              <option value="CONFIRMED">Согласован</option>
             </select>
           </div>
           <div>
             <label className="text-xs text-gray-500 mb-1 block">Статус оплаты</label>
-            <select {...register('paymentStatus')} className="input-field">
-              <option value="DEPOSIT_PAID">Депозит оплачен</option>
-              <option value="FULLY_PAID">Полностью оплачено</option>
+            <select {...register('paymentStatus')} className="input-field font-sans">
               <option value="UNPAID">Не оплачено</option>
+              <option value="DEPOSIT_PAID">Внесена предоплата</option>
+              <option value="FULLY_PAID">Оплачено</option>
             </select>
           </div>
         </div>
