@@ -131,7 +131,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.id) {
         const dbUser = await prisma.user.findUnique({
           where: { id: token.id as string },
-          select: { role: true, name: true, deletedAt: true },
+          select: { role: true, name: true, deletedAt: true, emailVerified: true, createdAt: true },
         })
 
         if (!dbUser || dbUser.deletedAt) {
@@ -139,6 +139,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         }
 
         token.role = dbUser.role
+        token.emailVerified = dbUser.emailVerified ? dbUser.emailVerified.toISOString() : null
+        token.createdAt = dbUser.createdAt.toISOString()
       }
 
       return token
@@ -147,6 +149,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (token.id) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        session.user.emailVerified = token.emailVerified as string | null
+        session.user.createdAt = token.createdAt as string
       }
       return session
     },
@@ -172,6 +176,8 @@ declare module 'next-auth' {
       name?: string | null
       email?: string | null
       image?: string | null
+      emailVerified?: string | null
+      createdAt?: string
     }
   }
 }

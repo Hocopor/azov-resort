@@ -23,10 +23,10 @@ export function Footer({ siteName, sitePhone, siteAddress }: FooterProps) {
               <div className="w-10 h-10 bg-sea-600 rounded-xl flex items-center justify-center">
                 <Waves className="w-5 h-5 text-white" />
               </div>
-              <span className="font-display text-xl font-semibold">{siteName}</span>
+              <span className="font-display text-xl font-semibold">Гостевой дом на Зелёной 26</span>
             </Link>
             <p className="text-gray-400 text-sm leading-relaxed max-w-xs mb-6">
-              Уютный гостевой дом у Азовского моря. Отдыхайте с комфортом — мы позаботимся о каждой детали вашего отпуска.
+              Уют и спокойствие у Азовского моря, вдали от городской суеты.
             </p>
             <div className="flex items-center gap-3">
               <a
@@ -101,7 +101,7 @@ export function Footer({ siteName, sitePhone, siteAddress }: FooterProps) {
 
         <div className="border-t border-white/10 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-gray-500">
-            © {new Date().getFullYear()} {siteName}. Все права защищены.
+            {new Date().getFullYear()} Гостевой дом на Зелёной 26. Самозанятая Макашенец О.В.
           </p>
           <div className="flex items-center gap-4 flex-wrap justify-center">
             <Link href="/legal/privacy" className="text-xs text-gray-500 hover:text-gray-300 transition-colors">

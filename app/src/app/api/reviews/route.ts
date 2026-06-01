@@ -64,6 +64,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
+  const user = await prisma.user.findUnique({
+    where: { id: session.user.id },
+    select: { emailVerified: true },
+  })
+
+  if (!user || !user.emailVerified) {
+    return NextResponse.json({ error: 'Написание отзывов доступно только после подтверждения почты' }, { status: 403 })
+  }
+
   const formData = await req.formData()
   const rating = Number(formData.get('rating') || 0)
   const content = String(formData.get('content') || '').trim()

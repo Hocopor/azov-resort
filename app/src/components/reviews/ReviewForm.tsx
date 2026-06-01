@@ -94,6 +94,18 @@ export function ReviewForm() {
     )
   }
 
+  if (!session.user.emailVerified) {
+    return (
+      <div className="card p-6 text-center">
+        <h3 className="font-display text-2xl font-semibold text-gray-900 mb-2">Добавить отзыв</h3>
+        <p className="text-gray-500 mb-4">Написание отзывов доступно только после подтверждения почты.</p>
+        <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-2xl max-w-md mx-auto">
+          Пожалуйста, проверьте свой почтовый ящик и подтвердите email.
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="card p-6 space-y-5">
       <div>

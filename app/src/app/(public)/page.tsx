@@ -123,7 +123,7 @@ export default async function HomePage() {
   const features = [
     { icon: Waves, label: 'Море рядом', desc: 'Пляж в 5 минутах ходьбы', color: 'text-sea-600 bg-sea-50' },
     { icon: Wifi, label: 'Бесплатный Wi-Fi', desc: 'На всей территории', color: 'text-blue-600 bg-blue-50' },
-    { icon: Car, label: 'Трансфер', desc: 'Встретим и доставим', color: 'text-green-600 bg-green-50' },
+    { icon: Car, label: 'Трансфер', desc: 'Организуем трансфер до нас и обратно', color: 'text-green-600 bg-green-50' },
     { icon: Bike, label: 'В вашем распоряжении — бесплатно', desc: 'Велосипеды и сапборды', color: 'text-orange-600 bg-orange-50' },
     { icon: Shield, label: 'Спокойствие и уют', desc: 'Уютные условия для спокойного отдыха', color: 'text-purple-600 bg-purple-50' },
     { icon: ChefHat, label: 'Номера с кухней', desc: 'Прям как дома, только на море', color: 'text-coral-600 bg-coral-50' },
@@ -283,7 +283,7 @@ export default async function HomePage() {
             </div>
             <div className="flex items-center gap-2 text-gray-600">
               <Users className="w-5 h-5 text-sea-600" />
-              <span className="text-sm">Номера у моря для пар и семей</span>
+              <span className="text-sm">Номера у моря</span>
             </div>
             <Link href="/rooms" className="btn-primary py-2.5 text-sm">
               Номера и цены →
@@ -399,7 +399,7 @@ export default async function HomePage() {
                 Уютный, спокойный уголок у Азовского моря.
               </h2>
               <p className="text-white/80 text-lg leading-relaxed mb-8">
-                {settings.about_text || 'Гостевой дом для тех, кто хочет отдохнуть у моря без суеты.'}
+                {settings.about_text || 'Гостевой дом для тех, кто хочет отдохнуть у моря без суеты: уютные номера, большой двор, своя кухня и море в шаговой доступности.'}
               </p>
               <ul className="space-y-3 mb-8">
                 {[
@@ -479,7 +479,7 @@ export default async function HomePage() {
         <div className="relative text-center max-w-3xl mx-auto px-4">
           <h2 className="font-display text-4xl md:text-5xl font-bold mb-4">Готовы к отдыху?</h2>
           <p className="text-white/85 text-lg mb-8">
-            Выберите номер у моря и отправьте заявку на бронирование, либо звоните по телефону — поможем подобрать удобный вариант по датам, удобствам и количеству гостей.
+            Выберите номер и отправьте заявку на бронирование, либо звоните по телефону — поможем подобрать вариант по датам, удобствам и количеству гостей.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link

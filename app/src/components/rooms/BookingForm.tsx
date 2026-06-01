@@ -5,6 +5,7 @@ import { addDays, format, isBefore, isWithinInterval } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import { useSession } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -28,9 +29,15 @@ import { useToast } from '@/components/providers/ToastProvider'
 import { AlertCircle, Calendar, Car, Loader2, MessageSquare, PawPrint, User, Users } from 'lucide-react'
 import 'react-day-picker/style.css'
 
-const schema = z.object({
+const baseSchema = z.object({
   guestName: z.string().min(2, 'Введите имя'),
-  guestPhone: z.string().min(10, 'Введите корректный номер телефона'),
+  guestPhone: z.string().transform((val) => {
+    let cleaned = val.trim().replace(/[\s\-\(\)]/g, '')
+    if (cleaned.startsWith('8') && cleaned.length === 11) {
+      cleaned = '+7' + cleaned.substring(1)
+    }
+    return cleaned
+  }).refine((val) => /^\+7\d{10}$/.test(val), 'Введите номер телефона корректно в формате +7...'),
   guestEmail: z.string().email('Некорректный email').optional().or(z.literal('')),
   guests: z.number().min(1).max(20),
   hasPets: z.boolean(),
@@ -41,9 +48,10 @@ const schema = z.object({
   transferDate: z.string().optional(),
   transferUnknown: z.boolean(),
   comment: z.string().optional(),
+  agreeTerms: z.boolean().optional(),
 })
 
-type FormData = z.infer<typeof schema>
+type FormData = z.infer<typeof baseSchema>
 
 interface OccupiedRange {
   from: Date
@@ -133,6 +141,20 @@ export function BookingForm({
   const [range, setRange] = useState<DateRange | undefined>()
   const [step, setStep] = useState<'calendar' | 'form'>('calendar')
   const [loading, setLoading] = useState(false)
+  const [showSignUpModal, setShowSignUpModal] = useState<{ bookingId: string, email: string, name: string, phone: string } | null>(null)
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null)
+
+  const schema = useMemo(() => {
+    return baseSchema.refine((data) => {
+      if (!session && !data.agreeTerms) {
+        return false
+      }
+      return true
+    }, {
+      message: 'Для продолжения необходимо принять условия соглашения',
+      path: ['agreeTerms'],
+    })
+  }, [session])
 
   const normalizedPricePeriods = useMemo(
     () => normalizeRoomPricePeriods(pricePeriods || []),
@@ -279,6 +301,11 @@ export function BookingForm({
       return
     }
 
+    if (!session && !data.agreeTerms) {
+      showError('Для продолжения необходимо принять условия соглашения')
+      return
+    }
+
     setLoading(true)
     try {
       const res = await fetch('/api/bookings', {
@@ -298,10 +325,23 @@ export function BookingForm({
       }
 
       if (result.paymentUrl) {
-        window.location.href = result.paymentUrl
+        setPaymentUrl(result.paymentUrl)
+      }
+
+      if (!session) {
+        setShowSignUpModal({
+          bookingId: result.bookingId,
+          email: data.guestEmail || '',
+          name: data.guestName,
+          phone: result.guestPhone || data.guestPhone,
+        })
       } else {
-        success('Бронь создана! Перенаправляем...')
-        router.push(`/account/bookings?new=${result.bookingId}`)
+        if (result.paymentUrl) {
+          window.location.href = result.paymentUrl
+        } else {
+          success('Бронь создана! Перенаправляем...')
+          router.push(`/account/bookings?new=${result.bookingId}`)
+        }
       }
     } catch (error: any) {
       showError(error.message || 'Произошла ошибка. Попробуйте снова.')
@@ -586,6 +626,33 @@ export function BookingForm({
             </p>
           </div>
 
+          {!session && (
+            <div className="space-y-2">
+              <label className="flex cursor-pointer select-none items-start gap-3">
+                <input
+                  type="checkbox"
+                  {...register('agreeTerms')}
+                  className="mt-1 h-4 w-4 rounded accent-sea-700 flex-shrink-0"
+                />
+                <span className="text-xs text-gray-500 leading-relaxed">
+                  Соглашаюсь с{' '}
+                  <Link href="/legal/privacy" target="_blank" className="text-sea-700 underline">
+                    политикой конфиденциальности
+                  </Link>
+                  ,{' '}
+                  <Link href="/legal/terms" target="_blank" className="text-sea-700 underline">
+                    пользовательским соглашением
+                  </Link>{' '}
+                  и{' '}
+                  <Link href="/legal/booking-terms" target="_blank" className="text-sea-700 underline">
+                    условиями бронирования
+                  </Link>
+                </span>
+              </label>
+              {errors.agreeTerms && <p className="text-xs text-red-500">{errors.agreeTerms.message}</p>}
+            </div>
+          )}
+
           <button
             type="submit"
             disabled={loading}
@@ -597,9 +664,45 @@ export function BookingForm({
                 Создаём бронь...
               </>
             ) : (
-              `Перейти к оплате — ${formatMoney(depositAmount)}`
+              'Забронировать'
             )}
           </button>
+        </div>
+      )}
+
+      {showSignUpModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3 className="font-display text-xl font-bold text-gray-900 mb-2">Бронирование оформлено!</h3>
+            <p className="text-sm text-gray-500 mb-6">
+              Хотите создать аккаунт, чтобы отслеживать статус брони, управлять услугами и просматривать историю в личном кабинете? Это займет меньше минуты!
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  const { bookingId, email, name, phone } = showSignUpModal
+                  router.push(`/auth/register?bookingId=${bookingId}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}`)
+                }}
+                className="btn-primary flex-1 justify-center"
+              >
+                Создать аккаунт
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (paymentUrl) {
+                    window.location.href = paymentUrl
+                  } else {
+                    router.push(`/account/bookings?new=${showSignUpModal.bookingId}`)
+                  }
+                }}
+                className="btn-outline flex-1 justify-center"
+              >
+                Продолжить без аккаунта
+              </button>
+            </div>
+          </div>
         </div>
       )}
     </form>

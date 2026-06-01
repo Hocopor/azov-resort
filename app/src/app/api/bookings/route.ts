@@ -13,6 +13,7 @@ import {
 } from '@/lib/pricing'
 import { z } from 'zod'
 import { isBefore, isAfter, parseISO } from 'date-fns'
+import { sendVKNotification } from '@/lib/vk'
 
 const bookingSchema = z.object({
   roomId: z.string(),
@@ -43,6 +44,18 @@ export async function POST(req: NextRequest) {
     }
 
     const data = parsed.data
+
+    // Normalize phone number
+    let cleanedPhone = data.guestPhone.trim().replace(/[\s\-\(\)]/g, '')
+    if (cleanedPhone.startsWith('8') && cleanedPhone.length === 11) {
+      cleanedPhone = '+7' + cleanedPhone.substring(1)
+    }
+    data.guestPhone = cleanedPhone
+
+    if (!/^\+7\d{10}$/.test(data.guestPhone)) {
+      return NextResponse.json({ error: 'Введите номер телефона корректно в формате +7...' }, { status: 400 })
+    }
+
     const checkIn = parseISO(data.checkIn)
     const checkOut = parseISO(data.checkOut)
 
@@ -201,12 +214,32 @@ export async function POST(req: NextRequest) {
       comment: data.comment,
     }).catch(console.error)
 
+    // VK notification
+    const vkMessage = [
+      `🆕 Новое бронирование!`,
+      `Номер: ${room.name}`,
+      `Гость: ${data.guestName}`,
+      `Телефон: ${data.guestPhone}`,
+      data.guestEmail ? `Email: ${data.guestEmail}` : null,
+      `Период: ${checkIn.toLocaleDateString('ru-RU')} — ${checkOut.toLocaleDateString('ru-RU')} (${nights} ноч.)`,
+      `Гостей: ${data.guests}`,
+      `С питомцами: ${data.hasPets ? 'Да (' + (data.petsDescription || 'нет описания') + ')' : 'Нет'}`,
+      `Курящие: ${data.smoking ? 'Да' : 'Нет'}`,
+      `Трансфер: ${data.transferNeeded ? (data.transferUnknown ? 'Нужен (место неизвестно)' : 'Нужен из ' + data.transferFrom) : 'Нет'}`,
+      data.comment ? `Комментарий: ${data.comment}` : null,
+      `Стоимость: ${totalPrice / 100} руб.`,
+      `Депозит: ${depositAmount / 100} руб.`,
+    ].filter(Boolean).join('\n')
+
+    sendVKNotification(vkMessage).catch(console.error)
+
     return NextResponse.json({
       bookingId: booking.id,
       bookingNumber: booking.bookingNumber,
       paymentUrl,
       totalPrice,
       depositAmount,
+      guestPhone: data.guestPhone,
     })
   } catch (err) {
     console.error('Booking creation error:', err)

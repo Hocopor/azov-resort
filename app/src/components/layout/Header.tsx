@@ -57,11 +57,12 @@ export function Header({ siteName, sitePhone }: { siteName: string; sitePhone: s
             </div>
             <span
               className={cn(
-                'font-display font-semibold text-xl transition-colors duration-300',
+                'font-display font-semibold text-sm sm:text-base leading-tight transition-colors duration-300 flex flex-col',
                 isTransparent ? 'text-white' : 'text-deep-700'
               )}
             >
-              {siteName}
+              <span>Гостевой дом</span>
+              <span className="text-xs sm:text-sm font-normal opacity-90">на Зелёной 26</span>
             </span>
           </Link>
 

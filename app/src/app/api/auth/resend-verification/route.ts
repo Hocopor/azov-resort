@@ -1,33 +1,27 @@
 import { NextRequest, NextResponse } from 'next/server'
-import bcrypt from 'bcryptjs'
 import { prisma } from '@/lib/db'
-import { z } from 'zod'
 import { randomBytes } from 'crypto'
 import nodemailer from 'nodemailer'
 import { getSettings } from '@/lib/settings'
 
-const schema = z.object({
-  name: z.string().min(2),
-  email: z.string().email(),
-  password: z.string().min(8),
-  phone: z.string().optional(),
-  bookingId: z.string().optional(),
-})
-
 export async function POST(req: NextRequest) {
   try {
-    const body = await req.json()
-    const parsed = schema.safeParse(body)
-    if (!parsed.success) {
-      return NextResponse.json({ error: 'Некорректные данные' }, { status: 400 })
+    const { email } = await req.json()
+
+    if (!email) {
+      return NextResponse.json({ error: 'Email обязателен' }, { status: 400 })
     }
 
-    const { name, email, password, phone, bookingId } = parsed.data
+    const user = await prisma.user.findUnique({
+      where: { email },
+    })
 
-    // Check if exists
-    const existing = await prisma.user.findUnique({ where: { email } })
-    if (existing) {
-      return NextResponse.json({ error: 'Аккаунт с таким email уже существует' }, { status: 409 })
+    if (!user) {
+      return NextResponse.json({ error: 'Пользователь не найден' }, { status: 404 })
+    }
+
+    if (user.emailVerified) {
+      return NextResponse.json({ error: 'Email уже подтвержден' }, { status: 400 })
     }
 
     // Cooldown check for verification
@@ -48,26 +42,14 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const passwordHash = await bcrypt.hash(password, 12)
-    const user = await prisma.user.create({
-      data: {
-        name,
-        email,
-        passwordHash,
-        phone: phone || null,
-      },
-    })
-
-    if (bookingId) {
-      await prisma.booking.update({
-        where: { id: bookingId },
-        data: { userId: user.id },
-      }).catch(console.error)
-    }
-
     // Create verification token
     const token = randomBytes(32).toString('hex')
     const expires = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24h
+
+    // Delete existing tokens
+    await prisma.verificationToken.deleteMany({
+      where: { identifier: email },
+    })
 
     await prisma.verificationToken.create({
       data: {
@@ -95,19 +77,19 @@ export async function POST(req: NextRequest) {
       subject: `Подтверждение email — ${siteName}`,
       html: `
         <div style="max-width:480px;margin:0 auto;font-family:Arial,sans-serif;">
-          <h2 style="color:#1a6b8a;">Привет, ${name}!</h2>
-          <p>Для завершения регистрации подтвердите ваш email:</p>
+          <h2 style="color:#1a6b8a;">Привет, ${user.name || 'гость'}!</h2>
+          <p>Подтвердите ваш адрес электронной почты для доступа ко всем возможностям:</p>
           <a href="${verifyUrl}" style="display:inline-block;background:#1a6b8a;color:white;padding:14px 28px;border-radius:12px;text-decoration:none;font-weight:bold;margin:16px 0;">
             Подтвердить email
           </a>
           <p style="color:#888;font-size:12px;">Ссылка действительна 24 часа. Если вы не регистрировались — просто проигнорируйте это письмо.</p>
         </div>
       `,
-    }).catch(console.error)
+    })
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('Register error:', err)
-    return NextResponse.json({ error: 'Внутренняя ошибка' }, { status: 500 })
+    console.error('Resend verification error:', err)
+    return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
   }
 }

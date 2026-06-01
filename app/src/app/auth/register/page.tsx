@@ -1,6 +1,7 @@
 'use client'
-import { useState } from 'react'
+import { useState, useMemo, Suspense } from 'react'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -23,16 +24,26 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>
 
-export default function RegisterPage() {
+function RegisterForm() {
   const { success, error: showError } = useToast()
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
   const [showPwd, setShowPwd] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
 
+  const searchParams = useSearchParams()
+  const bookingId = searchParams.get('bookingId') || ''
+  const initialEmail = searchParams.get('email') || ''
+  const initialName = searchParams.get('name') || ''
+  const initialPhone = searchParams.get('phone') || ''
+
   const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { agreeTerms: false },
+    defaultValues: useMemo(() => ({
+      agreeTerms: false,
+      name: initialName,
+      email: initialEmail,
+    }), [initialName, initialEmail]),
   })
 
   const onSubmit = async (data: FormData) => {
@@ -41,7 +52,13 @@ export default function RegisterPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: data.name, email: data.email, password: data.password }),
+        body: JSON.stringify({
+          name: data.name,
+          email: data.email,
+          password: data.password,
+          phone: initialPhone || undefined,
+          bookingId: bookingId || undefined,
+        }),
       })
       const result = await res.json()
       if (!res.ok) throw new Error(result.error)
@@ -144,5 +161,13 @@ export default function RegisterPage() {
         </button>
       </form>
     </>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="text-center py-4">Загрузка...</div>}>
+      <RegisterForm />
+    </Suspense>
   )
 }

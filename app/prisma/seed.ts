@@ -35,7 +35,7 @@ async function main() {
     { key: 'cooking_service_active', value: 'false' }, // cooking service toggle
     { key: 'transfer_price_per_km', value: '5000' },   // 50 руб/км
     { key: 'transfer_base_price', value: '50000' },    // 500 руб базовая
-    { key: 'site_name', value: 'Отдых на Азове' },
+    { key: 'site_name', value: 'Гостевой дом на Зелёной 26' },
     { key: 'site_phone', value: '+7 (XXX) XXX-XX-XX' },
     { key: 'site_address', value: 'Азовское море, Краснодарский край' },
     { key: 'check_in_time', value: '14:00' },
@@ -52,7 +52,7 @@ async function main() {
     { key: 'review_city_3', value: 'Москва' },
     { key: 'hero_title', value: 'Отдых у Азовского моря' },
     { key: 'hero_subtitle', value: 'Уютные номера, чистое море, тёплый приём — всё для вашего идеального отпуска' },
-    { key: 'about_text', value: 'Мы принимаем гостей уже несколько лет и знаем, как сделать ваш отдых незабываемым. Наш гостевой дом расположен в тихом месте в нескольких минутах ходьбы от пляжа Азовского моря.' },
+    { key: 'about_text', value: 'Гостевой дом для тех, кто хочет отдохнуть у моря без суеты: уютные номера, большой двор, своя кухня и море в шаговой доступности.' },
   ]
 
   for (const setting of defaultSettings) {
