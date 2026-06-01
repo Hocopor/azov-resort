@@ -288,6 +288,21 @@ export function BookingForm({
     }
 
     setRange(nextRange)
+    
+    // Track calendar interaction attempt
+    fetch('/api/analytics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'booking_attempt', roomId }),
+    }).catch(() => {})
+  }
+
+  const trackBookingAttempt = () => {
+    fetch('/api/analytics/event', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ event: 'booking_attempt', roomId }),
+    }).catch(() => {})
   }
 
   const onSubmit = async (data: FormData) => {
@@ -483,7 +498,10 @@ export function BookingForm({
           {nights >= minNights && (
             <button
               type="button"
-              onClick={() => setStep('form')}
+              onClick={() => {
+                trackBookingAttempt()
+                setStep('form')
+              }}
               className="btn-primary mt-4 w-full justify-center"
             >
               Продолжить оформление

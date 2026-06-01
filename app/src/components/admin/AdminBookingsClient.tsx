@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition, useMemo, Fragment } from 'react'
+import { useState, useTransition, useMemo, Fragment, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { formatMoney, formatDate } from '@/lib/utils'
 import { getNightlyPrice, normalizeRoomPricePeriods } from '@/lib/pricing'
@@ -15,7 +15,12 @@ import {
   X, 
   Calendar, 
   Search,
-  MessageSquare
+  MessageSquare,
+  Filter,
+  CheckCircle,
+  ClipboardList,
+  Info,
+  SlidersHorizontal
 } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
 
@@ -59,78 +64,72 @@ interface Booking {
   source: string
   hasPets: boolean
   petsDescription?: string | null
-  smoking: boolean
-  room: { id: string; name: string; pricePerDay: number; pricePeriods: RoomPricePeriod[] }
-}
-
-interface Room {
-  id: string
-  name: string
-  pricePerDay: number
-  pricePeriods: RoomPricePeriod[]
+  smoking?: boolean
+  room: {
+    id: string
+    name: string
+  }
 }
 
 interface Props {
   bookings: Booking[]
-  rooms: Room[]
+  rooms: {
+    id: string
+    name: string
+    pricePerDay: number
+    pricePeriods?: RoomPricePeriod[]
+  }[]
 }
 
-// 1. Structure the custom statuses mappings (Labels, DB status equivalence, colors)
-export interface CustomStatusInfo {
+// Map key representing Custom displayable administrative status structure
+interface UIStatusInfo {
   key: string
   label: string
-  color: string // Tailwind classes for status badge
+  color: string
   dbStatus: string
   dbPaymentStatus: string
 }
 
-export const CUSTOM_STATUS_MAP: Record<string, CustomStatusInfo> = {
+const CUSTOM_STATUS_MAP: Record<string, UIStatusInfo> = {
   PENDING: {
     key: 'PENDING',
-    label: 'На согласовании',
-    color: 'bg-yellow-100 text-yellow-900 border-yellow-250',
+    label: 'Ожидает оплаты',
+    color: 'bg-yellow-50 text-yellow-800 border-yellow-200',
     dbStatus: 'PENDING',
-    dbPaymentStatus: 'UNPAID',
-  },
-  CONFIRMED: {
-    key: 'CONFIRMED',
-    label: 'Согласован',
-    color: 'bg-indigo-100 text-indigo-905 border-indigo-200',
-    dbStatus: 'CONFIRMED',
     dbPaymentStatus: 'UNPAID',
   },
   DEPOSIT_PAID: {
     key: 'DEPOSIT_PAID',
     label: 'Внесена предоплата',
-    color: 'bg-sky-100 text-sky-905 border-sky-200',
+    color: 'bg-sky-50 text-sky-800 border-sky-200',
     dbStatus: 'CONFIRMED',
     dbPaymentStatus: 'DEPOSIT_PAID',
   },
   FULLY_PAID: {
     key: 'FULLY_PAID',
-    label: 'Оплачено',
-    color: 'bg-emerald-100 text-emerald-905 border-emerald-200',
+    label: 'Оплачено полностью',
+    color: 'bg-emerald-50 text-emerald-800 border-emerald-200',
     dbStatus: 'CONFIRMED',
     dbPaymentStatus: 'FULLY_PAID',
   },
   COMPLETED: {
     key: 'COMPLETED',
-    label: 'Завершено',
-    color: 'bg-blue-100 text-blue-900 border-blue-200',
+    label: 'Завершено (выехал)',
+    color: 'bg-blue-50 text-blue-800 border-blue-200',
     dbStatus: 'COMPLETED',
     dbPaymentStatus: 'FULLY_PAID',
   },
   CANCELLED: {
     key: 'CANCELLED',
     label: 'Отменено',
-    color: 'bg-red-100 text-red-900 border-red-200',
+    color: 'bg-red-50 text-red-800 border-red-200',
     dbStatus: 'CANCELLED',
     dbPaymentStatus: 'UNPAID',
   },
   BLOCKED: {
     key: 'BLOCKED',
     label: 'Заблокировано',
-    color: 'bg-gray-100 text-gray-950 border-gray-250',
+    color: 'bg-gray-100 text-gray-800 border-gray-250',
     dbStatus: 'BLOCKED',
     dbPaymentStatus: 'UNPAID',
   }
@@ -157,7 +156,7 @@ export function getBookingCustomStatusKey(booking: { status: string; paymentStat
     
     if (booking.paymentStatus === 'FULLY_PAID') return 'FULLY_PAID'
     if (booking.paymentStatus === 'DEPOSIT_PAID') return 'DEPOSIT_PAID'
-    return 'CONFIRMED'
+    return 'DEPOSIT_PAID'
   }
   
   return booking.status
@@ -197,6 +196,53 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
   const [savingId, setSavingId] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
 
+  // Filter States for the list of bookings below calendar
+  const [filterStatus, setFilterStatus] = useState<string>('ALL')
+  const [filterRoom, setFilterRoom] = useState<string>('ALL')
+  const [filterDateRange, setFilterDateRange] = useState<string>('ALL')
+  const [filterStartDate, setFilterStartDate] = useState<string>('')
+  const [filterEndDate, setFilterEndDate] = useState<string>('')
+
+  // Horizontal range slider elements / ref
+  const calendarRef = useRef<HTMLDivElement>(null)
+  const [scrollVal, setScrollVal] = useState(0)
+  const [maxScroll, setMaxScroll] = useState(100)
+
+  // Track scrolling of the calendar container to sync the range input
+  const handleScroll = () => {
+    if (calendarRef.current) {
+      setScrollVal(calendarRef.current.scrollLeft)
+    }
+  }
+
+  // Update max scroll bounds
+  useEffect(() => {
+    if (calendarRef.current) {
+      const { scrollWidth, clientWidth } = calendarRef.current
+      setMaxScroll(Math.max(scrollWidth - clientWidth, 1))
+    }
+  }, [currentMonth, currentYear, bookings])
+
+  const handleSliderChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number(e.target.value)
+    setScrollVal(val)
+    if (calendarRef.current) {
+      calendarRef.current.scrollLeft = val
+    }
+  }
+
+  // Scroll to active booking area or start on render
+  useEffect(() => {
+    if (calendarRef.current) {
+      // scroll slightly towards the current day of the month to center content
+      const dayWidth = 40
+      const todayDay = new Date().getDate()
+      const scrollPosition = Math.max(0, (todayDay - 4) * dayWidth)
+      calendarRef.current.scrollLeft = scrollPosition
+      setScrollVal(scrollPosition)
+    }
+  }, [currentMonth, currentYear])
+
   // Calendar month day generation
   const daysInMonth = useMemo(() => {
     return new Date(currentYear, currentMonth + 1, 0).getDate()
@@ -219,7 +265,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
     return items
   }, [currentYear, currentMonth, daysInMonth])
 
-  // Simple calendar navigation functions
+  // Calendar navigation functions
   const goToPreviousMonth = () => {
     if (currentMonth === 0) {
       setCurrentMonth(11)
@@ -285,7 +331,8 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
     try {
       const res = await fetch(`/api/admin/bookings/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error()
-      success('Бронирование успешно удалено!')
+
+      success('Бронирование полностью удалено!')
       setSelectedBooking(null)
       router.refresh()
     } catch {
@@ -311,8 +358,8 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
     })
   }
 
-  // Filtered bookings based on search input
-  const filteredBookings = useMemo(() => {
+  // Search filtered bookings inside the CALENDAR only (excluding CANCELLED)
+  const filteredBookingsForCalendar = useMemo(() => {
     if (!q.trim()) return bookings
     const lower = q.toLowerCase()
     return bookings.filter((b) => 
@@ -322,12 +369,61 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
     )
   }, [bookings, q])
 
+  // Filtered Bookings for the structured LIST below the calendar (includes CANCELLED ones!)
+  const filteredBookingsForList = useMemo(() => {
+    return bookings.filter((b) => {
+      // 1. Search Query
+      if (q.trim()) {
+        const lower = q.toLowerCase()
+        const matchesQuery = b.guestName.toLowerCase().includes(lower) ||
+          b.guestPhone.includes(lower) ||
+          b.bookingNumber.toLowerCase().includes(lower)
+        if (!matchesQuery) return false
+      }
+
+      // 2. Room ID filter
+      if (filterRoom !== 'ALL' && b.roomId !== filterRoom) {
+        return false
+      }
+
+      // 3. Status filter
+      if (filterStatus !== 'ALL' && b.status !== filterStatus) {
+        return false
+      }
+
+      // 4. Date Range filter
+      const checkInDate = new Date(b.checkIn)
+      const checkOutDate = new Date(b.checkOut)
+      const now = new Date()
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0)
+
+      if (filterDateRange === 'UPCOMING') {
+        if (checkInDate < todayStart) return false
+      } else if (filterDateRange === 'PAST') {
+        if (checkOutDate >= todayStart) return false
+      } else if (filterDateRange === 'CUSTOM') {
+        if (filterStartDate) {
+          const startLimit = new Date(filterStartDate)
+          startLimit.setHours(0, 0, 0, 0)
+          if (checkInDate < startLimit) return false
+        }
+        if (filterEndDate) {
+          const endLimit = new Date(filterEndDate)
+          endLimit.setHours(23, 59, 59, 999)
+          if (checkOutDate > endLimit) return false
+        }
+      }
+
+      return true
+    })
+  }, [bookings, q, filterRoom, filterStatus, filterDateRange, filterStartDate, filterEndDate])
+
   return (
     <div className="space-y-6">
       {/* Search Input Bar */}
       <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs flex items-center gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4_5 h-4_5 text-gray-400" />
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4.5 h-4.5 text-gray-400" />
           <input
             value={q}
             onChange={(e) => setQ(e.target.value)}
@@ -337,20 +433,21 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
         </div>
       </div>
 
-      {/* Month Navigation Control Bar with Selectors in Center */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-2xl border border-gray-100 shadow-sm">
+      {/* Month Navigation Control Bar - LEFT ALIGNED & COMPACT */}
+      <div className="flex items-center gap-2 bg-white p-2 border border-gray-100 shadow-xs rounded-xl max-w-fit self-start">
         <button 
           onClick={goToPreviousMonth}
-          className="p-2 sm:p-2_5 rounded-xl border border-gray-150 hover:bg-gray-50 text-gray-600 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+          className="p-1.5 rounded-lg border border-gray-150 hover:bg-gray-50 text-gray-600 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+          title="Предыдущий месяц"
         >
-          <ChevronLeft className="w-5 h-5" />
+          <ChevronLeft className="w-4 h-4" />
         </button>
         
-        <div className="flex items-center gap-2 text-base md:text-lg font-bold text-gray-800 select-none">
+        <div className="flex items-center gap-1 text-sm font-bold text-gray-800 select-none px-2">
           <select 
             value={currentMonth} 
             onChange={(e) => setCurrentMonth(Number(e.target.value))}
-            className="bg-transparent border-0 font-bold text-gray-800 focus:ring-0 cursor-pointer hover:text-sea-600 transition-colors focus:outline-hidden text-center"
+            className="bg-transparent border-0 font-bold p-0 text-gray-800 focus:ring-0 cursor-pointer hover:text-sea-600 transition-colors focus:outline-hidden text-center text-sm"
           >
             {MONTHS.map((m, idx) => (
               <option key={m} value={idx}>{m}</option>
@@ -360,7 +457,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
           <select 
             value={currentYear} 
             onChange={(e) => setCurrentYear(Number(e.target.value))}
-            className="bg-transparent border-0 font-bold text-gray-800 focus:ring-0 cursor-pointer hover:text-sea-600 transition-colors focus:outline-hidden text-center"
+            className="bg-transparent border-0 font-bold p-0 text-gray-800 focus:ring-0 cursor-pointer hover:text-sea-600 transition-colors focus:outline-hidden text-center text-sm"
           >
             {YEARS.map((y) => (
               <option key={y} value={y}>{y}</option>
@@ -370,34 +467,40 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
 
         <button 
           onClick={goToNextMonth}
-          className="p-2 sm:p-2_5 rounded-xl border border-gray-150 hover:bg-gray-50 text-gray-600 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+          className="p-1.5 rounded-lg border border-gray-150 hover:bg-gray-50 text-gray-600 transition-all flex items-center justify-center cursor-pointer active:scale-95"
+          title="Следующий месяц"
         >
-          <ChevronRight className="w-5 h-5" />
+          <ChevronRight className="w-4 h-4" />
         </button>
       </div>
 
       {/* Scrollable Calendar Grid Container with Sticky Left Column */}
       <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Horizontal scroll container with scroll event sync */}
+        <div 
+          ref={calendarRef}
+          onScroll={handleScroll}
+          className="overflow-x-auto scrollbar-thin scrollbar-thumb-teal-600 scrollbar-track-gray-100"
+        >
           <table className="w-full border-collapse">
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 divide-x divide-gray-100">
-                {/* Column for room header */}
-                <th className="sticky left-0 bg-gray-50 font-semibold text-xs text-gray-500 uppercase tracking-wider px-4 py-3 Z-20 text-left w-56 min-w-[200px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-100">
+                {/* Column for room header - COMPACT */}
+                <th className="sticky left-0 bg-gray-50 font-semibold text-xs text-gray-500 uppercase tracking-wider px-3 py-2 Z-20 text-left w-44 min-w-[150px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-100">
                   Номер / Даты
                 </th>
-                {/* Generated days headings */}
+                {/* Generated days headings - COMPACT */}
                 {dayItems.map((day) => (
                   <th 
                     key={day.dayNum} 
-                    className={`px-1 py-2 text-center min-w-[50px] font-medium text-xs select-none ${
+                    className={`px-0.5 py-1.5 text-center min-w-[38px] font-medium text-xs select-none ${
                       day.isWeekend ? 'bg-red-50/20' : ''
                     }`}
                   >
-                    <div className={`font-semibold cursor-default ${day.isWeekend ? 'text-red-500 font-extrabold' : 'text-gray-400'}`}>
+                    <div className={`font-semibold text-[10px] cursor-default ${day.isWeekend ? 'text-red-500 font-extrabold' : 'text-gray-400'}`}>
                       {day.dayName}
                     </div>
-                    <div className={`text-sm mt-0.5 font-bold cursor-default ${day.isWeekend ? 'text-red-500 font-extrabold' : 'text-gray-800'}`}>
+                    <div className={`text-xs mt-0.5 font-bold cursor-default ${day.isWeekend ? 'text-red-500 font-extrabold' : 'text-gray-800'}`}>
                       {day.dayNum}
                     </div>
                   </th>
@@ -413,7 +516,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                   const currDate = new Date(currentYear, currentMonth, d, 12, 0, 0)
                   
                   // Find if there is a booking that covers this room on this date
-                  const booking = filteredBookings.find((b) => {
+                  const booking = filteredBookingsForCalendar.find((b) => {
                     if (b.roomId !== room.id) return false
                     if (b.status === 'CANCELLED') return false
                     
@@ -456,15 +559,15 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                           key={d}
                           colSpan={colSpan}
                           onClick={() => openBookingDetails(booking)}
-                          className={`p-1 border-r border-gray-100 align-middle ${colorClass} transition-all duration-150 cursor-pointer`}
+                          className={`p-0.5 border-r border-gray-100 align-middle ${colorClass} transition-all duration-150 cursor-pointer`}
                         >
-                          <div className="flex flex-col h-full justify-between items-start p-1.5 min-w-[110px]">
-                            <span className="font-bold text-xs truncate max-w-[150px]" title={booking.guestName}>
+                          <div className="flex flex-col h-full justify-between items-start px-1 py-1 min-w-[70px]">
+                            <span className="font-bold text-[10px] truncate max-w-[120px]" title={booking.guestName}>
                               {booking.guestName}
                             </span>
-                            <span className="text-[10px] font-mono opacity-90 mt-0.5 font-bold flex justify-between w-full">
+                            <span className="text-[9px] font-mono opacity-90 mt-0.5 font-bold flex justify-between w-full">
                               <span>{formatMoney(booking.totalPrice).replace(',00', '')}</span>
-                              <span className="opacity-75">{booking.nights}н / {booking.guests}ч</span>
+                              <span className="opacity-75">{booking.nights}н</span>
                             </span>
                           </div>
                         </td>
@@ -479,7 +582,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                     cells.push(
                       <td
                         key={d}
-                        className={`p-2 border-r border-gray-100 text-center font-mono align-middle text-xs text-gray-400 select-none hover:bg-gray-50/80 transition-colors ${
+                        className={`p-1 border-r border-gray-100 text-center font-mono align-middle text-[10px] text-gray-400 select-none hover:bg-gray-50/80 transition-colors ${
                           isWeekend ? 'bg-red-50/10' : ''
                         }`}
                       >
@@ -490,11 +593,11 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                 }
 
                 return (
-                  <tr key={room.id} className="hover:bg-gray-50/20 divide-x divide-gray-50">
-                    {/* Room title cell sticky */}
-                    <td className="sticky left-0 bg-white font-medium text-gray-800 px-4 py-4 text-sm z-10 w-56 min-w-[200px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-150">
+                  <tr key={room.id} className="hover:bg-gray-50/20 divide-x divide-gray-55">
+                    {/* Room title cell sticky - COMPACT */}
+                    <td className="sticky left-0 bg-white font-medium text-gray-800 px-3 py-2.5 text-xs z-10 w-44 min-w-[150px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-150">
                       <div className="font-bold text-gray-900 leading-tight">{room.name}</div>
-                      <div className="text-[10px] text-gray-400 mt-1 font-mono uppercase tracking-wider">
+                      <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
                         от {formatMoney(room.pricePerDay).split(',00')[0]} / сут
                       </div>
                     </td>
@@ -505,12 +608,200 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             </tbody>
           </table>
         </div>
+
+        {/* Scroll Movement Slider - COMPLETED FOR SCROLL AREA ONLY */}
+        {maxScroll > 1 && (
+          <div className="p-3 bg-gray-50/85 border-t border-gray-100 flex items-center gap-3">
+            <span className="text-[10px] text-gray-400 font-bold uppercase select-none flex items-center gap-1">
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Ползунок перемещения:
+            </span>
+            <input 
+              type="range"
+              min={0}
+              max={maxScroll}
+              value={scrollVal}
+              onChange={handleSliderChange}
+              className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600 focus:outline-hidden"
+              style={{ outline: 'none' }}
+              title="Перетащите ползунок для прокрутки дат календаря"
+            />
+          </div>
+        )}
         
         {/* Helper informational text explaining unbooked fields */}
-        <div className="bg-gray-50 p-4 border-t border-gray-100 text-[11px] text-gray-500 font-medium flex items-center gap-2 select-none">
-          <span className="w-2.5 h-2.5 rounded-full bg-teal-500 animate-pulse"></span>
-          <span>В пустых ячейках указана базовая стоимость одних суток проживания (в рублях) для соответствующего дня. Нажмите на забронированное поле для управления.</span>
+        <div className="bg-gray-50 p-3 border-t border-gray-100 text-[10px] text-gray-500 font-medium flex items-center gap-1.5 select-none">
+          <span className="w-2 h-2 rounded-full bg-teal-500 animate-pulse"></span>
+          <span>В пустых ячейках указана базовая стоимость одних суток проживания (в рублях). Нажмите на заказ для управления.</span>
         </div>
+      </div>
+
+      {/* Booking list SECTION with comprehensive filtering */}
+      <div className="neutral-card bg-white p-5 rounded-2xl border border-gray-100 shadow-sm space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-gray-100">
+          <h2 className="font-display font-bold text-lg text-gray-800 flex items-center gap-2">
+            <ClipboardList className="w-5 h-5 text-sea-600" />
+            Все бронирования списком
+          </h2>
+          <span className="text-xs font-bold text-gray-400 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-100">
+            Найдено: {filteredBookingsForList.length}
+          </span>
+        </div>
+
+        {/* Advanced Filters block matches users requests */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
+          {/* Status filter dropdown */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+              Статус брони
+            </label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-hidden focus:ring-1 focus:ring-sea-300"
+            >
+              <option value="ALL">Все статусы (включая отмененные)</option>
+              <option value="PENDING">Ожидает оплаты (PENDING)</option>
+              <option value="CONFIRMED">Подтверждено (CONFIRMED)</option>
+              <option value="CANCELLED">Отменено (CANCELLED)</option>
+              <option value="COMPLETED">Выехал / Завершено (COMPLETED)</option>
+              <option value="BLOCKED">Заблокировано (BLOCKED)</option>
+            </select>
+          </div>
+
+          {/* Room filter dropdown */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+              По категории номера
+            </label>
+            <select
+              value={filterRoom}
+              onChange={(e) => setFilterRoom(e.target.value)}
+              className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-hidden focus:ring-1 focus:ring-sea-300"
+            >
+              <option value="ALL">Все номера</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+          </div>
+
+          {/* Date range selection type */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-400 uppercase tracking-wider block mb-1">
+              Период времени
+            </label>
+            <select
+              value={filterDateRange}
+              onChange={(e) => setFilterDateRange(e.target.value)}
+              className="w-full text-xs bg-gray-50 border border-gray-200 rounded-xl px-3 py-2 text-gray-700 outline-hidden focus:ring-1 focus:ring-sea-300"
+            >
+              <option value="ALL">За всё время</option>
+              <option value="UPCOMING">Предстоящие (заезд сегодня или позже)</option>
+              <option value="PAST">Архивные / Прошедшие</option>
+              <option value="CUSTOM">Выбрать период...</option>
+            </select>
+          </div>
+
+          {/* Custom Date Bounds inputs */}
+          {filterDateRange === 'CUSTOM' && (
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <label className="text-[9px] font-semibold text-gray-400 uppercase block mb-1">
+                  С даты заезда
+                </label>
+                <input
+                  type="date"
+                  value={filterStartDate}
+                  onChange={(e) => setFilterStartDate(e.target.value)}
+                  className="w-full text-[10px] bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5 text-gray-600 outline-hidden"
+                />
+              </div>
+              <div>
+                <label className="text-[9px] font-semibold text-gray-400 uppercase block mb-1">
+                  По дату выезда
+                </label>
+                <input
+                  type="date"
+                  value={filterEndDate}
+                  onChange={(e) => setFilterEndDate(e.target.value)}
+                  className="w-full text-[10px] bg-gray-50 border border-gray-200 rounded-xl px-2 py-1.5 text-gray-600 outline-hidden"
+                />
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Bookings table markup */}
+        {filteredBookingsForList.length === 0 ? (
+          <div className="p-8 text-center bg-gray-50 rounded-xl border border-dashed border-gray-200 text-gray-400 text-sm">
+            Бронирований с выбранными фильтрами не обнаружено.
+          </div>
+        ) : (
+          <div className="overflow-x-auto rounded-xl border border-gray-100">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100 text-gray-400 font-medium">
+                <tr>
+                  <th className="px-4 py-3">ID зак.</th>
+                  <th className="px-4 py-3">Категория</th>
+                  <th className="px-4 py-3">ФИО гостя</th>
+                  <th className="px-4 py-3 text-center">Заезд — Выезд</th>
+                  <th className="px-4 py-3 text-center">Дней/Челт.</th>
+                  <th className="px-4 py-3 text-right">Сумма</th>
+                  <th className="px-4 py-3 text-center">Статус</th>
+                  <th className="px-4 py-3 text-center">Управление</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50 text-gray-700">
+                {filteredBookingsForList.map((b) => {
+                  const customStatusKey = getBookingCustomStatusKey(b)
+                  const customStatus = CUSTOM_STATUS_MAP[customStatusKey] || { label: b.status, color: 'bg-gray-100 text-gray-600' }
+                  
+                  return (
+                    <tr key={b.id} className="hover:bg-gray-50/50 transition-colors">
+                      <td className="px-4 py-3 font-mono font-bold text-gray-400">
+                        #{b.bookingNumber.slice(-6).toUpperCase()}
+                      </td>
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        {b.room.name}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-bold text-gray-900">{b.guestName}</div>
+                        <div className="text-[10px] text-gray-400 font-mono">{b.guestPhone}</div>
+                      </td>
+                      <td className="px-4 py-3 text-center text-xs whitespace-nowrap font-medium text-gray-600">
+                        {formatDate(b.checkIn, 'dd.MM')} — {formatDate(b.checkOut, 'dd.MM.yyyy')}
+                      </td>
+                      <td className="px-4 py-3 text-center text-xs text-gray-500 whitespace-nowrap">
+                        {b.nights}н / {b.guests}чел
+                        {b.transferNeeded && (
+                          <span className="ml-1 inline-block text-orange-500 font-bold" title="Нужен трансфер">
+                            🚗
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-right font-extrabold text-gray-900 font-mono">
+                        {formatMoney(b.totalPrice).replace(',00', '')}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-bold border ${customStatus.color}`}>
+                          {customStatus.label}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <button
+                          onClick={() => openBookingDetails(b)}
+                          className="px-3 py-1.5 text-xs font-bold bg-sea-50 hover:bg-sea-100 border border-sea-150 text-sea-700 rounded-lg cursor-pointer transition-all"
+                        >
+                          Детали
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {/* Structured Details Modal Overlay with transitions */}
@@ -520,7 +811,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             {/* Modal Header */}
             <div className="px-6 py-4.5 border-b border-gray-100 bg-gray-50/50 flex justify-between items-center">
               <div>
-                <h3 className="font-bold text-lg text-gray-900">Детали бронирования</h3>
+                <h2 className="font-bold text-lg text-gray-900">Детали бронирования</h2>
                 <p className="text-xs text-gray-400 mt-0.5">Номер заказа: #{selectedBooking.bookingNumber.toUpperCase()}</p>
               </div>
               <button 
@@ -588,7 +879,8 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                         <td className="py-2 pr-4 text-gray-500 font-semibold whitespace-nowrap">Трансфер:</td>
                         <td className="py-2 text-orange-850 font-bold">
                           <Car className="w-3.5 h-3.5 inline mr-1 text-orange-500" />
-                          Из: {selectedBooking.transferFrom || 'Ж/Д вокзал'} 
+                          {/* Display transfer unknown nicely */}
+                          Из: {selectedBooking.transferUnknown ? 'Пока не знаю' : (selectedBooking.transferFrom || 'Ж/Д вокзал')} 
                           {selectedBooking.transferDate && ` в ${formatDate(selectedBooking.transferDate, 'd MMM, HH:mm')}`}
                         </td>
                       </tr>

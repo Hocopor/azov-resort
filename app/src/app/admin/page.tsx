@@ -4,19 +4,19 @@ import { subDays, startOfDay, endOfDay, format } from 'date-fns'
 import { ru } from 'date-fns/locale'
 import Link from 'next/link'
 import {
-  TrendingUp, Calendar, Users, CreditCard, BedDouble,
-  ArrowRight, AlertCircle, CheckCircle, Clock
+  Calendar, Users, CreditCard, BedDouble,
+  ArrowRight, AlertCircle, CheckCircle, Clock,
+  Eye, MousePointerClick, Sparkles
 } from 'lucide-react'
-import { AdminCharts } from '@/components/admin/AdminCharts'
 
 export const metadata = { title: 'Дашборд' }
-export const revalidate = 60
+export const revalidate = 10 // Refresh quite frequently in admin panel
 
 async function getDashboardData() {
   const now = new Date()
   const thirtyDaysAgo = subDays(now, 30)
-  const sevenDaysAgo = subDays(now, 7)
 
+  // Fetch metrics and records
   const [
     totalBookings,
     confirmedBookings,
@@ -25,9 +25,6 @@ async function getDashboardData() {
     recentBookings,
     todayCheckIns,
     todayCheckOuts,
-    pageViews30d,
-    conversionEvents,
-    bookingsByDay,
     rooms,
   ] = await Promise.all([
     prisma.booking.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
@@ -56,26 +53,78 @@ async function getDashboardData() {
       },
       include: { room: { select: { name: true } } },
     }),
-    prisma.pageView.count({ where: { createdAt: { gte: thirtyDaysAgo } } }),
-    prisma.conversionEvent.groupBy({
-      by: ['event'],
-      where: { createdAt: { gte: thirtyDaysAgo } },
-      _count: { event: true },
+    prisma.room.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, slug: true },
     }),
-    prisma.booking.groupBy({
-      by: ['createdAt'],
-      where: { createdAt: { gte: sevenDaysAgo } },
-      _count: { id: true },
-      orderBy: { createdAt: 'asc' },
-    }),
-    prisma.room.findMany({ where: { isActive: true }, select: { id: true, name: true, bookings: { where: { status: { in: ['CONFIRMED'] }, checkOut: { gte: now } }, select: { checkIn: true, checkOut: true } } } }),
   ])
 
-  const funnelData = {
-    views: pageViews30d,
-    started: conversionEvents.find((e) => e.event === 'booking_started')?._count.event || 0,
-    completed: conversionEvents.find((e) => e.event === 'payment_completed')?._count.event || 0,
-  }
+  // Calculate unique visitors
+  const uniqueIPsResult = await prisma.pageView.groupBy({
+    by: ['ip'],
+    where: { createdAt: { gte: thirtyDaysAgo } }
+  })
+  const uniqueVisitors = uniqueIPsResult.length
+
+  // Visitors who entered the rooms page details
+  const visitedRoomsResult = await prisma.pageView.groupBy({
+    by: ['ip'],
+    where: {
+      path: { startsWith: '/rooms/' },
+      createdAt: { gte: thirtyDaysAgo }
+    }
+  })
+  const roomVisitors = visitedRoomsResult.filter(n => n.ip !== null && n.ip !== 'unknown').length
+
+  // Attempted to book tracking
+  const bookingAttemptsCount = await prisma.conversionEvent.count({
+    where: {
+      event: { in: ['booking_attempt', 'booking_started'] },
+      createdAt: { gte: thirtyDaysAgo }
+    }
+  })
+
+  // Populating detailed stats per room
+  const roomStats = await Promise.all(
+    rooms.map(async (room) => {
+      const [pvCount, attemptCount, bookingCount] = await Promise.all([
+        // заходов на страницу номера
+        prisma.conversionEvent.count({
+          where: {
+            roomId: room.id,
+            event: 'room_view',
+            createdAt: { gte: thirtyDaysAgo }
+          }
+        }),
+        // попытался забронировать
+        prisma.conversionEvent.count({
+          where: {
+            roomId: room.id,
+            event: { in: ['booking_attempt', 'booking_started'] },
+            createdAt: { gte: thirtyDaysAgo }
+          }
+        }),
+        // забронировано
+        prisma.booking.count({
+          where: {
+            roomId: room.id,
+            createdAt: { gte: thirtyDaysAgo }
+          }
+        })
+      ])
+
+      return {
+        id: room.id,
+        name: room.name,
+        views: pvCount,
+        attempts: attemptCount,
+        bookings: bookingCount
+      }
+    })
+  )
+
+  // Sort by popularity (highest bookings then highest attempts)
+  roomStats.sort((a, b) => b.bookings - a.bookings || b.attempts - a.attempts || b.views - a.views)
 
   return {
     metrics: {
@@ -83,25 +132,30 @@ async function getDashboardData() {
       confirmedBookings,
       pendingBookings,
       revenue: revenue._sum.depositAmount || 0,
-      pageViews30d,
+      uniqueVisitors,
+      roomVisitors,
+      bookingAttempts: bookingAttemptsCount
     },
     recentBookings,
     todayCheckIns,
     todayCheckOuts,
-    funnelData,
-    rooms,
+    roomStats
   }
 }
 
 export default async function AdminDashboard() {
-  const { metrics, recentBookings, todayCheckIns, todayCheckOuts, funnelData, rooms } = await getDashboardData()
+  const { metrics, recentBookings, todayCheckIns, todayCheckOuts, roomStats } = await getDashboardData()
 
   const statCards = [
     { label: 'Броней за 30 дней', value: String(metrics.totalBookings), sub: `${metrics.confirmedBookings} подтверждено`, icon: Calendar, color: 'text-sea-600 bg-sea-50' },
     { label: 'Ожидают оплаты', value: String(metrics.pendingBookings), sub: 'требуют внимания', icon: AlertCircle, color: 'text-yellow-600 bg-yellow-50', urgent: metrics.pendingBookings > 0 },
     { label: 'Выручка (депозиты)', value: formatMoney(metrics.revenue), sub: 'за 30 дней', icon: CreditCard, color: 'text-green-600 bg-green-50' },
-    { label: 'Посетителей', value: String(metrics.pageViews30d), sub: 'за 30 дней', icon: Users, color: 'text-purple-600 bg-purple-50' },
+    { label: 'Уникальных посетителей', value: String(metrics.uniqueVisitors), sub: 'за 30 дней', icon: Users, color: 'text-purple-600 bg-purple-50' },
   ]
+
+  // Calculated conversion percentages
+  const pctOpenedRooms = metrics.uniqueVisitors > 0 ? Math.round((metrics.roomVisitors / metrics.uniqueVisitors) * 100) : 0
+  const pctAttemptedBooking = metrics.roomVisitors > 0 ? Math.round((metrics.bookingAttempts / metrics.roomVisitors) * 100) : 0
 
   return (
     <div className="space-y-8">
@@ -152,50 +206,109 @@ export default async function AdminDashboard() {
         ))}
       </div>
 
-      {/* Charts + Funnel */}
+      {/* Analytics: Monitoring & Room popularity */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Conversion funnel */}
-        <div className="admin-card">
-          <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-sea-600" /> Воронка конверсии (30 дн.)
-          </h3>
-          <div className="space-y-3">
-            {[
-              { label: 'Просмотры страниц', value: funnelData.views, color: 'bg-sea-200', pct: 100 },
-              { label: 'Начали бронирование', value: funnelData.started, color: 'bg-sea-400', pct: funnelData.views > 0 ? Math.round(funnelData.started / funnelData.views * 100) : 0 },
-              { label: 'Оплатили', value: funnelData.completed, color: 'bg-green-400', pct: funnelData.started > 0 ? Math.round(funnelData.completed / funnelData.started * 100) : 0 },
-            ].map((step) => (
-              <div key={step.label}>
-                <div className="flex justify-between text-sm mb-1">
-                  <span className="text-gray-600">{step.label}</span>
-                  <span className="font-semibold text-gray-900">{step.value} <span className="text-gray-400 font-normal text-xs">({step.pct}%)</span></span>
+        
+        {/* Visitors Monitoring block */}
+        <div className="admin-card space-y-6">
+          <div className="flex items-center justify-between">
+            <h3 className="font-semibold text-gray-800 flex items-center gap-2">
+              <Sparkles className="w-4 h-4 text-sea-600" /> Активность посетителей (30 дн.)
+            </h3>
+          </div>
+          
+          <div className="space-y-4">
+            {/* Step 1: Unique Visitors */}
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center">
+                  <Users className="w-4 h-4" />
                 </div>
-                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                  <div className={`h-full ${step.color} rounded-full transition-all`} style={{ width: `${step.pct}%` }} />
+                <div>
+                  <div className="text-xs text-gray-400 uppercase font-bold tracking-wider">Всего на сайте</div>
+                  <div className="text-sm font-medium text-gray-700">Уникальные посетители</div>
                 </div>
               </div>
-            ))}
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">{metrics.uniqueVisitors}</div>
+                <div className="text-xs text-gray-400">100%</div>
+              </div>
+            </div>
+
+            {/* Step 2: Visited Rooms */}
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center">
+                  <Eye className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs text-gray-400 uppercase font-bold tracking-wider">Интерес к номерам</div>
+                  <div className="text-sm font-medium text-gray-700">Зашли в карточки номеров</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">{metrics.roomVisitors}</div>
+                <div className="text-xs text-blue-600 font-semibold">{pctOpenedRooms}% от всех</div>
+              </div>
+            </div>
+
+            {/* Step 3: Booking Attempts */}
+            <div className="p-3 bg-gray-50 rounded-xl border border-gray-100 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-coral-100 text-coral-600 flex items-center justify-center">
+                  <MousePointerClick className="w-4 h-4" />
+                </div>
+                <div>
+                  <div className="text-xs text-coral-500 uppercase font-bold tracking-wider">Попытка забронировать</div>
+                  <div className="text-sm font-medium text-gray-700">Потыкали календарь/форму</div>
+                </div>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-gray-900">{metrics.bookingAttempts}</div>
+                <div className="text-xs text-coral-600 font-semibold">{pctAttemptedBooking}% из номеров</div>
+              </div>
+            </div>
           </div>
         </div>
 
-        {/* Room occupancy */}
+        {/* Room popularity block */}
         <div className="admin-card lg:col-span-2">
           <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <BedDouble className="w-4 h-4 text-sea-600" /> Занятость номеров
+            <BedDouble className="w-4 h-4 text-sea-600" /> Популярность номеров
           </h3>
-          <div className="space-y-2">
-            {rooms.map((room) => {
-              const isOccupied = room.bookings.length > 0
-              return (
-                <div key={room.id} className="flex items-center gap-3">
-                  <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isOccupied ? 'bg-coral-500' : 'bg-green-400'}`} />
-                  <span className="text-sm text-gray-700 flex-1">{room.name}</span>
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${isOccupied ? 'bg-coral-100 text-coral-700' : 'bg-green-100 text-green-700'}`}>
-                    {isOccupied ? 'Занят' : 'Свободен'}
-                  </span>
-                </div>
-              )
-            })}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                  <th className="pb-3 pr-4 font-normal text-left">Категория номера</th>
+                  <th className="pb-3 pr-4 font-normal text-center">Заходов</th>
+                  <th className="pb-3 pr-4 font-normal text-center">Попыток</th>
+                  <th className="pb-3 font-normal text-center">Забронировано</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-50">
+                {roomStats.map((room) => (
+                  <tr key={room.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="py-3.5 pr-4 font-medium text-gray-800 text-left">{room.name}</td>
+                    <td className="py-3.5 pr-4 text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
+                        {room.views}
+                      </span>
+                    </td>
+                    <td className="py-3.5 pr-4 text-center">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-50 text-amber-800 border border-amber-100">
+                        {room.attempts}
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-center">
+                      <span className="inline-flex items-center px-3 py-0.5 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-100">
+                        {room.bookings}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -212,7 +325,7 @@ export default async function AdminDashboard() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-gray-100">
-                {['Номер', 'Номер', 'Гость', 'Телефон', 'Заезд', 'Выезд', 'Сумма', 'Статус'].map((h) => (
+                {['ID', 'Номер', 'Гость', 'Телефон', 'Заезд', 'Выезд', 'Сумма', 'Статус'].map((h) => (
                   <th key={h} className="text-left text-xs text-gray-400 font-medium pb-3 pr-4">{h}</th>
                 ))}
               </tr>
