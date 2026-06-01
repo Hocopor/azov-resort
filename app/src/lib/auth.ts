@@ -68,6 +68,15 @@ const YandexProvider: OAuthConfig<any> = {
   },
 }
 
+declare module 'next-auth/jwt' {
+  interface JWT {
+    id: string
+    role: string
+    emailVerified: string | null   // ← потому что ты кладёшь .toISOString()
+    createdAt: string
+  }
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(prisma),
   session: { strategy: 'jwt', maxAge: 30 * 24 * 60 * 60 },
@@ -150,10 +159,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = token.id as string
         session.user.role = token.role as string
         session.user.emailVerified = token.emailVerified 
-          ? token.emailVerified instanceof Date 
-            ? token.emailVerified.toISOString() 
-            : token.emailVerified
-          : null
         session.user.createdAt = token.createdAt as string
       }
       return session
