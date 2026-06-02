@@ -550,18 +550,24 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
           onScroll={handleScroll}
           className="overflow-x-auto scrollbar-thin scrollbar-thumb-teal-600 scrollbar-track-gray-100"
         >
-          <table className="w-full border-collapse">
+          <table className="min-w-full border-collapse table-fixed select-none" style={{ minWidth: `${176 + daysInMonth * 40}px` }}>
+            <colgroup>
+              <col style={{ width: '176px', minWidth: '176px', maxWidth: '176px' }} />
+              {dayItems.map((day) => (
+                <col key={day.dayNum} style={{ width: '40px', minWidth: '40px', maxWidth: '40px' }} />
+              ))}
+            </colgroup>
             <thead>
               <tr className="bg-gray-50/80 border-b border-gray-100 divide-x divide-gray-100">
                 {/* Column for room header - COMPACT */}
-                <th className="sticky left-0 bg-gray-50 font-semibold text-xs text-gray-500 uppercase tracking-wider px-3 py-2 Z-20 text-left w-44 min-w-[150px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-100">
+                <th className="sticky left-0 bg-gray-50 font-semibold text-xs text-gray-500 uppercase tracking-wider px-3 py-2 z-20 text-left w-44 min-w-[176px] max-w-[176px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-100">
                   Номер / Даты
                 </th>
                 {/* Generated days headings - COMPACT */}
                 {dayItems.map((day) => (
                   <th 
                     key={day.dayNum} 
-                    className={`px-0.5 py-1.5 text-center min-w-[38px] font-medium text-xs select-none ${
+                    className={`px-0.5 py-1.5 text-center font-medium text-xs select-none ${
                       day.isWeekend ? 'bg-red-50/20' : ''
                     }`}
                   >
@@ -663,7 +669,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                 return (
                   <tr key={room.id} className="hover:bg-gray-50/20 divide-x divide-gray-55">
                     {/* Room title cell sticky - COMPACT */}
-                    <td className="sticky left-0 bg-white font-medium text-gray-800 px-3 py-2.5 text-xs z-10 w-44 min-w-[150px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-150">
+                    <td className="sticky left-0 bg-white font-medium text-gray-800 px-3 py-2.5 text-xs z-10 w-44 min-w-[176px] max-w-[176px] shadow-[2px_0_5px_rgba(0,0,0,0.03)] border-r border-gray-150">
                       <div className="font-bold text-gray-900 leading-tight">{room.name}</div>
                       <div className="text-[10px] text-gray-400 mt-0.5 font-mono">
                         от {formatMoney(room.pricePerDay).split(',00')[0]} / сут
@@ -678,7 +684,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
         </div>
 
         {/* Scroll Movement Slider - COMPLETED FOR SCROLL AREA ONLY */}
-        {maxScroll > 1 && (
+        {maxScroll > 0 && (
           <div className="p-3 bg-gray-50/85 border-t border-gray-100 flex items-center gap-3">
             <span className="text-[10px] text-gray-400 font-bold uppercase select-none flex items-center gap-1">
               <SlidersHorizontal className="w-3.5 h-3.5" /> Ползунок перемещения:
@@ -811,17 +817,27 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
               onScroll={handleListTableScroll}
               className="overflow-x-auto rounded-xl border border-gray-200"
             >
-              <table className="w-full text-left text-[11px] sm:text-xs border-collapse">
+              <table className="w-full text-left text-[11px] sm:text-xs border-collapse table-fixed" style={{ minWidth: '850px' }}>
+                <colgroup>
+                  <col className="w-16" /> {/* ID */}
+                  <col style={{ width: 'auto' }} /> {/* Category */}
+                  <col style={{ width: 'auto' }} /> {/* Guest */}
+                  <col className="w-32" /> {/* Dates */}
+                  <col className="w-20" /> {/* Days */}
+                  <col className="w-24" /> {/* Sum */}
+                  <col className="w-28" /> {/* Status */}
+                  <col className="w-24" /> {/* Actions */}
+                </colgroup>
                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
                   <tr className="divide-x divide-gray-200">
-                    <th className="px-1.5 py-2 text-center w-14">ID зак.</th>
+                    <th className="px-1.5 py-2 text-center w-16 whitespace-nowrap">ID зак.</th>
                     <th className="px-1.5 py-2">Категория</th>
                     <th className="px-1.5 py-2">ФИО гостя / Телефон</th>
-                    <th className="px-1.5 py-2 text-center">Заезд — Выезд</th>
-                    <th className="px-1.5 py-2 text-center">Дней/Челт.</th>
-                    <th className="px-1.5 py-2 text-right">Сумма</th>
-                    <th className="px-1.5 py-2 text-center">Статус</th>
-                    <th className="px-1.5 py-2 text-center">Управление</th>
+                    <th className="px-1.5 py-2 text-center w-32 whitespace-nowrap">Заезд — Выезд</th>
+                    <th className="px-1.5 py-2 text-center w-20 whitespace-nowrap">Дней/Челт.</th>
+                    <th className="px-1.5 py-2 text-right w-24 whitespace-nowrap">Сумма</th>
+                    <th className="px-1.5 py-2 text-center w-28 whitespace-nowrap">Статус</th>
+                    <th className="px-1.5 py-2 text-center w-24 whitespace-nowrap">Управление</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 text-gray-700">
@@ -831,20 +847,20 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                     
                     return (
                       <tr key={b.id} className="hover:bg-gray-50/50 transition-colors divide-x divide-gray-200">
-                        <td className="px-1.5 py-2 font-mono font-bold text-gray-400 text-center">
+                        <td className="w-16 px-1.5 py-2 font-mono font-bold text-gray-400 text-center whitespace-nowrap">
                           #{b.bookingNumber.slice(-6).toUpperCase()}
                         </td>
-                        <td className="px-1.5 py-2 font-medium text-gray-800">
+                        <td className="px-1.5 py-2 font-medium text-gray-800 break-words max-w-[150px]">
                           {b.room.name}
                         </td>
-                        <td className="px-1.5 py-2">
-                          <div className="font-extrabold text-gray-900 leading-tight">{b.guestName}</div>
+                        <td className="px-1.5 py-2 break-words max-w-[180px]">
+                          <div className="font-extrabold text-gray-950 leading-tight">{b.guestName}</div>
                           <div className="text-[10px] text-gray-400 font-mono mt-0.5">{b.guestPhone}</div>
                         </td>
-                        <td className="px-1.5 py-2 text-center font-bold text-gray-600 whitespace-nowrap">
+                        <td className="w-32 px-1.5 py-2 text-center font-bold text-gray-600 whitespace-nowrap">
                           {formatDate(b.checkIn, 'dd.MM')} — {formatDate(b.checkOut, 'dd.MM.yyyy')}
                         </td>
-                        <td className="px-1.5 py-2 text-center text-gray-500 whitespace-nowrap">
+                        <td className="w-20 px-1.5 py-2 text-center text-gray-500 whitespace-nowrap">
                           {b.nights}н / {b.guests}чел
                           {b.transferNeeded && (
                             <span className="ml-1 inline-block text-orange-500 font-bold" title="Нужен трансфер">
@@ -852,15 +868,15 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                             </span>
                           )}
                         </td>
-                        <td className="px-1.5 py-2 text-right font-extrabold text-gray-950 font-mono">
+                        <td className="w-24 px-1.5 py-2 text-right font-extrabold text-gray-950 font-mono whitespace-nowrap">
                           {formatMoney(b.totalPrice).replace(',00', '')}
                         </td>
-                        <td className="px-1.5 py-2 text-center whitespace-nowrap">
+                        <td className="w-28 px-1.5 py-2 text-center whitespace-nowrap">
                           <span className={`inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${customStatus.color}`}>
                             {customStatus.label}
                           </span>
                         </td>
-                        <td className="px-1.5 py-2 text-center">
+                        <td className="w-24 px-1.5 py-2 text-center whitespace-nowrap">
                           <button
                             onClick={() => openBookingDetails(b)}
                             className="px-2 py-1 text-[10px] font-bold bg-sea-50 hover:bg-sea-100 border border-sea-150 text-sea-750 rounded-md cursor-pointer transition-all active:scale-95"
@@ -876,7 +892,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             </div>
 
             {/* Table Scroll Movement Slider as requested */}
-            {listTableMaxScroll > 5 && (
+            {listTableMaxScroll > 0 && (
               <div className="p-2.5 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center gap-3">
                 <span className="text-[10px] text-gray-400 font-extrabold uppercase select-none flex items-center gap-1.5">
                   <SlidersHorizontal className="w-3.5 h-3.5" /> Прокрутка таблицы:
