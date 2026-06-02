@@ -16,12 +16,22 @@ interface LinkItem {
   exact?: boolean
 }
 
+const navLinks: LinkItem[] = [
+  { href: '/admin', label: 'Дашборд', icon: LayoutDashboard, exact: true },
+  { href: '/admin/bookings', label: 'Бронирования', icon: Calendar },
+  { href: '/admin/rooms', label: 'Номера', icon: BedDouble },
+  { href: '/admin/territory', label: 'Территория', icon: Map },
+  { href: '/admin/blog', label: 'Обстановка / Блог', icon: FileText },
+  { href: '/admin/reviews', label: 'Отзывы', icon: Star },
+  { href: '/admin/users', label: 'Пользователи', icon: Users },
+  { href: '/admin/settings', label: 'Настройки', icon: Settings },
+]
+
 interface AdminLayoutClientProps {
   children: React.ReactNode
-  navLinks: LinkItem[]
 }
 
-export function AdminLayoutClient({ children, navLinks }: AdminLayoutClientProps) {
+export function AdminLayoutClient({ children }: AdminLayoutClientProps) {
   const pathname = usePathname()
   const [isOpen, setIsOpen] = useState(false)
 

@@ -548,7 +548,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
         <div 
           ref={calendarRef}
           onScroll={handleScroll}
-          className="overflow-x-auto scrollbar-thin scrollbar-thumb-teal-600 scrollbar-track-gray-100 custom-horizontal-scrollbar"
+          className="custom-horizontal-scrollbar"
         >
           <table className="min-w-full border-collapse table-fixed select-none" style={{ minWidth: `${176 + daysInMonth * 40}px` }}>
             <colgroup>
@@ -685,50 +685,54 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
 
         {/* Style block for highly visible, beautiful always-on custom horizontal scrollbars */}
         <style dangerouslySetInnerHTML={{ __html: `
+          .custom-horizontal-scrollbar {
+            overflow-x: scroll !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: auto !important;
+            scrollbar-color: #0d9488 #e2e8f0 !important;
+          }
           .custom-horizontal-scrollbar::-webkit-scrollbar {
-            height: 12px !important;
+            height: 14px !important;
             display: block !important;
           }
           .custom-horizontal-scrollbar::-webkit-scrollbar-track {
             background: #f1f5f9 !important;
+            border-top: 1px solid #cbd5e1 !important;
             border-bottom-left-radius: 12px !important;
             border-bottom-right-radius: 12px !important;
           }
           .custom-horizontal-scrollbar::-webkit-scrollbar-thumb {
             background: #0d9488 !important;
-            border-radius: 100px !important;
+            border-radius: 10px !important;
             border: 2px solid #f1f5f9 !important;
           }
           .custom-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #0f766e !important;
           }
 
+          .table-horizontal-scrollbar {
+            overflow-x: scroll !important;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: auto !important;
+            scrollbar-color: #0284c7 #e2e8f0 !important;
+          }
           .table-horizontal-scrollbar::-webkit-scrollbar {
-            height: 12px !important;
+            height: 14px !important;
             display: block !important;
           }
           .table-horizontal-scrollbar::-webkit-scrollbar-track {
             background: #f1f5f9 !important;
+            border-top: 1px solid #cbd5e1 !important;
             border-bottom-left-radius: 12px !important;
             border-bottom-right-radius: 12px !important;
           }
           .table-horizontal-scrollbar::-webkit-scrollbar-thumb {
             background: #0284c7 !important;
-            border-radius: 100px !important;
+            border-radius: 10px !important;
             border: 2px solid #f1f5f9 !important;
           }
           .table-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
             background: #0369a1 !important;
-          }
-          
-          /* Firefox support fallback sizes */
-          .custom-horizontal-scrollbar {
-            scrollbar-width: auto !important;
-            scrollbar-color: #0d9488 #f1f5f9 !important;
-          }
-          .table-horizontal-scrollbar {
-            scrollbar-width: auto !important;
-            scrollbar-color: #0284c7 #f1f5f9 !important;
           }
         `}} />
         
@@ -845,7 +849,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             <div 
               ref={listTableRef}
               onScroll={handleListTableScroll}
-              className="overflow-x-auto rounded-xl border border-gray-200 table-horizontal-scrollbar"
+              className="rounded-xl border border-gray-200 table-horizontal-scrollbar"
             >
               <table className="w-full text-left text-[11px] sm:text-xs border-collapse table-auto" style={{ minWidth: '850px' }}>
                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
