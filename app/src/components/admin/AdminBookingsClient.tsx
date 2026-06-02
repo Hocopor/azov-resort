@@ -275,30 +275,6 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
     }
   }
 
-  useEffect(() => {
-    const updateListMaxScroll = () => {
-      if (listTableRef.current) {
-        const { scrollWidth, clientWidth } = listTableRef.current
-        setListTableMaxScroll(Math.max(scrollWidth - clientWidth, 0))
-      }
-    }
-    
-    updateListMaxScroll()
-    const timer = setTimeout(updateListMaxScroll, 350)
-    
-    if (typeof window !== 'undefined' && 'ResizeObserver' in window && listTableRef.current) {
-      const observer = new ResizeObserver(() => {
-        updateListMaxScroll()
-      })
-      observer.observe(listTableRef.current)
-      return () => {
-        observer.disconnect()
-        clearTimeout(timer)
-      }
-    }
-    return () => clearTimeout(timer)
-  }, [filteredBookingsForList])
-
   // Scroll to active booking area or start on render
   useEffect(() => {
     if (calendarRef.current) {
@@ -485,6 +461,30 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
       return true
     })
   }, [bookings, q, filterRoom, filterStatus, filterDateRange, filterStartDate, filterEndDate])
+
+  useEffect(() => {
+    const updateListMaxScroll = () => {
+      if (listTableRef.current) {
+        const { scrollWidth, clientWidth } = listTableRef.current
+        setListTableMaxScroll(Math.max(scrollWidth - clientWidth, 0))
+      }
+    }
+    
+    updateListMaxScroll()
+    const timer = setTimeout(updateListMaxScroll, 350)
+    
+    if (typeof window !== 'undefined' && 'ResizeObserver' in window && listTableRef.current) {
+      const observer = new ResizeObserver(() => {
+        updateListMaxScroll()
+      })
+      observer.observe(listTableRef.current)
+      return () => {
+        observer.disconnect()
+        clearTimeout(timer)
+      }
+    }
+    return () => clearTimeout(timer)
+  }, [filteredBookingsForList])
 
   return (
     <div className="space-y-6">
