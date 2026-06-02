@@ -68,6 +68,12 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={`${displayFont.variable} ${bodyFont.variable}`} suppressHydrationWarning>
+      <head>
+        <link rel="icon" href="/images/icons/favicon.ico" sizes="any" />
+        <link rel="icon" href="/images/icons/icon-192.png" type="image/png" sizes="192x192" />
+        <link rel="apple-touch-icon" href="/images/icons/apple-touch-icon.png" />
+        <link rel="manifest" href="/images/icons/site.webmanifest" />
+      </head>
       <body>
         <SessionProvider>
           <ToastProvider>{children}</ToastProvider>
