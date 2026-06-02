@@ -1,5 +1,6 @@
 'use client'
 
+import React from 'react'
 import Image, { ImageProps } from 'next/image'
 import {
   buildUploadedImageSrcSet,
@@ -24,6 +25,7 @@ export function AppImage(props: Props) {
     sizes,
     style,
     priority,
+    onLoad,
     variant = 'content',
     ...rest
   } = props
@@ -46,6 +48,7 @@ export function AppImage(props: Props) {
           loading={loading}
           decoding="async"
           fetchPriority={priority ? 'high' : 'auto'}
+          onLoad={onLoad as React.ReactEventHandler<HTMLImageElement>}
           style={{
             position: 'absolute',
             inset: 0,
@@ -69,6 +72,7 @@ export function AppImage(props: Props) {
         loading={loading}
         decoding="async"
         fetchPriority={priority ? 'high' : 'auto'}
+        onLoad={onLoad as React.ReactEventHandler<HTMLImageElement>}
         style={style}
       />
     )
@@ -85,6 +89,7 @@ export function AppImage(props: Props) {
       sizes={sizes}
       style={style}
       priority={priority}
+      onLoad={onLoad}
       {...rest}
     />
   )

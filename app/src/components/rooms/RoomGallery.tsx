@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
-import { X, ChevronLeft, ChevronRight, Waves, ZoomIn } from 'lucide-react'
+import { useState, useEffect, useCallback, useRef } from 'react'
+import { X, ChevronLeft, ChevronRight, Waves, ZoomIn, Loader2 } from 'lucide-react'
 import { AppImage } from '@/components/ui/AppImage'
 
 interface Props {
@@ -12,6 +12,18 @@ export function RoomGallery({ images, name }: Props) {
   const [startIndex, setStartIndex] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
+  // Track loaded image URLs to show/hide spinner
+  const loadedRef = useRef(new Set<string>())
+  const [loadedTick, setLoadedTick] = useState(0)
+
+  const markLoaded = useCallback((url: string) => {
+    if (loadedRef.current.has(url)) return
+    loadedRef.current.add(url)
+    setLoadedTick((n) => n + 1)
+  }, [])
+
+  const isLoaded = (url: string) => loadedRef.current.has(url)
+
   const count = images.length
   const visibleCount = Math.min(3, count)
   const needsNav = count > visibleCount
@@ -21,6 +33,22 @@ export function RoomGallery({ images, name }: Props) {
   const lightboxPrev = () => setLightboxIdx((i) => (i !== null ? (i - 1 + count) % count : null))
   const lightboxNext = () => setLightboxIdx((i) => (i !== null ? (i + 1) % count : null))
 
+  // Preload adjacent images when slide changes
+  useEffect(() => {
+    if (!needsNav) return
+    const toPreload = [
+      images[(startIndex - 1 + count) % count],
+      images[(startIndex + visibleCount) % count],
+    ]
+    toPreload.forEach((src) => {
+      if (isLoaded(src)) return
+      const img = new window.Image()
+      img.src = src.startsWith('/uploads/') ? `${src}?w=960&q=76&fm=webp` : src
+      img.onload = () => markLoaded(src)
+    })
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startIndex, count])
+
   if (count === 0) {
     return (
       <div className="card flex h-80 items-center justify-center bg-gradient-to-br from-sea-100 to-sea-200">
@@ -29,11 +57,10 @@ export function RoomGallery({ images, name }: Props) {
     )
   }
 
-  const slots = Array.from({ length: visibleCount }, (_, i) => ({
-    src: images[(startIndex + i) % count],
-    idx: (startIndex + i) % count,
-    slot: i,
-  }))
+  const slots = Array.from({ length: visibleCount }, (_, i) => {
+    const idx = (startIndex + i) % count
+    return { src: images[idx], idx, slot: i }
+  })
 
   const gridCols =
     visibleCount === 1 ? 'grid-cols-1' : visibleCount === 2 ? 'grid-cols-2' : 'grid-cols-3'
@@ -50,7 +77,7 @@ export function RoomGallery({ images, name }: Props) {
               onClick={shiftLeft}
               className="absolute left-0 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sea-700 shadow-lg transition-colors hover:bg-sea-50"
             >
-              <ChevronLeft className="h-6 w-6" />
+              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
             </button>
             <button
               type="button"
@@ -58,7 +85,7 @@ export function RoomGallery({ images, name }: Props) {
               onClick={shiftRight}
               className="absolute right-0 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sea-700 shadow-lg transition-colors hover:bg-sea-50"
             >
-              <ChevronRight className="h-6 w-6" />
+              <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
             </button>
           </>
         )}
@@ -66,10 +93,15 @@ export function RoomGallery({ images, name }: Props) {
         <div className={`grid gap-2 overflow-hidden rounded-2xl ${gridCols}`}>
           {slots.map(({ src, idx, slot }) => (
             <div
-              key={slot}
-              className="group relative h-64 cursor-pointer sm:h-72 md:h-80"
+              key={src}
+              className="group relative h-64 cursor-pointer overflow-hidden bg-sand-100 sm:h-72 md:h-80"
               onClick={() => setLightboxIdx(idx)}
             >
+              {!isLoaded(src) && (
+                <div className="absolute inset-0 z-10 flex items-center justify-center bg-sand-100">
+                  <Loader2 className="h-8 w-8 animate-spin text-sea-300" />
+                </div>
+              )}
               <AppImage
                 src={src}
                 alt={`${name} — фото ${idx + 1}`}
@@ -78,10 +110,13 @@ export function RoomGallery({ images, name }: Props) {
                 sizes="(max-width: 640px) 100vw, (max-width: 1280px) 34vw, 420px"
                 className="object-cover"
                 priority={startIndex === 0 && slot === 0}
+                onLoad={() => markLoaded(src)}
               />
-              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/15">
-                <ZoomIn className="h-7 w-7 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-100" />
-              </div>
+              {isLoaded(src) && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/15">
+                  <ZoomIn className="h-7 w-7 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-100" />
+                </div>
+              )}
             </div>
           ))}
         </div>
@@ -126,7 +161,7 @@ export function RoomGallery({ images, name }: Props) {
                   lightboxPrev()
                 }}
               >
-                <ChevronLeft className="h-6 w-6 text-white" />
+                <ChevronLeft className="h-6 w-6 text-white" strokeWidth={2.5} />
               </button>
               <button
                 className="absolute right-4 z-10 rounded-xl bg-white/10 p-2 transition-colors hover:bg-white/20"
@@ -135,7 +170,7 @@ export function RoomGallery({ images, name }: Props) {
                   lightboxNext()
                 }}
               >
-                <ChevronRight className="h-6 w-6 text-white" />
+                <ChevronRight className="h-6 w-6 text-white" strokeWidth={2.5} />
               </button>
             </>
           )}

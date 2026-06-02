@@ -137,15 +137,8 @@ export function isAdmin(role?: string | null): boolean {
 }
 
 export function getRoomCapacityBreakdown(baseCapacity: number, extraCapacity: number): string {
-  const safeBaseCapacity = Math.max(0, baseCapacity || 0)
-  const safeExtraCapacity = Math.max(0, extraCapacity || 0)
-  const totalCapacity = safeBaseCapacity + safeExtraCapacity
-
-  if (safeExtraCapacity === 0) {
-    return `До ${totalCapacity} ${pluralize(totalCapacity, ['гостя', 'гостей', 'гостей'])}`
-  }
-
-  return `${safeBaseCapacity} осн. + ${safeExtraCapacity} доп., всего до ${totalCapacity}`
+  const total = Math.max(0, baseCapacity || 0) + Math.max(0, extraCapacity || 0)
+  return `до ${total} чел.`
 }
 
 export function generateBookingNumber(): string {
