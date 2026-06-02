@@ -9,106 +9,139 @@ interface Props {
 }
 
 export function RoomGallery({ images, name }: Props) {
+  const [startIndex, setStartIndex] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
 
-  const prev = () => setLightboxIdx((i) => (i !== null ? (i - 1 + images.length) % images.length : null))
-  const next = () => setLightboxIdx((i) => (i !== null ? (i + 1) % images.length : null))
+  const count = images.length
+  const visibleCount = Math.min(3, count)
+  const needsNav = count > visibleCount
 
-  if (images.length === 0) {
+  const shiftLeft = () => setStartIndex((i) => (i - 1 + count) % count)
+  const shiftRight = () => setStartIndex((i) => (i + 1) % count)
+  const lightboxPrev = () => setLightboxIdx((i) => (i !== null ? (i - 1 + count) % count : null))
+  const lightboxNext = () => setLightboxIdx((i) => (i !== null ? (i + 1) % count : null))
+
+  if (count === 0) {
     return (
-      <div className="card h-80 flex items-center justify-center bg-gradient-to-br from-sea-100 to-sea-200">
-        <Waves className="w-24 h-24 text-sea-300" />
+      <div className="card flex h-80 items-center justify-center bg-gradient-to-br from-sea-100 to-sea-200">
+        <Waves className="h-24 w-24 text-sea-300" />
       </div>
     )
   }
 
+  const slots = Array.from({ length: visibleCount }, (_, i) => ({
+    src: images[(startIndex + i) % count],
+    idx: (startIndex + i) % count,
+    slot: i,
+  }))
+
+  const gridCols =
+    visibleCount === 1 ? 'grid-cols-1' : visibleCount === 2 ? 'grid-cols-2' : 'grid-cols-3'
+
   return (
     <>
-      {/* Gallery grid */}
-      <div className={`grid gap-2 rounded-3xl overflow-hidden ${
-        images.length === 1 ? 'grid-cols-1' :
-        images.length === 2 ? 'grid-cols-2' :
-        images.length === 3 ? 'grid-cols-3' :
-        'grid-cols-4'
-      }`}>
-        {/* Main image */}
-        <div
-          className={`relative cursor-pointer group ${
-            images.length >= 3 ? 'col-span-2' : ''
-          } h-72 md:h-96`}
-          onClick={() => setLightboxIdx(0)}
-        >
-          <AppImage
-            src={images[0]}
-            alt={name}
-            fill
-            variant="gallery"
-            sizes="(max-width: 1024px) 100vw, 66vw"
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center">
-            <ZoomIn className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 transition-opacity drop-shadow-lg" />
-          </div>
-        </div>
+      {/* Carousel */}
+      <div className={needsNav ? 'relative px-14' : 'relative'}>
+        {needsNav && (
+          <>
+            <button
+              type="button"
+              aria-label="Предыдущее фото"
+              onClick={shiftLeft}
+              className="absolute left-0 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sea-700 shadow-lg transition-colors hover:bg-sea-50"
+            >
+              <ChevronLeft className="h-6 w-6" />
+            </button>
+            <button
+              type="button"
+              aria-label="Следующее фото"
+              onClick={shiftRight}
+              className="absolute right-0 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sea-700 shadow-lg transition-colors hover:bg-sea-50"
+            >
+              <ChevronRight className="h-6 w-6" />
+            </button>
+          </>
+        )}
 
-        {/* Thumbnails */}
-        {images.slice(1, images.length >= 3 ? 4 : undefined).map((img, i) => (
-          <div
-            key={i}
-            className="relative cursor-pointer group h-48 md:h-48"
-            onClick={() => setLightboxIdx(i + 1)}
-          >
-            <AppImage
-              src={img}
-              alt={`${name} ${i + 2}`}
-              fill
-              variant="card"
-              sizes="(max-width: 1024px) 33vw, 20vw"
-              className="object-cover"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/15 transition-colors" />
-            {i === 2 && images.length > 4 && (
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center text-white">
-                <span className="text-xl font-bold">+{images.length - 4}</span>
+        <div className={`grid gap-2 overflow-hidden rounded-2xl ${gridCols}`}>
+          {slots.map(({ src, idx, slot }) => (
+            <div
+              key={slot}
+              className="group relative h-64 cursor-pointer sm:h-72 md:h-80"
+              onClick={() => setLightboxIdx(idx)}
+            >
+              <AppImage
+                src={src}
+                alt={`${name} — фото ${idx + 1}`}
+                fill
+                variant="gallery"
+                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 34vw, 420px"
+                className="object-cover"
+                priority={startIndex === 0 && slot === 0}
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/0 transition-colors group-hover:bg-black/15">
+                <ZoomIn className="h-7 w-7 text-white opacity-0 drop-shadow-lg transition-opacity group-hover:opacity-100" />
               </div>
-            )}
-          </div>
-        ))}
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Dot navigation */}
+      {needsNav && (
+        <div className="mt-3 flex flex-wrap justify-center gap-1.5">
+          {Array.from({ length: count }, (_, i) => (
+            <button
+              key={i}
+              type="button"
+              aria-label={`Фото ${i + 1}`}
+              onClick={() => setStartIndex(i)}
+              className={`h-2 rounded-full transition-all ${
+                i === startIndex ? 'w-5 bg-sea-600' : 'w-2 bg-sea-200 hover:bg-sea-400'
+              }`}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Lightbox */}
       {lightboxIdx !== null && (
         <div
-          className="fixed inset-0 z-[100] bg-black/95 flex items-center justify-center p-4"
+          className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 p-4"
           onClick={() => setLightboxIdx(null)}
         >
           <button
-            className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors"
+            className="absolute right-4 top-4 rounded-xl bg-white/10 p-2 transition-colors hover:bg-white/20"
             onClick={() => setLightboxIdx(null)}
           >
-            <X className="w-6 h-6 text-white" />
+            <X className="h-6 w-6 text-white" />
           </button>
 
-          {images.length > 1 && (
+          {count > 1 && (
             <>
               <button
-                className="absolute left-4 p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors z-10"
-                onClick={(e) => { e.stopPropagation(); prev() }}
+                className="absolute left-4 z-10 rounded-xl bg-white/10 p-2 transition-colors hover:bg-white/20"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  lightboxPrev()
+                }}
               >
-                <ChevronLeft className="w-6 h-6 text-white" />
+                <ChevronLeft className="h-6 w-6 text-white" />
               </button>
               <button
-                className="absolute right-4 p-2 bg-white/10 hover:bg-white/20 rounded-xl transition-colors z-10"
-                onClick={(e) => { e.stopPropagation(); next() }}
+                className="absolute right-4 z-10 rounded-xl bg-white/10 p-2 transition-colors hover:bg-white/20"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  lightboxNext()
+                }}
               >
-                <ChevronRight className="w-6 h-6 text-white" />
+                <ChevronRight className="h-6 w-6 text-white" />
               </button>
             </>
           )}
 
           <div
-            className="relative w-full max-w-4xl h-[80vh]"
+            className="relative h-[80vh] w-full max-w-4xl"
             onClick={(e) => e.stopPropagation()}
           >
             <AppImage
@@ -122,23 +155,32 @@ export function RoomGallery({ images, name }: Props) {
             />
           </div>
 
-          {/* Thumbnails strip */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+          <div className="absolute bottom-4 left-1/2 flex -translate-x-1/2 gap-2">
             {images.map((img, i) => (
               <button
                 key={i}
-                onClick={(e) => { e.stopPropagation(); setLightboxIdx(i) }}
-                className={`w-12 h-8 rounded-lg overflow-hidden border-2 transition-all ${
-                  i === lightboxIdx ? 'border-white scale-110' : 'border-white/30'
+                onClick={(e) => {
+                  e.stopPropagation()
+                  setLightboxIdx(i)
+                }}
+                className={`h-8 w-12 overflow-hidden rounded-lg border-2 transition-all ${
+                  i === lightboxIdx ? 'scale-110 border-white' : 'border-white/30'
                 }`}
               >
-                <AppImage src={img} alt="" variant="thumb" width={48} height={32} className="object-cover w-full h-full" />
+                <AppImage
+                  src={img}
+                  alt=""
+                  variant="thumb"
+                  width={48}
+                  height={32}
+                  className="h-full w-full object-cover"
+                />
               </button>
             ))}
           </div>
 
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/60 text-sm">
-            {lightboxIdx + 1} / {images.length}
+          <div className="absolute left-1/2 top-4 -translate-x-1/2 text-sm text-white/60">
+            {lightboxIdx + 1} / {count}
           </div>
         </div>
       )}

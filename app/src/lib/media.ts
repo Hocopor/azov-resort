@@ -9,7 +9,7 @@ export type UploadedImageVariant =
 const VARIANT_WIDTHS: Record<UploadedImageVariant, number[]> = {
   thumb: [96, 192],
   card: [360, 640, 960],
-  gallery: [640, 960, 1280],
+  gallery: [480, 720, 960, 1280],
   lightbox: [1280, 1600, 1920],
   content: [480, 800, 1200],
   hero: [640, 960, 1440, 1920],
@@ -17,8 +17,8 @@ const VARIANT_WIDTHS: Record<UploadedImageVariant, number[]> = {
 
 const VARIANT_SIZES: Record<UploadedImageVariant, string> = {
   thumb: '96px',
-  card: '(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw',
-  gallery: '(max-width: 768px) 100vw, 66vw',
+  card: '(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw',
+  gallery: '(max-width: 640px) 100vw, (max-width: 1280px) 34vw, 420px',
   lightbox: '100vw',
   content: '(max-width: 768px) 100vw, 80vw',
   hero: '100vw',

@@ -149,11 +149,12 @@ export default async function RoomDetailPage({ params }: Props) {
           <ArrowLeft className="h-4 w-4" /> Все номера
         </Link>
 
-        <div className="lg:grid lg:grid-cols-3 lg:gap-10">
-          <div className="space-y-8 lg:col-span-2">
-            <RoomGallery images={room.images} name={room.name} />
+        <div className="space-y-8">
+          <RoomGallery images={room.images} name={room.name} />
 
-            <div className="card p-8">
+          <div className="lg:grid lg:grid-cols-3 lg:gap-10">
+            <div className="lg:col-span-2">
+              <div className="card p-8">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <h1 className="mb-2 font-display text-3xl font-bold text-gray-900 md:text-4xl">
@@ -251,6 +252,7 @@ export default async function RoomDetailPage({ params }: Props) {
                 minNights={parseInt(settings.min_booking_days || '1', 10)}
               />
             </div>
+          </div>
           </div>
         </div>
       </div>
