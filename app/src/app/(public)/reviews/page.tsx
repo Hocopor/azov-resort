@@ -19,9 +19,9 @@ export default async function ReviewsPage() {
 
   return (
     <div className="min-h-screen bg-sand-50">
-      <section className="bg-deep-700 page-hero text-white relative overflow-hidden">
+      <section className="bg-sea-700 page-hero text-white relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 right-0 w-72 h-72 bg-coral-500 rounded-full blur-3xl opacity-10" />
+          <div className="absolute -top-16 right-0 w-80 h-80 bg-sea-500 rounded-full blur-3xl opacity-20" />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 text-center">
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight">Отзывы гостей</h1>

@@ -19,12 +19,9 @@ export default async function TerritoryPage() {
     <div className="min-h-screen bg-sand-50">
       <section className="bg-sea-700 page-hero text-white relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute -bottom-16 left-1/2 w-96 h-48 bg-sea-500 rounded-full blur-3xl opacity-25" />
+          <div className="absolute -top-16 right-0 w-80 h-80 bg-sea-500 rounded-full blur-3xl opacity-20" />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/15 rounded-full text-xs sm:text-sm mb-5">
-            <Map className="w-3.5 h-3.5" /> Территория гостевого дома
-          </div>
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight">Территория</h1>
           <p className="text-white/75 text-base sm:text-lg max-w-2xl mx-auto">
             Фото, видео и описание двора, зон отдыха и атмосферы гостевого дома.

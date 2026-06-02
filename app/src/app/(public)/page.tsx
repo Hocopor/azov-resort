@@ -193,43 +193,41 @@ export default async function HomePage() {
           </svg>
         </div>
 
-        <div className="relative z-10 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-28 sm:pt-32 sm:pb-36 text-white" style={heroStyleVars}>
-          <div className="max-w-2xl">
-            <div className={heroBadgeClassName}>
-              <Sun className="w-4 h-4 text-yellow-300 flex-shrink-0" />
-              Гостевой дом на Зелёной 26
-            </div>
+        <div className="relative z-10 w-full max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 pt-28 pb-28 sm:pt-32 sm:pb-36 text-white text-center" style={heroStyleVars}>
+          <div className={heroBadgeClassName}>
+            <Sun className="w-4 h-4 text-yellow-300 flex-shrink-0" />
+            Гостевой дом на Зелёной 26
+          </div>
 
-            <h1 className={heroTitleClassName} style={heroTitleStyle}>
-              {settings.hero_title || 'Отдых у Азовского моря'}
-            </h1>
+          <h1 className={heroTitleClassName} style={heroTitleStyle}>
+            {settings.hero_title || 'Отдых у Азовского моря'}
+          </h1>
 
-            <p className={heroSubtitleClassName} style={heroSubtitleStyle}>
-              {settings.hero_subtitle || 'Уютные номера, тёплое море и спокойная атмосфера для семейного отдыха.'}
-            </p>
+          <p className={`${heroSubtitleClassName} mx-auto`} style={heroSubtitleStyle}>
+            {settings.hero_subtitle || 'Уютные номера, тёплое море и спокойная атмосфера для семейного отдыха.'}
+          </p>
 
-            <div className="flex gap-6 sm:gap-8 mb-8 flex-wrap">
-              {[
-                { value: '7',      label: 'номеров' },
-                { value: '5 мин.', label: 'до пляжа' },
-                { value: '100%',   label: 'тёплый приём' },
-              ].map((stat) => (
-                <div key={stat.label}>
-                  <div className={heroStatValueClassName} style={heroStatValueStyle}>{stat.value}</div>
-                  <div className={heroStatLabelClassName} style={heroStatLabelStyle}>{stat.label}</div>
-                </div>
-              ))}
-            </div>
+          <div className="flex gap-6 sm:gap-10 mb-8 flex-wrap justify-center">
+            {[
+              { value: '7',      label: 'номеров' },
+              { value: '5 мин.', label: 'до пляжа' },
+              { value: '100%',   label: 'тёплый приём' },
+            ].map((stat) => (
+              <div key={stat.label}>
+                <div className={heroStatValueClassName} style={heroStatValueStyle}>{stat.value}</div>
+                <div className={heroStatLabelClassName} style={heroStatLabelStyle}>{stat.label}</div>
+              </div>
+            ))}
+          </div>
 
-            <div className="flex flex-col sm:flex-row gap-3">
-              <Link href="/rooms" className={heroPrimaryButtonClassName}>
-                Выбрать номер
-                <ArrowRight className="w-5 h-5" />
-              </Link>
-              <a href={`tel:${settings.site_phone || ''}`} className={heroSecondaryButtonClassName}>
-                Позвонить нам
-              </a>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            <Link href="/rooms" className={heroPrimaryButtonClassName}>
+              Выбрать номер
+              <ArrowRight className="w-5 h-5" />
+            </Link>
+            <a href={`tel:${settings.site_phone || ''}`} className={heroSecondaryButtonClassName}>
+              Позвонить нам
+            </a>
           </div>
         </div>
       </section>

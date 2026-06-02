@@ -54,10 +54,9 @@ export default async function RoomsPage() {
 
   return (
     <div className="min-h-screen">
-      <section className="bg-deep-900 page-hero text-white relative overflow-hidden">
+      <section className="bg-sea-700 page-hero text-white relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
-          <div className="absolute top-0 left-1/3 w-96 h-96 bg-sea-600 rounded-full blur-3xl opacity-15" />
-          <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-deep-700 rounded-full blur-2xl opacity-30" />
+          <div className="absolute -top-16 right-0 w-80 h-80 bg-sea-500 rounded-full blur-3xl opacity-20" />
         </div>
         <div className="relative mx-auto max-w-4xl px-4 sm:px-6 text-center">
           <h1 className="mb-4 font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">

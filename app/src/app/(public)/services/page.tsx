@@ -71,9 +71,6 @@ export default async function ServicesPage() {
           <div className="absolute -top-16 right-0 w-80 h-80 bg-sea-500 rounded-full blur-3xl opacity-20" />
         </div>
         <div className="relative max-w-4xl mx-auto px-4 text-center">
-          <Link href="/" className="inline-flex items-center gap-2 text-white/60 hover:text-white mb-5 text-sm transition-colors">
-            <ArrowLeft className="w-4 h-4" /> На главную
-          </Link>
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight">Услуги и удобства</h1>
           <p className="text-white/75 text-base sm:text-lg max-w-xl mx-auto">
             Всё для комфортного отдыха у Азовского моря
