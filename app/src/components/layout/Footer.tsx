@@ -10,14 +10,14 @@ interface FooterProps {
 export function Footer({ siteName, sitePhone, siteAddress }: FooterProps) {
   return (
     <footer className="bg-deep-900 text-white">
-      <div className="bg-sand-50 h-16 relative overflow-hidden">
+      <div className="bg-sand-50 h-12 sm:h-16 relative overflow-hidden">
         <svg viewBox="0 0 1440 64" className="absolute bottom-0 w-full" preserveAspectRatio="none">
           <path d="M0,0 C360,64 1080,64 1440,0 L1440,64 L0,64 Z" fill="#0a2d40" />
         </svg>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-16 pb-8">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-10 mb-12">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 sm:pt-16 pb-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 sm:gap-10 mb-10 sm:mb-12">
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2.5 mb-4">
               <div className="w-10 h-10 bg-sea-600 rounded-xl flex items-center justify-center">

@@ -17,14 +17,17 @@ export default async function TerritoryPage() {
 
   return (
     <div className="min-h-screen bg-sand-50">
-      <section className="bg-gradient-to-br from-deep-900 to-sea-700 text-white pt-32 pb-20">
-        <div className="max-w-4xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 rounded-full text-sm mb-5">
-            <Map className="w-4 h-4" /> Территория гостевого дома
+      <section className="bg-sea-700 page-hero text-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute -bottom-16 left-1/2 w-96 h-48 bg-sea-500 rounded-full blur-3xl opacity-25" />
+        </div>
+        <div className="relative max-w-4xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/15 rounded-full text-xs sm:text-sm mb-5">
+            <Map className="w-3.5 h-3.5" /> Территория гостевого дома
           </div>
-          <h1 className="font-display text-5xl md:text-6xl font-bold mb-4">Территория</h1>
-          <p className="text-white/80 text-lg max-w-2xl mx-auto">
-            Фото, видео и описание двора, зон отдыха и общей атмосферы гостевого дома.
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight">Территория</h1>
+          <p className="text-white/75 text-base sm:text-lg max-w-2xl mx-auto">
+            Фото, видео и описание двора, зон отдыха и атмосферы гостевого дома.
           </p>
         </div>
       </section>

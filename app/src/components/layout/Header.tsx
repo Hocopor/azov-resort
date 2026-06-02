@@ -189,52 +189,58 @@ export function Header({ siteName, sitePhone }: { siteName: string; sitePhone: s
       </div>
 
       {isMenuOpen && (
-        <div className="md:hidden bg-white border-t border-gray-100 shadow-lg">
-          <div className="px-4 py-4 space-y-1">
+        <div className="md:hidden bg-white border-t border-gray-100 shadow-xl">
+          <div className="px-3 py-3 space-y-0.5">
             {navLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
-                className="flex items-center px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-sea-50 hover:text-sea-700 transition-colors"
+                className={cn(
+                  'flex items-center px-3 py-2.5 rounded-xl text-sm font-medium transition-colors',
+                  pathname.startsWith(link.href)
+                    ? 'bg-sea-50 text-sea-700'
+                    : 'text-gray-700 hover:bg-gray-50 hover:text-sea-700'
+                )}
               >
                 {link.label}
               </Link>
             ))}
-            <hr className="my-2 border-gray-100" />
-            <a
-              href={`tel:${sitePhone}`}
-              className="flex items-center px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-gray-50"
-            >
-              Позвонить: {sitePhone}
-            </a>
+          </div>
+          <div className="px-3 pb-4 pt-1 border-t border-gray-100 space-y-2">
             {session ? (
-              <>
+              <div className="space-y-0.5">
                 {session.user.role === 'ADMIN' && (
-                  <Link href="/admin" className="flex items-center gap-2 px-4 py-3 rounded-xl text-purple-700 font-medium hover:bg-purple-50">
+                  <Link href="/admin" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-purple-700 text-sm font-medium hover:bg-purple-50">
                     <Settings className="w-4 h-4" /> Панель управления
                   </Link>
                 )}
-                <Link href="/account" className="flex items-center gap-2 px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-gray-50">
+                <Link href="/account" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50">
                   <User className="w-4 h-4" /> Мой профиль
                 </Link>
-                <Link href="/account/bookings" className="flex items-center gap-2 px-4 py-3 rounded-xl text-gray-700 font-medium hover:bg-gray-50">
+                <Link href="/account/bookings" className="flex items-center gap-2 px-3 py-2.5 rounded-xl text-gray-700 text-sm font-medium hover:bg-gray-50">
                   <Calendar className="w-4 h-4" /> Мои брони
                 </Link>
                 <button
                   onClick={() => signOut({ callbackUrl: '/' })}
-                  className="w-full flex items-center gap-2 px-4 py-3 rounded-xl text-red-600 font-medium hover:bg-red-50"
+                  className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-red-600 text-sm font-medium hover:bg-red-50"
                 >
                   <LogOut className="w-4 h-4" /> Выйти
                 </button>
-              </>
-            ) : (
-              <Link href="/auth/login" className="block px-4 py-3 bg-sea-700 text-white rounded-xl font-semibold text-center">
-                Войти / Зарегистрироваться
+              </div>
+            ) : null}
+            <div className="flex gap-2 pt-1">
+              {!session && (
+                <Link href="/auth/login" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition-colors">
+                  <User className="w-4 h-4" /> Войти
+                </Link>
+              )}
+              <Link href="/rooms" className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 bg-coral-500 text-white rounded-xl text-sm font-semibold hover:bg-coral-600 transition-colors">
+                Забронировать
               </Link>
-            )}
-            <Link href="/rooms" className="block px-4 py-3 bg-coral-500 text-white rounded-xl font-semibold text-center">
-              Забронировать номер
-            </Link>
+              <a href={`tel:${sitePhone}`} className="flex items-center justify-center px-3 py-2.5 bg-sea-700 text-white rounded-xl text-sm font-semibold hover:bg-sea-800 transition-colors">
+                Звонок
+              </a>
+            </div>
           </div>
         </div>
       )}

@@ -54,14 +54,17 @@ export default async function RoomsPage() {
 
   return (
     <div className="min-h-screen">
-      <section className="bg-gradient-to-br from-deep-900 to-sea-700 pb-20 pt-32 text-white">
-        <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <h1 className="mb-4 font-display text-5xl font-bold md:text-6xl">
-            Наши номера для отдыха на Азовском море
+      <section className="bg-deep-900 page-hero text-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/3 w-96 h-96 bg-sea-600 rounded-full blur-3xl opacity-15" />
+          <div className="absolute bottom-0 right-1/4 w-64 h-64 bg-deep-700 rounded-full blur-2xl opacity-30" />
+        </div>
+        <div className="relative mx-auto max-w-4xl px-4 sm:px-6 text-center">
+          <h1 className="mb-4 font-display text-4xl sm:text-5xl md:text-6xl font-bold leading-tight">
+            Наши номера
           </h1>
-          <p className="text-lg text-white/80">
-            Уютные номера, фото, цены и удобства. Выберите вариант, который подходит
-            именно вам.
+          <p className="text-base sm:text-lg text-white/75 max-w-xl mx-auto">
+            Фото, цены и удобства. Выберите вариант, который подходит именно вам.
           </p>
         </div>
       </section>

@@ -23,13 +23,17 @@ export default async function BlogPage() {
 
   return (
     <div className="min-h-screen">
-      <section className="bg-gradient-to-br from-sea-800 to-deep-900 text-white pt-32 pb-16">
-        <div className="max-w-2xl mx-auto px-4 text-center">
-          <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 rounded-full text-sm mb-5">
-            <Waves className="w-4 h-4" /> Обстановка на море онлайн
+      <section className="bg-deep-900 page-hero text-white relative overflow-hidden">
+        <div className="absolute inset-0 pointer-events-none">
+          <div className="absolute top-0 left-1/4 w-80 h-80 bg-sea-500 rounded-full blur-3xl opacity-12" />
+          <div className="absolute bottom-0 right-0 w-56 h-56 bg-sea-700 rounded-full blur-2xl opacity-20" />
+        </div>
+        <div className="relative max-w-2xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/15 rounded-full text-xs sm:text-sm mb-5">
+            <Waves className="w-3.5 h-3.5" /> Обстановка на море онлайн
           </div>
-          <h1 className="font-display text-5xl md:text-6xl font-bold mb-4">Азовское море сегодня</h1>
-          <p className="text-white/80 text-lg">
+          <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight">Азовское море сегодня</h1>
+          <p className="text-white/75 text-base sm:text-lg">
             Актуальная информация о погоде, море и жизни в Кучугурах
           </p>
         </div>

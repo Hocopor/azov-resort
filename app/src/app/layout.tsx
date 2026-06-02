@@ -1,8 +1,24 @@
 import type { Metadata, Viewport } from 'next'
+import { Cormorant_Garamond, Nunito } from 'next/font/google'
 import './globals.css'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
+
+const displayFont = Cormorant_Garamond({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['300', '400', '500', '600', '700'],
+  style: ['normal', 'italic'],
+  variable: '--font-display',
+  display: 'swap',
+})
+
+const bodyFont = Nunito({
+  subsets: ['latin', 'cyrillic'],
+  weight: ['300', '400', '500', '600', '700', '800'],
+  variable: '--font-body',
+  display: 'swap',
+})
 
 export async function generateMetadata(): Promise<Metadata> {
   const settings = await getSettings(['site_name', 'site_address', 'hero_subtitle', 'og_image'])
@@ -35,10 +51,10 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     robots: { index: true, follow: true },
     icons: {
-      icon: '/icons/favicon.ico',
-      apple: '/icons/apple-touch-icon.png',
+      icon: '/images/icons/favicon.ico',
+      apple: '/images/icons/apple-touch-icon.png',
     },
-    manifest: '/icons/site.webmanifest',
+    manifest: '/images/icons/site.webmanifest',
   }
 }
 
@@ -51,15 +67,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="ru" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,600&family=Nunito:wght@300;400;500;600;700;800&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="ru" className={`${displayFont.variable} ${bodyFont.variable}`} suppressHydrationWarning>
       <body>
         <SessionProvider>
           <ToastProvider>{children}</ToastProvider>
