@@ -548,7 +548,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
         <div 
           ref={calendarRef}
           onScroll={handleScroll}
-          className="overflow-x-auto scrollbar-thin scrollbar-thumb-teal-600 scrollbar-track-gray-100"
+          className="overflow-x-auto scrollbar-thin scrollbar-thumb-teal-600 scrollbar-track-gray-100 custom-horizontal-scrollbar"
         >
           <table className="min-w-full border-collapse table-fixed select-none" style={{ minWidth: `${176 + daysInMonth * 40}px` }}>
             <colgroup>
@@ -683,24 +683,54 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
           </table>
         </div>
 
-        {/* Scroll Movement Slider - COMPLETED FOR SCROLL AREA ONLY */}
-        {maxScroll > 0 && (
-          <div className="p-3 bg-gray-50/85 border-t border-gray-100 flex items-center gap-3">
-            <span className="text-[10px] text-gray-400 font-bold uppercase select-none flex items-center gap-1">
-              <SlidersHorizontal className="w-3.5 h-3.5" /> Ползунок перемещения:
-            </span>
-            <input 
-              type="range"
-              min={0}
-              max={maxScroll}
-              value={scrollVal}
-              onChange={handleSliderChange}
-              className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-teal-600 focus:outline-hidden"
-              style={{ outline: 'none' }}
-              title="Перетащите ползунок для прокрутки дат календаря"
-            />
-          </div>
-        )}
+        {/* Style block for highly visible, beautiful always-on custom horizontal scrollbars */}
+        <style dangerouslySetInnerHTML={{ __html: `
+          .custom-horizontal-scrollbar::-webkit-scrollbar {
+            height: 12px !important;
+            display: block !important;
+          }
+          .custom-horizontal-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-bottom-left-radius: 12px !important;
+            border-bottom-right-radius: 12px !important;
+          }
+          .custom-horizontal-scrollbar::-webkit-scrollbar-thumb {
+            background: #0d9488 !important;
+            border-radius: 100px !important;
+            border: 2px solid #f1f5f9 !important;
+          }
+          .custom-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #0f766e !important;
+          }
+
+          .table-horizontal-scrollbar::-webkit-scrollbar {
+            height: 12px !important;
+            display: block !important;
+          }
+          .table-horizontal-scrollbar::-webkit-scrollbar-track {
+            background: #f1f5f9 !important;
+            border-bottom-left-radius: 12px !important;
+            border-bottom-right-radius: 12px !important;
+          }
+          .table-horizontal-scrollbar::-webkit-scrollbar-thumb {
+            background: #0284c7 !important;
+            border-radius: 100px !important;
+            border: 2px solid #f1f5f9 !important;
+          }
+          .table-horizontal-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #0369a1 !important;
+          }
+          
+          /* Firefox support fallback sizes */
+          .custom-horizontal-scrollbar {
+            scrollbar-width: auto !important;
+            scrollbar-color: #0d9488 #f1f5f9 !important;
+          }
+          .table-horizontal-scrollbar {
+            scrollbar-width: auto !important;
+            scrollbar-color: #0284c7 #f1f5f9 !important;
+          }
+        `}} />
         
         {/* Helper informational text explaining unbooked fields */}
         <div className="bg-gray-50 p-3 border-t border-gray-100 text-[10px] text-gray-500 font-medium flex items-center gap-1.5 select-none">
@@ -811,33 +841,23 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
             Бронирований с выбранными фильтрами не обнаружено.
           </div>
         ) : (
-          <div className="space-y-2">
+          <div className="space-y-4">
             <div 
               ref={listTableRef}
               onScroll={handleListTableScroll}
-              className="overflow-x-auto rounded-xl border border-gray-200"
+              className="overflow-x-auto rounded-xl border border-gray-200 table-horizontal-scrollbar"
             >
-              <table className="w-full text-left text-[11px] sm:text-xs border-collapse table-fixed" style={{ minWidth: '850px' }}>
-                <colgroup>
-                  <col className="w-16" /> {/* ID */}
-                  <col style={{ width: 'auto' }} /> {/* Category */}
-                  <col style={{ width: 'auto' }} /> {/* Guest */}
-                  <col className="w-32" /> {/* Dates */}
-                  <col className="w-20" /> {/* Days */}
-                  <col className="w-24" /> {/* Sum */}
-                  <col className="w-28" /> {/* Status */}
-                  <col className="w-24" /> {/* Actions */}
-                </colgroup>
+              <table className="w-full text-left text-[11px] sm:text-xs border-collapse table-auto" style={{ minWidth: '850px' }}>
                 <thead className="bg-gray-50 border-b border-gray-200 text-gray-400 font-bold uppercase tracking-wider">
                   <tr className="divide-x divide-gray-200">
-                    <th className="px-1.5 py-2 text-center w-16 whitespace-nowrap">ID зак.</th>
-                    <th className="px-1.5 py-2">Категория</th>
-                    <th className="px-1.5 py-2">ФИО гостя / Телефон</th>
-                    <th className="px-1.5 py-2 text-center w-32 whitespace-nowrap">Заезд — Выезд</th>
-                    <th className="px-1.5 py-2 text-center w-20 whitespace-nowrap">Дней/Челт.</th>
-                    <th className="px-1.5 py-2 text-right w-24 whitespace-nowrap">Сумма</th>
-                    <th className="px-1.5 py-2 text-center w-28 whitespace-nowrap">Статус</th>
-                    <th className="px-1.5 py-2 text-center w-24 whitespace-nowrap">Управление</th>
+                    <th className="px-3 py-3 text-center w-16 whitespace-nowrap">ID зак.</th>
+                    <th className="px-3 py-3">Категория</th>
+                    <th className="px-3 py-3">ФИО гостя / Телефон</th>
+                    <th className="px-3 py-3 text-center w-32 whitespace-nowrap">Заезд — Выезд</th>
+                    <th className="px-3 py-3 text-center w-20 whitespace-nowrap">Дней/Челт.</th>
+                    <th className="px-3 py-3 text-right w-24 whitespace-nowrap">Сумма</th>
+                    <th className="px-3 py-3 text-center w-28 whitespace-nowrap">Статус</th>
+                    <th className="px-3 py-3 text-center w-24 whitespace-nowrap">Управление</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200 text-gray-700">
@@ -847,20 +867,20 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                     
                     return (
                       <tr key={b.id} className="hover:bg-gray-50/50 transition-colors divide-x divide-gray-200">
-                        <td className="w-16 px-1.5 py-2 font-mono font-bold text-gray-400 text-center whitespace-nowrap">
+                        <td className="px-3 py-2.5 font-mono font-bold text-gray-400 text-center whitespace-nowrap">
                           #{b.bookingNumber.slice(-6).toUpperCase()}
                         </td>
-                        <td className="px-1.5 py-2 font-medium text-gray-800 break-words max-w-[150px]">
+                        <td className="px-3 py-2.5 font-medium text-gray-800 whitespace-normal break-words">
                           {b.room.name}
                         </td>
-                        <td className="px-1.5 py-2 break-words max-w-[180px]">
+                        <td className="px-3 py-2.5 whitespace-normal break-words">
                           <div className="font-extrabold text-gray-950 leading-tight">{b.guestName}</div>
                           <div className="text-[10px] text-gray-400 font-mono mt-0.5">{b.guestPhone}</div>
                         </td>
-                        <td className="w-32 px-1.5 py-2 text-center font-bold text-gray-600 whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center font-bold text-gray-600 whitespace-nowrap">
                           {formatDate(b.checkIn, 'dd.MM')} — {formatDate(b.checkOut, 'dd.MM.yyyy')}
                         </td>
-                        <td className="w-20 px-1.5 py-2 text-center text-gray-500 whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center text-gray-500 whitespace-nowrap">
                           {b.nights}н / {b.guests}чел
                           {b.transferNeeded && (
                             <span className="ml-1 inline-block text-orange-500 font-bold" title="Нужен трансфер">
@@ -868,15 +888,15 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                             </span>
                           )}
                         </td>
-                        <td className="w-24 px-1.5 py-2 text-right font-extrabold text-gray-950 font-mono whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-right font-extrabold text-gray-950 font-mono whitespace-nowrap">
                           {formatMoney(b.totalPrice).replace(',00', '')}
                         </td>
-                        <td className="w-28 px-1.5 py-2 text-center whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
                           <span className={`inline-block px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${customStatus.color}`}>
                             {customStatus.label}
                           </span>
                         </td>
-                        <td className="w-24 px-1.5 py-2 text-center whitespace-nowrap">
+                        <td className="px-3 py-2.5 text-center whitespace-nowrap">
                           <button
                             onClick={() => openBookingDetails(b)}
                             className="px-2 py-1 text-[10px] font-bold bg-sea-50 hover:bg-sea-100 border border-sea-150 text-sea-750 rounded-md cursor-pointer transition-all active:scale-95"
@@ -890,25 +910,6 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
                 </tbody>
               </table>
             </div>
-
-            {/* Table Scroll Movement Slider as requested */}
-            {listTableMaxScroll > 0 && (
-              <div className="p-2.5 bg-gray-50/80 border border-gray-200 rounded-xl flex items-center gap-3">
-                <span className="text-[10px] text-gray-400 font-extrabold uppercase select-none flex items-center gap-1.5">
-                  <SlidersHorizontal className="w-3.5 h-3.5" /> Прокрутка таблицы:
-                </span>
-                <input 
-                  type="range"
-                  min={0}
-                  max={listTableMaxScroll}
-                  value={listTableScrollVal}
-                  onChange={handleListTableSliderChange}
-                  className="flex-1 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-sea-600 focus:outline-hidden"
-                  style={{ outline: 'none' }}
-                  title="Перемещайте ползунок для просмотра правых колонок таблицы"
-                />
-              </div>
-            )}
           </div>
         )}
       </div>
