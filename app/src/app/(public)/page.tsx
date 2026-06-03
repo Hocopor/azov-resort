@@ -423,7 +423,7 @@ export default async function HomePage() {
                     ))}
                   </div>
                   <p className="text-gray-700 text-sm leading-relaxed flex-1">«{review.content}»</p>
-                  <div className="font-semibold text-gray-900 text-sm">{review.user.name || 'Гость'}</div>
+                  <div className="font-semibold text-gray-900 text-sm">{review.guestName || review.user?.name || 'Гость'}</div>
                 </div>
               ))}
             </div>
