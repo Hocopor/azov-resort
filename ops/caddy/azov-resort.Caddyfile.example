@@ -1,3 +1,6 @@
+# -------------------------------------------------------
+# Main site: azov.mak-o.ru
+# -------------------------------------------------------
 your-domain.ru {
   encode zstd gzip
 
@@ -8,6 +11,8 @@ your-domain.ru {
     path /README.md
     path /AGENTS.md
     path /logs*
+    # Block admin routes on main domain (defence-in-depth; middleware does it too)
+    path /admin*
   }
   respond @blocked 404
 
@@ -22,6 +27,43 @@ your-domain.ru {
     X-Frame-Options "SAMEORIGIN"
     Referrer-Policy "strict-origin-when-cross-origin"
     Permissions-Policy "camera=(), microphone=(), geolocation=()"
+  }
+
+  reverse_proxy 172.31.250.10:3000 {
+    header_up X-Forwarded-Proto {scheme}
+    header_up X-Forwarded-Host {host}
+    header_up X-Forwarded-For {remote_host}
+    header_up X-Real-IP {remote_host}
+  }
+}
+
+# -------------------------------------------------------
+# Admin panel: admin.your-domain.ru
+# Set ADMIN_DOMAIN=admin.your-domain.ru in .env
+# Add DNS A-record: admin.your-domain.ru -> your server IP
+# -------------------------------------------------------
+admin.your-domain.ru {
+  encode zstd gzip
+
+  # Block everything except admin routes on this subdomain
+  @notadmin {
+    not path /admin* /api/admin* /_next* /images* /uploads* /favicon*
+  }
+  respond @notadmin 404
+
+  request_body {
+    max_size 64MB
+  }
+
+  header {
+    -Server
+    Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-cross-origin"
+    Permissions-Policy "camera=(), microphone=(), geolocation=()"
+    # Prevent indexing of admin panel
+    X-Robots-Tag "noindex, nofollow"
   }
 
   reverse_proxy 172.31.250.10:3000 {

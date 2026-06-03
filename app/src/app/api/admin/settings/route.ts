@@ -3,6 +3,8 @@ import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
+export const dynamic = 'force-dynamic'
+
 export async function PATCH(req: NextRequest) {
   if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

@@ -3,6 +3,8 @@ import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import { parseISO } from 'date-fns'
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
