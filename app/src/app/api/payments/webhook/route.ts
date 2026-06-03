@@ -2,31 +2,64 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getPayment } from '@/lib/yookassa'
 
+// Official YooKassa notification IP ranges (https://yookassa.ru/developers/using-api/webhooks)
+const YOOKASSA_IP_RANGES = [
+  '185.71.76.0/27',
+  '185.71.77.0/27',
+  '77.75.153.0/25',
+  '77.75.156.11',
+  '77.75.156.35',
+  '3.220.24.244',
+  '84.252.153.120',
+  '91.108.4.0/22',
+]
+
+function ipToInt(ip: string): number {
+  return ip.split('.').reduce((acc, oct) => (acc << 8) + parseInt(oct, 10), 0) >>> 0
+}
+
+function isIpInCidr(ip: string, cidr: string): boolean {
+  if (!cidr.includes('/')) return ip === cidr
+  const [range, bits] = cidr.split('/')
+  const mask = ~((1 << (32 - parseInt(bits, 10))) - 1) >>> 0
+  return (ipToInt(ip) & mask) === (ipToInt(range) & mask)
+}
+
+function isYookassaIp(ip: string): boolean {
+  return YOOKASSA_IP_RANGES.some((range) => isIpInCidr(ip, range))
+}
+
 export async function POST(req: NextRequest) {
   try {
+    // Verify request comes from YooKassa IP ranges
+    const ip =
+      req.headers.get('x-real-ip') ||
+      req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+      ''
+
+    if (ip && !isYookassaIp(ip)) {
+      console.warn('[webhook] Rejected request from unknown IP:', ip)
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+
     const body = await req.json()
 
-    // YooKassa sends notification with event type
-    if (!body.event || !body.object) {
+    if (!body.event || !body.object?.id) {
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
-    const paymentObject = body.object
-    const event: string = body.event
-
-    // Verify payment with YooKassa API
+    // Always re-fetch payment from YooKassa — never trust body fields for status
     let payment
     try {
-      payment = await getPayment(paymentObject.id)
+      payment = await getPayment(body.object.id)
     } catch {
-      console.error('Failed to verify payment:', paymentObject.id)
+      console.error('[webhook] Failed to verify payment:', body.object.id)
       return NextResponse.json({ ok: false }, { status: 400 })
     }
 
     const bookingId = payment.metadata?.booking_id
     if (!bookingId) {
-      console.error('No booking_id in payment metadata:', payment.id)
-      return NextResponse.json({ ok: true }) // Acknowledge but ignore
+      return NextResponse.json({ ok: true })
     }
 
     const booking = await prisma.booking.findUnique({
@@ -35,11 +68,13 @@ export async function POST(req: NextRequest) {
     })
 
     if (!booking) {
-      console.error('Booking not found:', bookingId)
       return NextResponse.json({ ok: true })
     }
 
-    if (event === 'payment.succeeded') {
+    // Use the authoritative status from YooKassa API, not the body event field
+    const paymentStatus = payment.status // 'pending' | 'waiting_for_capture' | 'succeeded' | 'canceled'
+
+    if (paymentStatus === 'succeeded') {
       await prisma.booking.update({
         where: { id: bookingId },
         data: {
@@ -50,32 +85,32 @@ export async function POST(req: NextRequest) {
         },
       })
 
-      // Track conversion
-      await prisma.conversionEvent.create({
-        data: {
-          event: 'payment_completed',
-          roomId: booking.roomId,
-          bookingId: bookingId,
-          userId: booking.userId ?? undefined,
-          metadata: { amount: payment.amount.value },
-        },
+      // Idempotent conversion tracking — skip if already recorded
+      const existing = await prisma.conversionEvent.findFirst({
+        where: { bookingId, event: 'payment_completed' },
       })
-
-    } else if (event === 'payment.canceled') {
-      // Only update if still pending
-      if (booking.status === 'PENDING') {
-        await prisma.booking.update({
-          where: { id: bookingId },
+      if (!existing) {
+        await prisma.conversionEvent.create({
           data: {
-            paymentStatus: 'FAILED',
+            event: 'payment_completed',
+            roomId: booking.roomId,
+            bookingId,
+            userId: booking.userId ?? undefined,
+            metadata: { amount: payment.amount.value },
           },
         })
       }
+
+    } else if (paymentStatus === 'canceled' && booking.status === 'PENDING') {
+      await prisma.booking.update({
+        where: { id: bookingId },
+        data: { paymentStatus: 'FAILED' },
+      })
     }
 
     return NextResponse.json({ ok: true })
   } catch (err) {
-    console.error('Webhook error:', err)
+    console.error('[webhook] Error:', err)
     return NextResponse.json({ error: 'Internal error' }, { status: 500 })
   }
 }
