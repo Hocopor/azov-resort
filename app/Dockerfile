@@ -57,6 +57,7 @@ COPY --from=builder /app/node_modules/.bin ./node_modules/.bin
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 COPY docker-entrypoint.sh ./
+COPY --from=builder /app/scripts ./scripts
 
 RUN chmod +x docker-entrypoint.sh \
   && mkdir -p ./.npm \

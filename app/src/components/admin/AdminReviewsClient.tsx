@@ -13,10 +13,11 @@ interface ReviewItem {
   published: boolean
   createdAt: Date
   mediaItems: MediaItem[]
+  guestName?: string | null
   user: {
     name: string | null
     email: string
-  }
+  } | null
 }
 
 export function AdminReviewsClient({ initialReviews }: { initialReviews: ReviewItem[] }) {

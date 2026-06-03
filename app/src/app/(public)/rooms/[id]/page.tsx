@@ -187,11 +187,6 @@ export default async function RoomDetailPage({ params }: Props) {
               </div>
 
               <p className="mb-4 text-lg leading-relaxed text-gray-700">{room.description}</p>
-              {priceRange.hasRange ? (
-                <p className="mb-8 text-sm text-gray-500">
-                  Если хотите актуальную стоимость — выберите период в календаре бронирования.
-                </p>
-              ) : null}
 
               <h2 className="mb-5 font-display text-2xl font-semibold">Удобства</h2>
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
@@ -223,19 +218,6 @@ export default async function RoomDetailPage({ params }: Props) {
               <h2 className="mb-2 font-display text-2xl font-semibold text-gray-900">
                 Забронировать
               </h2>
-              <div className="mb-2 flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-sea-700">
-                  {priceRange.hasRange
-                    ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
-                    : formatMoney(priceRange.minPrice)}
-                </span>
-                <span className="text-sm text-gray-400">/ сутки</span>
-              </div>
-              {priceRange.hasRange ? (
-                <p className="mb-6 text-xs text-gray-500">
-                  Выберите даты — итог посчитается по дням с учётом всех периодов.
-                </p>
-              ) : null}
               <BookingForm
                 roomId={room.id}
                 roomSlug={room.slug}
