@@ -207,12 +207,13 @@ model TerritoryEntry {
 
 model Review {
   id         String   @id @default(cuid())
-  userId     String
-  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String?
+  user       User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  guestName  String?
   rating     Int
   content    String   @db.Text
   mediaItems Json     @default("[]")
-  published  Boolean  @default(true)
+  published  Boolean  @default(false)
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

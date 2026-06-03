@@ -1,9 +1,7 @@
 'use client'
 
 import { ChangeEvent, useMemo, useState } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useSession } from 'next-auth/react'
 import { Loader2, Star, Upload, X } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
 
@@ -11,8 +9,8 @@ const MAX_FILES = 10
 
 export function ReviewForm() {
   const router = useRouter()
-  const { data: session, status } = useSession()
   const { success, error } = useToast()
+  const [guestName, setGuestName] = useState('')
   const [rating, setRating] = useState(5)
   const [content, setContent] = useState('')
   const [files, setFiles] = useState<File[]>([])
@@ -30,16 +28,19 @@ export function ReviewForm() {
   const onFilesChange = (event: ChangeEvent<HTMLInputElement>) => {
     const nextFiles = Array.from(event.target.files || [])
     if (nextFiles.length === 0) return
-
     setFiles((current) => [...current, ...nextFiles].slice(0, MAX_FILES))
     event.target.value = ''
   }
 
   const removeFile = (index: number) => {
-    setFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))
+    setFiles((current) => current.filter((_, i) => i !== index))
   }
 
   const submitReview = async () => {
+    if (guestName.trim().length < 2) {
+      error('Укажите ваше имя')
+      return
+    }
     if (content.trim().length < 10) {
       error('Опишите впечатления чуть подробнее')
       return
@@ -48,24 +49,23 @@ export function ReviewForm() {
     setIsSubmitting(true)
     try {
       const formData = new FormData()
+      formData.append('guestName', guestName.trim())
       formData.append('rating', String(rating))
       formData.append('content', content.trim())
       files.forEach((file) => formData.append('files', file))
 
-      const res = await fetch('/api/reviews', {
-        method: 'POST',
-        body: formData,
-      })
+      const res = await fetch('/api/reviews', { method: 'POST', body: formData })
 
       if (!res.ok) {
         const payload = await res.json().catch(() => null)
         throw new Error(payload?.error || 'Не удалось отправить отзыв')
       }
 
+      setGuestName('')
       setRating(5)
       setContent('')
       setFiles([])
-      success('Отзыв опубликован')
+      success('Отзыв отправлен на модерацию')
       router.refresh()
     } catch (err) {
       error(err instanceof Error ? err.message : 'Не удалось отправить отзыв')
@@ -74,43 +74,22 @@ export function ReviewForm() {
     }
   }
 
-  if (status === 'loading') {
-    return (
-      <div className="card p-6 flex items-center justify-center text-gray-500">
-        <Loader2 className="w-5 h-5 animate-spin mr-2" /> Проверяем вход...
-      </div>
-    )
-  }
-
-  if (!session) {
-    return (
-      <div className="card p-6 text-center">
-        <h3 className="font-display text-2xl font-semibold text-gray-900 mb-2">Оставить отзыв</h3>
-        <p className="text-gray-500 mb-4">Чтобы опубликовать отзыв, нужно войти в аккаунт.</p>
-        <Link href="/auth/login" className="btn-primary">
-          Войти
-        </Link>
-      </div>
-    )
-  }
-
-  if (!session.user.emailVerified) {
-    return (
-      <div className="card p-6 text-center">
-        <h3 className="font-display text-2xl font-semibold text-gray-900 mb-2">Добавить отзыв</h3>
-        <p className="text-gray-500 mb-4">Написание отзывов доступно только после подтверждения почты.</p>
-        <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-2xl max-w-md mx-auto">
-          Пожалуйста, проверьте свой почтовый ящик и подтвердите email.
-        </div>
-      </div>
-    )
-  }
-
   return (
     <div className="card p-6 space-y-5">
       <div>
-        <h3 className="font-display text-2xl font-semibold text-gray-900 mb-2">Добавить отзыв</h3>
+        <h3 className="font-display text-2xl font-semibold text-gray-900 mb-2">Оставить отзыв</h3>
         <p className="text-gray-500">Поставьте оценку, расскажите о своём отдыхе и при желании добавьте фото или видео.</p>
+      </div>
+
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-2">Ваше имя *</label>
+        <input
+          type="text"
+          value={guestName}
+          onChange={(e) => setGuestName(e.target.value)}
+          placeholder="Имя и фамилия"
+          className="input-field"
+        />
       </div>
 
       <div>
@@ -118,8 +97,6 @@ export function ReviewForm() {
         <div className="flex gap-2">
           {Array.from({ length: 5 }).map((_, index) => {
             const starValue = index + 1
-            const active = starValue <= rating
-
             return (
               <button
                 key={starValue}
@@ -128,7 +105,7 @@ export function ReviewForm() {
                 className="p-1 transition-transform hover:scale-110"
                 aria-label={`Поставить ${starValue} звёзд`}
               >
-                <Star className={`w-7 h-7 ${active ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
+                <Star className={`w-7 h-7 ${starValue <= rating ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`} />
               </button>
             )
           })}
@@ -136,10 +113,10 @@ export function ReviewForm() {
       </div>
 
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-2">Текст отзыва</label>
+        <label className="text-sm font-medium text-gray-700 block mb-2">Текст отзыва *</label>
         <textarea
           value={content}
-          onChange={(event) => setContent(event.target.value)}
+          onChange={(e) => setContent(e.target.value)}
           rows={5}
           className="input-field resize-none"
           placeholder="Напишите, как прошёл ваш отдых..."
@@ -151,7 +128,7 @@ export function ReviewForm() {
         <label className="flex flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-gray-300 bg-gray-50 px-4 py-8 cursor-pointer hover:border-sea-400 hover:bg-sea-50 transition-colors">
           <Upload className="w-5 h-5 text-sea-600" />
           <span className="text-sm text-gray-600">Перетащите файлы сюда или нажмите, чтобы выбрать</span>
-          <span className="text-xs text-gray-400">До {MAX_FILES} файлов. Поддерживаются изображения и видео.</span>
+          <span className="text-xs text-gray-400">До {MAX_FILES} файлов. Изображения и видео.</span>
           <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={onFilesChange} />
         </label>
       </div>

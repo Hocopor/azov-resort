@@ -26,7 +26,7 @@ export default async function ReviewsPage() {
         <div className="relative max-w-4xl mx-auto px-4 text-center">
           <h1 className="font-display text-4xl sm:text-5xl md:text-6xl font-bold mb-3 leading-tight">Отзывы гостей</h1>
           <p className="text-white/75 text-base sm:text-lg max-w-2xl mx-auto">
-            Настоящие отзывы зарегистрированных гостей с оценками, фото и видео.
+            Отзывы наших гостей с оценками, фото и видео.
           </p>
         </div>
       </section>
@@ -52,7 +52,7 @@ export default async function ReviewsPage() {
                         />
                       ))}
                     </div>
-                    <div className="font-semibold text-gray-900">{review.user.name || 'Гость'}</div>
+                    <div className="font-semibold text-gray-900">{review.guestName || review.user?.name || 'Гость'}</div>
                   </div>
                 </div>
 
