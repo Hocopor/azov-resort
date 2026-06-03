@@ -11,6 +11,14 @@ interface Props {
 export function RoomGallery({ images, name }: Props) {
   const [startIndex, setStartIndex] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 640)
+    check()
+    window.addEventListener('resize', check, { passive: true })
+    return () => window.removeEventListener('resize', check)
+  }, [])
 
   // Track loaded image URLs to show/hide spinner
   const loadedRef = useRef(new Set<string>())
@@ -25,7 +33,7 @@ export function RoomGallery({ images, name }: Props) {
   const isLoaded = (url: string) => loadedRef.current.has(url)
 
   const count = images.length
-  const visibleCount = Math.min(3, count)
+  const visibleCount = Math.min(isMobile ? 1 : 3, count)
   const needsNav = count > visibleCount
 
   const shiftLeft = () => setStartIndex((i) => (i - 1 + count) % count)
