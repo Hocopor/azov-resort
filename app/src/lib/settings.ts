@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/db'
 
 const DEFAULT_SITE_ADDRESS = 'Краснодарский край, Темрюкский район, посёлок Кучугуры, ул. Зелёная 26.'
@@ -12,19 +13,23 @@ function shouldSkipDatabaseAccess() {
   return !process.env.DATABASE_URL || process.env.SKIP_DB_DURING_BUILD === '1'
 }
 
-export async function getSettings(keys: string[]): Promise<Record<string, string>> {
-  if (shouldSkipDatabaseAccess()) {
-    return {}
-  }
+const getAllSettingsCache = unstable_cache(
+  async () => {
+    if (shouldSkipDatabaseAccess()) return {} as Record<string, string>
+    try {
+      const settings = await prisma.setting.findMany()
+      return Object.fromEntries(settings.map((s) => [s.key, s.value]))
+    } catch {
+      return {} as Record<string, string>
+    }
+  },
+  ['all-settings'],
+  { revalidate: 60, tags: ['settings'] }
+)
 
-  try {
-    const settings = await prisma.setting.findMany({
-      where: { key: { in: keys } },
-    })
-    return Object.fromEntries(settings.map((setting) => [setting.key, setting.value]))
-  } catch {
-    return {}
-  }
+export async function getSettings(keys: string[]): Promise<Record<string, string>> {
+  const all = await getAllSettingsCache()
+  return Object.fromEntries(keys.map((k) => [k, all[k] ?? '']).filter(([, v]) => v !== ''))
 }
 
 export async function getSetting(key: string, defaultValue?: string): Promise<string | undefined> {

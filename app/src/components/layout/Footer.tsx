@@ -65,7 +65,6 @@ export function Footer({ siteName, sitePhone, siteAddress }: FooterProps) {
                 { href: '/territory', label: 'Территория' },
                 { href: '/blog', label: 'Обстановка' },
                 { href: '/reviews', label: 'Отзывы' },
-                { href: '/auth/login', label: 'Личный кабинет' },
               ].map((link) => (
                 <li key={link.href}>
                   <Link href={link.href} className="text-sm text-gray-400 hover:text-white transition-colors">

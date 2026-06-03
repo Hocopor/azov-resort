@@ -94,7 +94,7 @@ async function getRoomData(slug: string) {
   return { room, settings }
 }
 
-export const revalidate = 30
+export const revalidate = 300
 
 export default async function RoomDetailPage({ params }: Props) {
   const { room, settings } = await getRoomData(params.id)

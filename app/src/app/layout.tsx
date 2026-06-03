@@ -5,19 +5,22 @@ import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 
+export const revalidate = 60
+
 const displayFont = Cormorant_Garamond({
   subsets: ['latin', 'cyrillic'],
-  weight: ['300', '400', '500', '600', '700'],
-  style: ['normal', 'italic'],
+  weight: ['400', '600', '700'],
   variable: '--font-display',
   display: 'swap',
+  preload: true,
 })
 
 const bodyFont = Nunito({
   subsets: ['latin', 'cyrillic'],
-  weight: ['300', '400', '500', '600', '700', '800'],
+  weight: ['400', '600', '700'],
   variable: '--font-body',
   display: 'swap',
+  preload: true,
 })
 
 export async function generateMetadata(): Promise<Metadata> {
