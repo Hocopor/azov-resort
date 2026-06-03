@@ -5,7 +5,7 @@ import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 const displayFont = Cormorant_Garamond({
   subsets: ['latin', 'cyrillic'],

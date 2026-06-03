@@ -3,7 +3,7 @@ import { Footer } from '@/components/layout/Footer'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 import { Tracker } from '@/components/analytics/Tracker'
 
-export const revalidate = 60
+export const dynamic = 'force-dynamic'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
   const settings = await getSettings(['site_name', 'site_phone', 'site_address'])
