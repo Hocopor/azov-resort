@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
-import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/db'
 import { getDepositSettings, calculateDeposit } from '@/lib/settings'
 import { createPayment } from '@/lib/yookassa'
@@ -35,7 +34,6 @@ const bookingSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
     const body = await req.json()
     const parsed = bookingSchema.safeParse(body)
 
@@ -72,7 +70,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Минимальный срок бронирования — 1 ночь' }, { status: 400 })
     }
 
-    // Check room exists
     const room = await prisma.room.findUnique({
       where: { id: data.roomId, isActive: true },
       include: { pricePeriods: true },
@@ -86,14 +83,11 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: `Максимум ${room.capacity} гостей в этом номере` }, { status: 400 })
     }
 
-    // Check availability
     const conflict = await prisma.booking.findFirst({
       where: {
         roomId: data.roomId,
         status: { in: ['CONFIRMED', 'PENDING'] },
-        OR: [
-          { checkIn: { lt: checkOut }, checkOut: { gt: checkIn } },
-        ],
+        OR: [{ checkIn: { lt: checkOut }, checkOut: { gt: checkIn } }],
       },
     })
 
@@ -113,18 +107,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Выбранные даты недоступны.' }, { status: 409 })
     }
 
-    // Calculate price
     const normalizedPricePeriods = normalizeRoomPricePeriods(room.pricePeriods)
     const priceBreakdown = buildNightlyPriceBreakdown(checkIn, checkOut, room.pricePerDay, normalizedPricePeriods)
     const totalPrice = calculateNightlyBreakdownTotal(priceBreakdown)
     const depositSettings = await getDepositSettings()
     const depositAmount = calculateDeposit(totalPrice, depositSettings)
 
-    // Create booking
     const booking = await prisma.booking.create({
       data: {
         roomId: data.roomId,
-        userId: session?.user?.id,
         checkIn,
         checkOut,
         nights,
@@ -147,24 +138,21 @@ export async function POST(req: NextRequest) {
         priceBreakdown: priceBreakdown as unknown as Prisma.InputJsonValue,
         status: 'PENDING',
         paymentStatus: 'UNPAID',
-        source: session ? 'WEBSITE' : 'WEBSITE',
+        source: 'WEBSITE',
       },
     })
 
-    // Track conversion event
     await prisma.conversionEvent.create({
       data: {
         event: 'booking_started',
         roomId: data.roomId,
         bookingId: booking.id,
-        userId: session?.user?.id,
       },
     })
 
-    // Create YooKassa payment
     let paymentUrl: string | null = null
     try {
-      const returnUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/account/bookings?booking=${booking.id}&payment=success`
+      const returnUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/rooms?booking=${booking.id}&payment=success`
       const payment = await createPayment({
         amount: depositAmount,
         description: `Депозит за номер «${room.name}» с ${checkIn.toLocaleDateString('ru-RU')} по ${checkOut.toLocaleDateString('ru-RU')}`,
@@ -185,10 +173,8 @@ export async function POST(req: NextRequest) {
       paymentUrl = payment.confirmation.confirmation_url
     } catch (paymentError) {
       console.error('Payment creation failed:', paymentError)
-      // Continue without payment URL — admin can handle manually
     }
 
-    // Send emails (non-blocking)
     const emailData = {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -214,7 +200,6 @@ export async function POST(req: NextRequest) {
       comment: data.comment,
     }).catch(console.error)
 
-    // VK notification
     const vkMessage = [
       `🆕 Новое бронирование!`,
       `Номер: ${room.name}`,
@@ -245,17 +230,4 @@ export async function POST(req: NextRequest) {
     console.error('Booking creation error:', err)
     return NextResponse.json({ error: 'Внутренняя ошибка сервера' }, { status: 500 })
   }
-}
-
-export async function GET(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const bookings = await prisma.booking.findMany({
-    where: { userId: session.user.id },
-    include: { room: { select: { name: true, slug: true, images: true } } },
-    orderBy: { createdAt: 'desc' },
-  })
-
-  return NextResponse.json(bookings)
 }

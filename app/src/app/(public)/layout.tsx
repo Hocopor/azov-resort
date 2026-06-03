@@ -1,7 +1,6 @@
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
-import { VerificationCheck } from '@/components/auth/VerificationCheck'
 import { Tracker } from '@/components/analytics/Tracker'
 
 export const dynamic = 'force-dynamic'
@@ -22,7 +21,6 @@ export default async function PublicLayout({ children }: { children: React.React
         sitePhone={settings.site_phone || '+7 (XXX) XXX-XX-XX'}
         siteAddress={normalizeSiteAddress(settings.site_address)}
       />
-      <VerificationCheck />
     </>
   )
 }

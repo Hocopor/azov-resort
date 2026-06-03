@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { auth } from '@/lib/auth'
+import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import {
   normalizeRoomPricePeriods,
@@ -8,8 +8,7 @@ import {
 } from '@/lib/pricing'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

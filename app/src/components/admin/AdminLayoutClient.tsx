@@ -148,14 +148,16 @@ export function AdminLayoutClient({ children }: AdminLayoutClientProps) {
           >
             <ArrowLeft className="w-4 h-4 text-white/55" /> На сайт
           </Link>
-          <form action="/api/auth/signout" method="POST">
-            <button 
-              type="submit"
-              className="admin-sidebar-link w-full text-white/60 hover:text-red-400 hover:bg-red-500/10 text-xs flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left"
-            >
-              <LogOut className="w-4 h-4 text-white/55" /> Выйти
-            </button>
-          </form>
+          <button
+            type="button"
+            onClick={async () => {
+              await fetch('/api/admin/auth/logout', { method: 'POST' })
+              window.location.href = '/admin/login'
+            }}
+            className="admin-sidebar-link w-full text-white/60 hover:text-red-400 hover:bg-red-500/10 text-xs flex items-center gap-3 px-3 py-2 rounded-lg transition-colors text-left"
+          >
+            <LogOut className="w-4 h-4 text-white/55" /> Выйти
+          </button>
         </div>
       </aside>
 

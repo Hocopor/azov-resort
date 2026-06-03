@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import { parseISO } from 'date-fns'
 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -22,8 +21,7 @@ export async function POST(req: NextRequest, { params }: { params: { id: string 
 }
 
 export async function GET(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

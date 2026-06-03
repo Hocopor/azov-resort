@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { verifyAdminRequest } from '@/lib/admin-auth'
 import { mkdir, unlink, writeFile } from 'fs/promises'
 import { extname, join, resolve } from 'path'
 import { randomBytes } from 'crypto'
@@ -27,19 +27,10 @@ function sanitizeFolder(input: string | null) {
   return parts.length > 0 ? parts : ['misc']
 }
 
-async function ensureAdmin() {
-  const session = await auth()
-
-  if (!session || session.user.role !== 'ADMIN') {
+export async function POST(req: NextRequest) {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
-
-  return null
-}
-
-export async function POST(req: NextRequest) {
-  const authError = await ensureAdmin()
-  if (authError) return authError
 
   const formData = await req.formData()
   const file = formData.get('file') as File | null
@@ -70,8 +61,9 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const authError = await ensureAdmin()
-  if (authError) return authError
+  if (!await verifyAdminRequest(req)) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
 
   const body = await req.json().catch(() => null)
   const url = typeof body?.url === 'string' ? body.url : ''
@@ -96,7 +88,7 @@ export async function DELETE(req: NextRequest) {
     try {
       await unlink(legacyFilePath)
     } catch {
-      // Ignore if the file has already been removed.
+      // Ignore if already removed
     }
   }
 

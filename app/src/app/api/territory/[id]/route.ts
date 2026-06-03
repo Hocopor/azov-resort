@@ -1,10 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -23,9 +22,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   return NextResponse.json(entry)
 }
 
-export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

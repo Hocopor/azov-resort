@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
+import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import { revalidatePath } from 'next/cache'
 
 export async function PATCH(req: NextRequest) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -28,9 +27,8 @@ export async function PATCH(req: NextRequest) {
   return NextResponse.json({ ok: true })
 }
 
-export async function GET() {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+export async function GET(req: NextRequest) {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
   const settings = await prisma.setting.findMany()

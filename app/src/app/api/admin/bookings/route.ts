@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { parseISO, differenceInCalendarDays } from 'date-fns'
 import { z } from 'zod'
 import { Prisma } from '@prisma/client'
-import { auth } from '@/lib/auth'
+import { verifyAdminRequest } from '@/lib/admin-auth'
 import { prisma } from '@/lib/db'
 import { getDepositSettings, calculateDeposit } from '@/lib/settings'
 import {
@@ -32,8 +32,7 @@ const schema = z.object({
 })
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session || session.user.role !== 'ADMIN') {
+  if (!await verifyAdminRequest(req)) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
