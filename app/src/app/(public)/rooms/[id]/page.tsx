@@ -21,6 +21,8 @@ import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { formatMoney, formatMoneyRange, getRoomCapacityBreakdown } from '@/lib/utils'
 import { BookingForm } from '@/components/rooms/BookingForm'
 import { RoomGallery } from '@/components/rooms/RoomGallery'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildHotelRoomJsonLd, buildBreadcrumbJsonLd, getSiteUrl } from '@/lib/seo'
 
 interface Props {
   params: { id: string }
@@ -58,8 +60,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (!room) return {}
 
   return {
-    title: room.name,
-    description: room.shortDescription,
+    title: room.seoTitle || room.name,
+    description: room.seoDescription || room.shortDescription,
+    alternates: { canonical: `/rooms/${room.slug}` },
   }
 }
 
@@ -139,8 +142,24 @@ export default async function RoomDetailPage({ params }: Props) {
     room.extraCapacity ?? 0,
   )
 
+  const roomUrl = `${getSiteUrl()}/rooms/${room.slug}`
+  const roomJsonLd = buildHotelRoomJsonLd({
+    name: room.seoTitle || room.name,
+    description: room.seoDescription || room.shortDescription,
+    url: roomUrl,
+    image: room.images[0],
+    priceFrom: Math.round(priceRange.minPrice / 100),
+    capacity: room.capacity,
+  })
+  const breadcrumbJsonLd = buildBreadcrumbJsonLd([
+    { name: 'Главная', path: '/' },
+    { name: 'Номера', path: '/rooms' },
+    { name: room.name, path: `/rooms/${room.slug}` },
+  ])
+
   return (
     <div className="min-h-screen bg-sand-50">
+      <JsonLd data={[roomJsonLd, breadcrumbJsonLd]} />
       {/* Back link */}
       <div className="mx-auto max-w-7xl px-4 pb-4 pt-28 sm:px-6 lg:px-8">
         <Link

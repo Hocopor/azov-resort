@@ -75,6 +75,8 @@ model Room {
   slug              String    @unique
   description       String    @db.Text
   shortDescription  String
+  seoTitle          String?   // SEO: <title> страницы номера (если пусто — берётся name)
+  seoDescription    String?   // SEO: meta description (если пусто — берётся shortDescription)
   baseCapacity      Int       @default(1)
   extraCapacity     Int       @default(0)
   capacity          Int       // max guests

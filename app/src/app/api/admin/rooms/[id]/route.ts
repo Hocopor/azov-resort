@@ -75,6 +75,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
         capacity: nextCapacity,
         ...(body.shortDescription !== undefined && { shortDescription: body.shortDescription }),
         ...(body.description !== undefined && { description: body.description }),
+        ...(body.seoTitle !== undefined && { seoTitle: body.seoTitle?.trim() ? body.seoTitle.trim() : null }),
+        ...(body.seoDescription !== undefined && { seoDescription: body.seoDescription?.trim() ? body.seoDescription.trim() : null }),
         ...(body.area !== undefined && { area: body.area }),
         ...(body.floor !== undefined && { floor: body.floor }),
         ...(body.sortOrder !== undefined && { sortOrder: body.sortOrder }),

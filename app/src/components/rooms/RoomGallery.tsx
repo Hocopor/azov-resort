@@ -3,6 +3,7 @@ import { useState, useCallback, useRef } from 'react'
 import { X, ChevronLeft, ChevronRight, Waves, ZoomIn, Loader2 } from 'lucide-react'
 import { AppImage } from '@/components/ui/AppImage'
 import { cn } from '@/lib/utils'
+import { buildRoomImageAlt } from '@/lib/seo'
 
 interface Props {
   images: string[]
@@ -77,7 +78,7 @@ export function RoomGallery({ images, name }: Props) {
               )}
               <AppImage
                 src={src}
-                alt={`${name} — фото ${idx + 1}`}
+                alt={buildRoomImageAlt(name, idx)}
                 fill
                 variant="gallery"
                 sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
@@ -176,7 +177,7 @@ export function RoomGallery({ images, name }: Props) {
           >
             <AppImage
               src={images[lightboxIdx]}
-              alt={`${name} ${lightboxIdx + 1}`}
+              alt={buildRoomImageAlt(name, lightboxIdx)}
               fill
               variant="lightbox"
               sizes="100vw"

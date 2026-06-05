@@ -230,7 +230,38 @@ export function AdminSettingsForm({ settings }: Props) {
             <label className="mb-1 block text-xs text-gray-500">О нас (текст)</label>
             <textarea value={vals.about_text || ''} onChange={(e) => set('about_text', e.target.value)} rows={3} className="input-field resize-none" />
           </div>
-          <SaveBtn keys={['site_name', 'site_phone', 'site_address', 'check_in_time', 'check_out_time', 'hero_title', 'hero_subtitle', 'about_text']} />
+
+          <div className="rounded-2xl border border-sea-100 bg-sea-50/60 p-4">
+            <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-sea-700">
+              SEO главной страницы (для поисковиков)
+            </div>
+            <div className="space-y-3">
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">SEO-заголовок (Title в Яндексе/Google)</label>
+                <textarea
+                  value={vals.seo_title || ''}
+                  onChange={(e) => set('seo_title', e.target.value)}
+                  rows={2}
+                  className="input-field resize-none"
+                  placeholder="Отдых в Кучугурах у моря — Гостевой дом у Азовского моря"
+                />
+                <p className="mt-1 text-xs text-gray-400">До ~60 символов. Если пусто — берётся стандартный заголовок.</p>
+              </div>
+              <div>
+                <label className="mb-1 block text-xs text-gray-500">SEO-описание (серый текст под ссылкой в выдаче)</label>
+                <textarea
+                  value={vals.seo_description || ''}
+                  onChange={(e) => set('seo_description', e.target.value)}
+                  rows={3}
+                  className="input-field resize-none"
+                  placeholder="Уютный гостевой дом в Кучугурах в 350 м от моря: номера со своей кухней, кондиционером, мангалом и парковкой..."
+                />
+                <p className="mt-1 text-xs text-gray-400">До ~160 символов. Если пусто — берётся «Подзаголовок главной».</p>
+              </div>
+            </div>
+          </div>
+
+          <SaveBtn keys={['site_name', 'site_phone', 'site_address', 'check_in_time', 'check_out_time', 'hero_title', 'hero_subtitle', 'about_text', 'seo_title', 'seo_description']} />
         </div>
       </div>
 

@@ -4,6 +4,7 @@ import { type MouseEvent, useCallback, useRef, useState } from 'react'
 import { ChevronLeft, ChevronRight, Loader2, Waves } from 'lucide-react'
 import { AppImage } from '@/components/ui/AppImage'
 import { cn } from '@/lib/utils'
+import { buildRoomImageAlt } from '@/lib/seo'
 
 interface Props {
   images: string[]
@@ -58,7 +59,7 @@ export function RoomImageCarousel({ images, name, className, priority = false }:
           <AppImage
             key={currentImage}
             src={currentImage}
-            alt={`${name} — фото ${activeIndex + 1}`}
+            alt={buildRoomImageAlt(name, activeIndex)}
             fill
             variant="card"
             sizes="(max-width: 1024px) 100vw, 30vw"

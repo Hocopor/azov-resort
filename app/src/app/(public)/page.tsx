@@ -6,13 +6,28 @@ import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 import { formatMoney, formatMoneyRange } from '@/lib/utils'
 import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { AppImage } from '@/components/ui/AppImage'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildLodgingBusinessJsonLd } from '@/lib/seo'
 import {
   Waves, Star, Shield, Car, Bike, Wifi, ChefHat,
   ArrowRight, Sun, Wind, MapPin, Calendar, Users, CheckCircle,
 } from 'lucide-react'
 
-export const metadata: Metadata = {
-  title: 'Гостевой дом на Азовском море — отдых у моря, номера, цены',
+export async function generateMetadata(): Promise<Metadata> {
+  const settings = await getSettings(['seo_title', 'seo_description', 'hero_subtitle'])
+  const title =
+    settings.seo_title ||
+    'Отдых в Кучугурах у моря — Гостевой дом у Азовского моря'
+  const description =
+    settings.seo_description ||
+    settings.hero_subtitle ||
+    'Уютный гостевой дом в Кучугурах в 350 м от моря: номера со своей кухней, кондиционером, мангалом и парковкой. Тихий отдых с семьёй на Азовском море.'
+
+  return {
+    title: { absolute: title },
+    description,
+    alternates: { canonical: '/' },
+  }
 }
 
 export const revalidate = 60
@@ -55,6 +70,7 @@ async function getHomeData() {
     }),
     getSettings([
       'hero_title', 'hero_subtitle', 'about_text', 'site_name', 'site_phone', 'site_address',
+      'seo_description', 'og_image',
       'hero_bg_image', 'about_image_1', 'about_image_2', 'about_image_3', 'about_image_4',
       'hero_badge_bg', 'hero_badge_border', 'hero_badge_text',
       'hero_title_color', 'hero_title_stroke_color', 'hero_title_stroke_width',
@@ -166,8 +182,19 @@ export default async function HomePage() {
     ? 'inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-[var(--hero-secondary-button-bg)] hover:bg-[var(--hero-secondary-button-hover)] backdrop-blur-sm text-[var(--hero-secondary-button-text)] font-bold rounded-xl text-base sm:text-lg transition-all duration-200 border border-[color:var(--hero-secondary-button-border)]'
     : 'inline-flex items-center justify-center gap-2 px-7 py-3.5 bg-white/15 hover:bg-white/25 backdrop-blur-sm text-white font-bold rounded-xl text-base sm:text-lg transition-all duration-200 border border-white/25'
 
+  const lodgingJsonLd = buildLodgingBusinessJsonLd({
+    name: settings.site_name || 'Гостевой дом на Зелёной, 26',
+    description:
+      settings.seo_description ||
+      settings.hero_subtitle ||
+      'Гостевой дом у моря в Кучугурах, 350 м до пляжа',
+    phone: settings.site_phone,
+    image: settings.og_image,
+  })
+
   return (
     <>
+      <JsonLd data={lodgingJsonLd} />
       {/* ===== HERO ===== */}
       <section className="relative min-h-[100dvh] flex items-center overflow-hidden">
         <div className={`absolute inset-0 ${hasCustomHeroImage ? 'bg-deep-900' : 'bg-gradient-to-br from-deep-900 via-sea-800 to-deep-700'}`}>

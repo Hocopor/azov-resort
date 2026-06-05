@@ -60,6 +60,8 @@ interface Room {
   slug: string
   description: string
   shortDescription: string
+  seoTitle: string | null
+  seoDescription: string | null
   baseCapacity: number
   extraCapacity: number
   capacity: number
@@ -290,6 +292,8 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
       slug: room.slug,
       shortDescription: room.shortDescription,
       description: room.description,
+      seoTitle: room.seoTitle ?? '',
+      seoDescription: room.seoDescription ?? '',
       pricePerDay: Math.round(room.pricePerDay / 100),
       baseCapacity: room.baseCapacity ?? room.capacity,
       extraCapacity: room.extraCapacity ?? 0,
@@ -409,6 +413,8 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
             slug: editForm.slug,
             shortDescription: editForm.shortDescription,
             description: editForm.description,
+            seoTitle: editForm.seoTitle,
+            seoDescription: editForm.seoDescription,
             pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
             baseCapacity: Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0),
             extraCapacity: Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0),
@@ -442,6 +448,8 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                   slug: editForm.slug,
                   shortDescription: editForm.shortDescription,
                   description: editForm.description,
+                  seoTitle: editForm.seoTitle || null,
+                  seoDescription: editForm.seoDescription || null,
                   pricePerDay: parseInt(editForm.pricePerDay || '0', 10) * 100,
                   baseCapacity: Math.max(0, parseInt(editForm.baseCapacity || '1', 10) || 0),
                   extraCapacity: Math.max(0, parseInt(editForm.extraCapacity || '0', 10) || 0),
@@ -507,6 +515,35 @@ export function AdminRoomsClient({ rooms: initialRooms }: { rooms: Room[] }) {
                 <div>
                   <label className="mb-1 block text-xs text-gray-500">Полное описание</label>
                   <textarea value={editForm.description} onChange={(e) => setEditForm((prev) => ({ ...prev, description: e.target.value }))} rows={7} className="input-field resize-none" />
+                </div>
+                <div className="rounded-2xl border border-sea-100 bg-sea-50/60 p-4">
+                  <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-sea-700">
+                    SEO номера (для поисковиков)
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-500">SEO-заголовок (Title в выдаче)</label>
+                      <textarea
+                        value={editForm.seoTitle || ''}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, seoTitle: e.target.value }))}
+                        rows={2}
+                        className="input-field resize-none"
+                        placeholder="Семейный номер у моря в Кучугурах, свои удобства"
+                      />
+                      <p className="mt-1 text-xs text-gray-400">Если пусто — берётся «Название».</p>
+                    </div>
+                    <div>
+                      <label className="mb-1 block text-xs text-gray-500">SEO-описание (текст под ссылкой в выдаче)</label>
+                      <textarea
+                        value={editForm.seoDescription || ''}
+                        onChange={(e) => setEditForm((prev) => ({ ...prev, seoDescription: e.target.value }))}
+                        rows={3}
+                        className="input-field resize-none"
+                        placeholder="Семейный номер в Кучугурах для 4 человек: свой душ и туалет, кондиционер, общая кухня. 350 м до моря..."
+                      />
+                      <p className="mt-1 text-xs text-gray-400">До ~160 символов. Если пусто — берётся «Короткое описание».</p>
+                    </div>
+                  </div>
                 </div>
                 <div className="rounded-2xl border border-gray-100 bg-gray-50 p-4">
                   <div className="mb-3 text-xs font-semibold uppercase tracking-wide text-gray-500">Цена</div>

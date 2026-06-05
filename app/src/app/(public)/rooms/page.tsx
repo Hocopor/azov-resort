@@ -3,9 +3,15 @@ import { Waves } from 'lucide-react'
 import { prisma } from '@/lib/db'
 import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { RoomCard } from '@/components/rooms/RoomCard'
+import { FaqSection } from '@/components/seo/FaqSection'
+import { JsonLd } from '@/components/seo/JsonLd'
+import { buildFaqJsonLd } from '@/lib/seo'
 
 export const metadata: Metadata = {
-  title: 'Номера на Азовском море — цены, фото, удобства',
+  title: 'Снять жильё в Кучугурах у моря — номера от 350 м до пляжа',
+  description:
+    'Номера в Кучугурах для двоих, семьи и компании до 6 человек. Своя или общая кухня, кондиционер, Wi-Fi, мангал, парковка. До моря 350 м. Бронируйте онлайн.',
+  alternates: { canonical: '/rooms' },
 }
 
 export const revalidate = 60
@@ -54,6 +60,7 @@ export default async function RoomsPage() {
 
   return (
     <div className="min-h-screen">
+      <JsonLd data={buildFaqJsonLd()} />
       <section className="bg-sea-700 page-hero text-white relative overflow-hidden">
         <div className="absolute inset-0 pointer-events-none">
           <div className="absolute -top-16 right-0 w-80 h-80 bg-sea-500 rounded-full blur-3xl opacity-20" />
@@ -136,6 +143,8 @@ export default async function RoomsPage() {
           )}
         </div>
       </section>
+
+      <FaqSection />
     </div>
   )
 }
