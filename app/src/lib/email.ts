@@ -78,7 +78,6 @@ export async function sendBookingConfirmation(booking: {
   guests: number
   depositAmount: number
   totalPrice: number
-  paymentUrl?: string
 }) {
   const settings = await getSettings(['site_name', 'site_phone', 'check_in_time', 'check_out_time'])
   const siteName = settings.site_name || 'Отдых на Азове'
@@ -103,15 +102,7 @@ export async function sendBookingConfirmation(booking: {
       </table>
     </div>
 
-    ${booking.paymentUrl ? `
-    <div style="text-align:center;margin-bottom:24px;">
-      <a href="${booking.paymentUrl}" style="display:inline-block;background:#e8735a;color:white;padding:16px 32px;border-radius:12px;text-decoration:none;font-weight:700;font-size:16px;">
-        Оплатить депозит ${formatMoney(booking.depositAmount)} →
-      </a>
-      <p style="color:#888;font-size:12px;margin-top:12px;">Ссылка действительна 24 часа</p>
-    </div>` : ''}
-
-    <p style="color:#666;font-size:14px;line-height:1.6;">После оплаты депозита бронь будет подтверждена. Мы свяжемся с вами для уточнения деталей.<br>Телефон: <strong>${settings.site_phone || '+7 (XXX) XXX-XX-XX'}</strong></p>`
+    <p style="color:#666;font-size:14px;line-height:1.6;">Мы свяжемся с вами для уточнения деталей и оплаты депозита.<br>Телефон: <strong>${settings.site_phone || '+7 (XXX) XXX-XX-XX'}</strong></p>`
 
   await sendEmail(
     booking.guestEmail,

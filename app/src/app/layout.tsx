@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from 'next'
 import { Cormorant_Garamond, Nunito } from 'next/font/google'
 import './globals.css'
-import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ToastProvider } from '@/components/providers/ToastProvider'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
 
@@ -78,9 +77,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="manifest" href="/images/icons/site.webmanifest" />
       </head>
       <body>
-        <SessionProvider>
-          <ToastProvider>{children}</ToastProvider>
-        </SessionProvider>
+        <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
   )

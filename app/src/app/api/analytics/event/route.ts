@@ -1,10 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
-import { auth } from '@/lib/auth'
 
 export async function POST(req: NextRequest) {
   try {
-    const session = await auth()
     const body = await req.json()
     const { event, slug, roomId: directRoomId } = body
 
@@ -28,7 +26,6 @@ export async function POST(req: NextRequest) {
       data: {
         event,
         roomId,
-        userId: session?.user?.id || null,
       },
     })
 

@@ -48,12 +48,8 @@ export async function middleware(req: NextRequest) {
       if (pathname.startsWith('/admin')) {
         return NextResponse.redirect(new URL('/', req.url))
       }
-      // Block NextAuth and registration API routes
-      if (
-        pathname.startsWith('/api/auth') ||
-        pathname.startsWith('/api/admin') ||
-        pathname.startsWith('/api/account')
-      ) {
+      // Block admin API routes on the main domain
+      if (pathname.startsWith('/api/admin')) {
         return NextResponse.json({ error: 'Not found' }, { status: 404 })
       }
     }

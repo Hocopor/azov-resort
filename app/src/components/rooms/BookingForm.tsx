@@ -138,7 +138,7 @@ export function BookingForm({
   const [range, setRange] = useState<DateRange | undefined>()
   const [step, setStep] = useState<'calendar' | 'form'>('calendar')
   const [loading, setLoading] = useState(false)
-  const [successData, setSuccessData] = useState<{ paymentUrl: string | null } | null>(null)
+  const [success, setSuccess] = useState(false)
 
   const schema = useMemo(() => {
     return baseSchema
@@ -340,7 +340,7 @@ export function BookingForm({
         throw new Error(result.error || 'Ошибка при создании брони')
       }
 
-      setSuccessData({ paymentUrl: result.paymentUrl || null })
+      setSuccess(true)
     } catch (error: any) {
       showError(error.message || 'Произошла ошибка. Попробуйте снова.')
     } finally {
@@ -675,7 +675,7 @@ export function BookingForm({
         </div>
       )}
 
-      {successData && (
+      {success && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
           <div className="w-full max-w-sm rounded-2xl bg-white p-6 shadow-xl text-center">
             <div className="flex justify-center mb-4">
@@ -685,31 +685,13 @@ export function BookingForm({
             <p className="text-sm text-gray-500 mb-6">
               В ближайшее время с вами свяжутся по указанному номеру телефона.
             </p>
-            {successData.paymentUrl ? (
-              <div className="flex flex-col gap-2">
-                <a
-                  href={successData.paymentUrl}
-                  className="btn-primary w-full justify-center"
-                >
-                  Оплатить депозит
-                </a>
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="btn-outline w-full justify-center"
-                >
-                  Оплатить позже
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => window.location.reload()}
-                className="btn-primary w-full justify-center"
-              >
-                Ок
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="btn-primary w-full justify-center"
+            >
+              Ок
+            </button>
           </div>
         </div>
       )}

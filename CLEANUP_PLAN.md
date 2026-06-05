@@ -1,7 +1,17 @@
 # CLEANUP_PLAN — удаление мёртвого кода (ЮKassa, аккаунты, OAuth)
 
-> **Статус: НЕ начато.** Активный план. Исполнять по фазам, строго по порядку.
+> **Статус: Фазы 0–2 ВЫПОЛНЕНЫ (в коде, 2026-06-05). Ждём деплой 1+2, затем Фаза 3.**
+> Активный план. Исполнять по фазам, строго по порядку.
 > Контекст мог быть очищен — сначала прочитай `ARCHITECTURE.md`, затем этот файл.
+>
+> **Прогресс:**
+> - ✅ Фаза 0 — re-verify, находки подтверждены.
+> - ✅ Фаза 1 — мёртвая оплата: BookingForm (`success` флаг вместо `successData.paymentUrl`), email.ts (убран блок кнопки paymentUrl). ЮKassa env уже отсутствовали.
+> - ✅ Фаза 2 — код: удалены auth/account-файлы, lib/auth*, SessionProvider; layout без SessionProvider; analytics/event без `auth()`; middleware без /api/auth|/api/account; package.json без next-auth/@auth/prisma-adapter; env без NEXTAUTH_*/VK_CLIENT_*/YANDEX_CLIENT_*.
+>   - ⚠️ **jose добавлен в прямые зависимости** (`^6.2.2`) — был транзитивным от next-auth, но нужен admin-auth.ts и middleware.ts. `package-lock.json` пересобран `npm install --package-lock-only`.
+> - ⏳ **Деплой 1+2** (build+up, БЕЗ db push — схему не меняли) — делает владелец на сервере.
+> - ⏳ Фаза 3 — НЕ начата. Решения владельца зафиксированы: **удалить `Booking.paymentId` и `paymentUrl`**; `paymentStatus`/`paidAt` ОСТАВИТЬ. Делать отдельно, после деплоя 1+2 и бэкапа.
+>   - Не забыть в Фазе 3: убрать `ConversionEvent.userId` (связь с User), `Booking.userId/user`, `Review.userId/user`, enum `Role`.
 > Локально нет БД и `node_modules` → собрать/мигрировать локально нельзя. Проверка — ручной сверкой + грепом. Деплой и `prisma db push` — только на сервере (`docker compose ...`), см. `SEO.md`.
 
 ## Цель
