@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation'
 import {
   Menu, X, Waves, ArrowLeft, LogOut,
   LayoutDashboard, Calendar, BedDouble, FileText,
-  Settings, Users, Map, Star
+  Settings, Map, Star
 } from 'lucide-react'
 
 interface LinkItem {
@@ -23,7 +23,6 @@ const navLinks: LinkItem[] = [
   { href: '/admin/territory', label: 'Территория', icon: Map },
   { href: '/admin/blog', label: 'Обстановка / Блог', icon: FileText },
   { href: '/admin/reviews', label: 'Отзывы', icon: Star },
-  { href: '/admin/users', label: 'Пользователи', icon: Users },
   { href: '/admin/settings', label: 'Настройки', icon: Settings },
 ]
 

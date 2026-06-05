@@ -84,7 +84,6 @@ async function getHomeData() {
     ]),
     prisma.review.findMany({
       where: { published: true, rating: { gte: 4 } },
-      include: { user: { select: { name: true } } },
       orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
       take: 12,
     }),
@@ -448,7 +447,7 @@ export default async function HomePage() {
                     ))}
                   </div>
                   <p className="text-gray-700 text-sm leading-relaxed flex-1">«{review.content}»</p>
-                  <div className="font-semibold text-gray-900 text-sm">{review.guestName || review.user?.name || 'Гость'}</div>
+                  <div className="font-semibold text-gray-900 text-sm">{review.guestName || 'Гость'}</div>
                 </div>
               ))}
             </div>

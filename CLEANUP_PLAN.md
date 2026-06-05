@@ -1,17 +1,22 @@
 # CLEANUP_PLAN — удаление мёртвого кода (ЮKassa, аккаунты, OAuth)
 
-> **Статус: Фазы 0–2 ВЫПОЛНЕНЫ (в коде, 2026-06-05). Ждём деплой 1+2, затем Фаза 3.**
-> Активный план. Исполнять по фазам, строго по порядку.
+> **Статус: ВЫПОЛНЕНО в коде (2026-06-05). Осталось одно действие владельца на сервере: `prisma db push` (Фаза 3, деструктивно — дропнет таблицы).**
 > Контекст мог быть очищен — сначала прочитай `ARCHITECTURE.md`, затем этот файл.
 >
-> **Прогресс:**
+> **Что сделано (все фазы, в коде):**
 > - ✅ Фаза 0 — re-verify, находки подтверждены.
 > - ✅ Фаза 1 — мёртвая оплата: BookingForm (`success` флаг вместо `successData.paymentUrl`), email.ts (убран блок кнопки paymentUrl). ЮKassa env уже отсутствовали.
 > - ✅ Фаза 2 — код: удалены auth/account-файлы, lib/auth*, SessionProvider; layout без SessionProvider; analytics/event без `auth()`; middleware без /api/auth|/api/account; package.json без next-auth/@auth/prisma-adapter; env без NEXTAUTH_*/VK_CLIENT_*/YANDEX_CLIENT_*.
 >   - ⚠️ **jose добавлен в прямые зависимости** (`^6.2.2`) — был транзитивным от next-auth, но нужен admin-auth.ts и middleware.ts. `package-lock.json` пересобран `npm install --package-lock-only`.
-> - ⏳ **Деплой 1+2** (build+up, БЕЗ db push — схему не меняли) — делает владелец на сервере.
-> - ⏳ Фаза 3 — НЕ начата. Решения владельца зафиксированы: **удалить `Booking.paymentId` и `paymentUrl`**; `paymentStatus`/`paidAt` ОСТАВИТЬ. Делать отдельно, после деплоя 1+2 и бэкапа.
->   - Не забыть в Фазе 3: убрать `ConversionEvent.userId` (связь с User), `Booking.userId/user`, `Review.userId/user`, enum `Role`.
+> - ✅ Фаза 3 (код) — `schema.prisma`: удалены модели User/Account/Session/VerificationToken, enum Role, `Booking.userId/user`, `Booking.paymentId/paymentUrl`, `Review.userId/user`, `ConversionEvent.userId`. Починены запросы (reviews/bookings — убран `include: { user }`). Удалён раздел админ-«Пользователи» (`admin/users`, `api/admin/users`, `AdminUsersClient`, ссылка в навигации). Удалён `scripts/ensure-admin.js` + его вызов в `docker-entrypoint.sh` + `COPY scripts` в Dockerfile (создавал админ-User, теперь админ только из env). Seed-файлы (`seed.ts`, `seed-runtime.js`) очищены от админ-User/Role.
+> - ✅ Фаза 4 — `ARCHITECTURE.md` обновлён (§1,2,3,4,5,6,7,8,11). Этот статус. Снята отметка активного плана в `CLAUDE.md`.
+>
+> **⏳ ОСТАЛОСЬ владельцу на сервере (Фаза 3, деструктив):**
+> 1. Бэкап: `docker compose exec postgres pg_dump -U <user> <db> > backup.sql`.
+> 2. Деплой: `git pull && docker compose build --no-cache && docker compose up -d`.
+> 3. **`docker compose exec app ./node_modules/.bin/prisma db push`** → согласиться на удаление таблиц (это ожидаемо), затем `docker compose restart app`.
+> 4. Проверить: сайт открывается, бронь создаётся, вход в админку работает, брони/отзывы открываются без ошибок про `user`.
+> 5. Залить env на сервере: `VK_GROUP_TOKEN`/`VK_ADMIN_ID` (VK-уведомления о бронях). Убрать из боевого `.env` старые NEXTAUTH_*/VK_CLIENT_*/YANDEX_CLIENT_*/YOOKASSA_*.
 > Локально нет БД и `node_modules` → собрать/мигрировать локально нельзя. Проверка — ручной сверкой + грепом. Деплой и `prisma db push` — только на сервере (`docker compose ...`), см. `SEO.md`.
 
 ## Цель

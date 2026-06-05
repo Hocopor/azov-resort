@@ -14,7 +14,6 @@ const UPLOAD_ROOT = join(process.cwd(), 'uploads')
 export async function GET() {
   const reviews = await prisma.review.findMany({
     where: { published: true },
-    include: { user: { select: { name: true } } },
     orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
   })
 

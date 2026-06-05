@@ -33,7 +33,7 @@ export async function generateMetadata(): Promise<Metadata> {
     metadataBase,
     title: {
       default: `${siteName} - Гостевой дом у Азовского моря`,
-      template: `%s | ${siteName}`,
+      template: `${siteName} | %s`,
     },
     description:
       settings.hero_subtitle ||

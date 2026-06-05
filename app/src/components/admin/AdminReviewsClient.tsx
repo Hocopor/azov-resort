@@ -14,10 +14,6 @@ interface ReviewItem {
   createdAt: Date
   mediaItems: MediaItem[]
   guestName?: string | null
-  user: {
-    name: string | null
-    email: string
-  } | null
 }
 
 export function AdminReviewsClient({ initialReviews }: { initialReviews: ReviewItem[] }) {
@@ -63,8 +59,7 @@ export function AdminReviewsClient({ initialReviews }: { initialReviews: ReviewI
                   />
                 ))}
               </div>
-              <div className="font-semibold text-gray-900">{review.guestName || review.user?.name || 'Гость'}</div>
-              <div className="text-sm text-gray-500">{review.user?.email || ''}</div>
+              <div className="font-semibold text-gray-900">{review.guestName || 'Гость'}</div>
             </div>
             <button
               onClick={() => deleteReview(review.id)}

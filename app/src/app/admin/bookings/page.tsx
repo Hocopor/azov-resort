@@ -17,7 +17,6 @@ export default async function AdminBookingsPage() {
             pricePeriods: true,
           },
         },
-        user: { select: { email: true } },
       },
       orderBy: { checkIn: 'asc' },
     }),

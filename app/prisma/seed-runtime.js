@@ -1,29 +1,6 @@
-const { PrismaClient, Role } = require('@prisma/client')
-const bcrypt = require('bcryptjs')
+const { PrismaClient } = require('@prisma/client')
 
 const prisma = new PrismaClient()
-
-async function upsertAdmin() {
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com'
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!@#'
-
-  await prisma.user.upsert({
-    where: { email: adminEmail },
-    update: {
-      name: 'Administrator',
-      passwordHash: await bcrypt.hash(adminPassword, 12),
-      role: Role.ADMIN,
-      emailVerified: new Date(),
-    },
-    create: {
-      email: adminEmail,
-      name: 'Administrator',
-      passwordHash: await bcrypt.hash(adminPassword, 12),
-      role: Role.ADMIN,
-      emailVerified: new Date(),
-    },
-  })
-}
 
 async function seedSettings() {
   const settings = [
@@ -247,7 +224,6 @@ async function seedBlogPost() {
 async function main() {
   console.log('Seeding database...')
 
-  await upsertAdmin()
   await seedSettings()
   await seedRooms()
   await seedServices()

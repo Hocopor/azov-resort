@@ -1,28 +1,9 @@
-import { PrismaClient, Role } from '@prisma/client'
-import bcrypt from 'bcryptjs'
+import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
 
 async function main() {
   console.log('🌱 Seeding database...')
-
-  // Admin user
-  const adminEmail = process.env.ADMIN_EMAIL || 'admin@example.com'
-  const adminPassword = process.env.ADMIN_PASSWORD || 'Admin123!@#'
-  
-  const existingAdmin = await prisma.user.findUnique({ where: { email: adminEmail } })
-  if (!existingAdmin) {
-    await prisma.user.create({
-      data: {
-        email: adminEmail,
-        name: 'Администратор',
-        passwordHash: await bcrypt.hash(adminPassword, 12),
-        role: Role.ADMIN,
-        emailVerified: new Date(),
-      },
-    })
-    console.log(`✅ Admin created: ${adminEmail}`)
-  }
 
   // Default settings
   const defaultSettings = [

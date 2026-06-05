@@ -13,7 +13,6 @@ export const revalidate = 60
 export default async function ReviewsPage() {
   const reviews = await prisma.review.findMany({
     where: { published: true },
-    include: { user: { select: { name: true } } },
     orderBy: [{ rating: 'desc' }, { createdAt: 'desc' }],
   })
 
@@ -52,7 +51,7 @@ export default async function ReviewsPage() {
                         />
                       ))}
                     </div>
-                    <div className="font-semibold text-gray-900">{review.guestName || review.user?.name || 'Гость'}</div>
+                    <div className="font-semibold text-gray-900">{review.guestName || 'Гость'}</div>
                   </div>
                 </div>
 

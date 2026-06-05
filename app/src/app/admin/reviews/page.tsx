@@ -11,14 +11,6 @@ function normalizeMediaItems(value: Prisma.JsonValue) {
 
 export default async function AdminReviewsPage() {
   const reviews = await prisma.review.findMany({
-    include: {
-      user: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-    },
     orderBy: [{ createdAt: 'desc' }],
   })
 
