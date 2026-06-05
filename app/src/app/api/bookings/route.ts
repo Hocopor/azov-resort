@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { Prisma } from '@prisma/client'
 import { prisma } from '@/lib/db'
 import { getDepositSettings, calculateDeposit } from '@/lib/settings'
-import { createPayment } from '@/lib/yookassa'
 import { sendBookingConfirmation, sendAdminBookingNotification } from '@/lib/email'
 import { countNights } from '@/lib/utils'
 import {
@@ -150,31 +149,6 @@ export async function POST(req: NextRequest) {
       },
     })
 
-    let paymentUrl: string | null = null
-    try {
-      const returnUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/rooms?booking=${booking.id}&payment=success`
-      const payment = await createPayment({
-        amount: depositAmount,
-        description: `Депозит за номер «${room.name}» с ${checkIn.toLocaleDateString('ru-RU')} по ${checkOut.toLocaleDateString('ru-RU')}`,
-        bookingId: booking.id,
-        returnUrl,
-        email: data.guestEmail || undefined,
-        phone: data.guestPhone,
-      })
-
-      await prisma.booking.update({
-        where: { id: booking.id },
-        data: {
-          paymentId: payment.id,
-          paymentUrl: payment.confirmation.confirmation_url,
-        },
-      })
-
-      paymentUrl = payment.confirmation.confirmation_url
-    } catch (paymentError) {
-      console.error('Payment creation failed:', paymentError)
-    }
-
     const emailData = {
       id: booking.id,
       bookingNumber: booking.bookingNumber,
@@ -187,7 +161,6 @@ export async function POST(req: NextRequest) {
       guests: data.guests,
       depositAmount,
       totalPrice,
-      paymentUrl: paymentUrl || undefined,
     }
 
     if (data.guestEmail) {
@@ -221,7 +194,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       bookingId: booking.id,
       bookingNumber: booking.bookingNumber,
-      paymentUrl,
       totalPrice,
       depositAmount,
       guestPhone: data.guestPhone,

@@ -20,7 +20,6 @@ interface Props {
   bookingHref: string
   name: string
   shortDescription: string
-  description: string
   images: string[]
   capacity: number
   baseCapacity: number
@@ -42,7 +41,6 @@ export function RoomCard({
   bookingHref,
   name,
   shortDescription,
-  description,
   images,
   capacity,
   baseCapacity,
@@ -105,8 +103,6 @@ export function RoomCard({
               </div>
             </div>
           </div>
-
-          <p className="mb-4 text-sm leading-relaxed text-gray-600 line-clamp-3 sm:line-clamp-none">{description}</p>
 
           <div className="mb-4 flex flex-wrap gap-1.5 sm:gap-2">
             <span className="badge-sea">

@@ -343,7 +343,7 @@ export function AdminBookingsClient({ bookings, rooms }: Props) {
 
     setSavingId(id)
     try {
-      const res = await fetch(`/api/bookings/${id}`, {
+      const res = await fetch(`/api/admin/bookings/${id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

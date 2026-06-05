@@ -160,8 +160,6 @@ validate_env() {
   )
 
   local optional_warn_vars=(
-    YOOKASSA_SHOP_ID
-    YOOKASSA_SECRET_KEY
     SMTP_HOST
     SMTP_USER
     SMTP_PASSWORD

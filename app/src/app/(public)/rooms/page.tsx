@@ -107,7 +107,6 @@ export default async function RoomsPage() {
                   bookingHref={`/rooms/${room.slug}#booking`}
                   name={room.name}
                   shortDescription={room.shortDescription}
-                  description={room.description}
                   images={room.images}
                   capacity={room.capacity}
                   baseCapacity={room.baseCapacity ?? room.capacity}

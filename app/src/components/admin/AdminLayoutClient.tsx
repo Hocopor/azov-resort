@@ -142,12 +142,12 @@ export function AdminLayoutClient({ children }: AdminLayoutClientProps) {
 
         {/* Sidebar Bottom Actions */}
         <div className="p-3 border-t border-white/10 space-y-0.5">
-          <Link 
-            href="/" 
+          <a
+            href={process.env.NEXT_PUBLIC_SITE_URL || '/'}
             className="admin-sidebar-link text-white/60 hover:text-white hover:bg-white/5 text-xs flex items-center gap-3 px-3 py-2 rounded-lg transition-colors"
           >
             <ArrowLeft className="w-4 h-4 text-white/55" /> На сайт
-          </Link>
+          </a>
           <button
             type="button"
             onClick={async () => {
