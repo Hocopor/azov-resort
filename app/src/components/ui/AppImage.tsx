@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useEffect, useRef } from 'react'
 import Image, { ImageProps } from 'next/image'
 import {
   buildUploadedImageSrcSet,
@@ -30,6 +30,19 @@ export function AppImage(props: Props) {
     ...rest
   } = props
   const srcValue = typeof src === 'string' ? src : src.toString()
+  const imgRef = useRef<HTMLImageElement>(null)
+
+  // Fire onLoad for cached images: browsers may fire the native load event
+  // before React attaches its handler, leaving the spinner stuck forever.
+  useEffect(() => {
+    const el = imgRef.current
+    if (el?.complete && el.naturalWidth > 0 && onLoad) {
+      ;(onLoad as React.ReactEventHandler<HTMLImageElement>)(
+        { target: el } as unknown as React.SyntheticEvent<HTMLImageElement>,
+      )
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   if (isUploadedImagePath(srcValue)) {
     const uploadedSizes = sizes || getUploadedImageSizes(variant)
@@ -40,6 +53,7 @@ export function AppImage(props: Props) {
     if (fill) {
       return (
         <img
+          ref={imgRef}
           src={uploadedSrc}
           srcSet={uploadedSrcSet}
           sizes={uploadedSizes}
@@ -62,6 +76,7 @@ export function AppImage(props: Props) {
 
     return (
       <img
+        ref={imgRef}
         src={uploadedSrc}
         srcSet={uploadedSrcSet}
         sizes={uploadedSizes}

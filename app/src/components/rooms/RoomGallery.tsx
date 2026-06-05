@@ -1,7 +1,8 @@
 'use client'
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useCallback, useRef } from 'react'
 import { X, ChevronLeft, ChevronRight, Waves, ZoomIn, Loader2 } from 'lucide-react'
 import { AppImage } from '@/components/ui/AppImage'
+import { cn } from '@/lib/utils'
 
 interface Props {
   images: string[]
@@ -11,18 +12,9 @@ interface Props {
 export function RoomGallery({ images, name }: Props) {
   const [startIndex, setStartIndex] = useState(0)
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null)
-  const [isMobile, setIsMobile] = useState(false)
 
-  useEffect(() => {
-    const check = () => setIsMobile(window.innerWidth < 640)
-    check()
-    window.addEventListener('resize', check, { passive: true })
-    return () => window.removeEventListener('resize', check)
-  }, [])
-
-  // Track loaded image URLs to show/hide spinner
   const loadedRef = useRef(new Set<string>())
-  const [loadedTick, setLoadedTick] = useState(0)
+  const [, setLoadedTick] = useState(0)
 
   const markLoaded = useCallback((url: string) => {
     if (loadedRef.current.has(url)) return
@@ -33,76 +25,49 @@ export function RoomGallery({ images, name }: Props) {
   const isLoaded = (url: string) => loadedRef.current.has(url)
 
   const count = images.length
-  const visibleCount = Math.min(isMobile ? 1 : 3, count)
-  const needsNav = count > visibleCount
+  // Always render up to 3 slots; CSS controls which are visible per breakpoint
+  const renderCount = Math.min(count, 3)
+  const needsNav = count > 1
 
   const shiftLeft = () => setStartIndex((i) => (i - 1 + count) % count)
   const shiftRight = () => setStartIndex((i) => (i + 1) % count)
   const lightboxPrev = () => setLightboxIdx((i) => (i !== null ? (i - 1 + count) % count : null))
   const lightboxNext = () => setLightboxIdx((i) => (i !== null ? (i + 1) % count : null))
 
-  // Preload adjacent images when slide changes
-  useEffect(() => {
-    if (!needsNav) return
-    const toPreload = [
-      images[(startIndex - 1 + count) % count],
-      images[(startIndex + visibleCount) % count],
-    ]
-    toPreload.forEach((src) => {
-      if (isLoaded(src)) return
-      const img = new window.Image()
-      img.src = src.startsWith('/uploads/') ? `${src}?w=960&q=76&fm=webp` : src
-      img.onload = () => markLoaded(src)
-    })
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startIndex, count])
-
   if (count === 0) {
     return (
-      <div className="card flex h-80 items-center justify-center bg-gradient-to-br from-sea-100 to-sea-200">
+      <div className="flex h-80 items-center justify-center rounded-2xl bg-gradient-to-br from-sea-100 to-sea-200">
         <Waves className="h-24 w-24 text-sea-300" />
       </div>
     )
   }
 
-  const slots = Array.from({ length: visibleCount }, (_, i) => {
+  const slots = Array.from({ length: renderCount }, (_, i) => {
     const idx = (startIndex + i) % count
     return { src: images[idx], idx, slot: i }
   })
 
+  // Responsive grid: 1 col on mobile, 2 from sm, 3 from lg
   const gridCols =
-    visibleCount === 1 ? 'grid-cols-1' : visibleCount === 2 ? 'grid-cols-2' : 'grid-cols-3'
+    renderCount === 1
+      ? 'grid-cols-1'
+      : renderCount === 2
+      ? 'grid-cols-1 sm:grid-cols-2'
+      : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
 
   return (
     <>
-      {/* Carousel */}
-      <div className={needsNav ? 'relative px-14' : 'relative'}>
-        {needsNav && (
-          <>
-            <button
-              type="button"
-              aria-label="Предыдущее фото"
-              onClick={shiftLeft}
-              className="absolute left-0 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sea-700 shadow-lg transition-colors hover:bg-sea-50"
-            >
-              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
-            </button>
-            <button
-              type="button"
-              aria-label="Следующее фото"
-              onClick={shiftRight}
-              className="absolute right-0 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white text-sea-700 shadow-lg transition-colors hover:bg-sea-50"
-            >
-              <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
-            </button>
-          </>
-        )}
-
+      {/* Carousel block — nav buttons are inside, not outside */}
+      <div className="relative">
         <div className={`grid gap-2 overflow-hidden rounded-2xl ${gridCols}`}>
           {slots.map(({ src, idx, slot }) => (
             <div
               key={src}
-              className="group relative h-64 cursor-pointer overflow-hidden bg-sand-100 sm:h-72 md:h-80"
+              className={cn(
+                'group relative h-64 cursor-pointer overflow-hidden bg-sand-100 sm:h-72 md:h-80',
+                slot === 1 && 'hidden sm:block',
+                slot === 2 && 'hidden lg:block',
+              )}
               onClick={() => setLightboxIdx(idx)}
             >
               {!isLoaded(src) && (
@@ -115,7 +80,7 @@ export function RoomGallery({ images, name }: Props) {
                 alt={`${name} — фото ${idx + 1}`}
                 fill
                 variant="gallery"
-                sizes="(max-width: 640px) 100vw, (max-width: 1280px) 34vw, 420px"
+                sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                 className="object-cover"
                 priority={startIndex === 0 && slot === 0}
                 onLoad={() => markLoaded(src)}
@@ -128,6 +93,28 @@ export function RoomGallery({ images, name }: Props) {
             </div>
           ))}
         </div>
+
+        {/* Nav buttons: absolutely positioned over the photos, inside the block */}
+        {needsNav && (
+          <>
+            <button
+              type="button"
+              aria-label="Предыдущее фото"
+              onClick={shiftLeft}
+              className="absolute left-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-sea-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white"
+            >
+              <ChevronLeft className="h-6 w-6" strokeWidth={2.5} />
+            </button>
+            <button
+              type="button"
+              aria-label="Следующее фото"
+              onClick={shiftRight}
+              className="absolute right-3 top-1/2 z-10 flex h-11 w-11 -translate-y-1/2 items-center justify-center rounded-full bg-white/85 text-sea-700 shadow-lg backdrop-blur-sm transition-colors hover:bg-white"
+            >
+              <ChevronRight className="h-6 w-6" strokeWidth={2.5} />
+            </button>
+          </>
+        )}
       </div>
 
       {/* Dot navigation */}

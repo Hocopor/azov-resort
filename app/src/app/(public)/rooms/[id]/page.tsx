@@ -141,18 +141,23 @@ export default async function RoomDetailPage({ params }: Props) {
 
   return (
     <div className="min-h-screen bg-sand-50">
-      <div className="mx-auto max-w-7xl px-4 pb-16 pt-28 sm:px-6 lg:px-8">
+      {/* Back link */}
+      <div className="mx-auto max-w-7xl px-4 pb-4 pt-28 sm:px-6 lg:px-8">
         <Link
           href="/rooms"
-          className="mb-8 inline-flex items-center gap-2 font-medium text-sea-700 hover:underline"
+          className="inline-flex items-center gap-2 font-medium text-sea-700 hover:underline"
         >
           <ArrowLeft className="h-4 w-4" /> Все номера
         </Link>
+      </div>
 
-        <div className="space-y-8">
-          <RoomGallery images={room.images} name={room.name} />
+      {/* Gallery — full page width with small edge padding */}
+      <div className="px-3 sm:px-4">
+        <RoomGallery images={room.images} name={room.name} />
+      </div>
 
-          <div className="lg:grid lg:grid-cols-3 lg:gap-10">
+      <div className="mx-auto max-w-7xl px-4 pb-16 pt-8 sm:px-6 lg:px-8">
+        <div className="lg:grid lg:grid-cols-3 lg:gap-10">
             <div className="lg:col-span-2">
               <div className="card p-8">
               <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
@@ -234,7 +239,6 @@ export default async function RoomDetailPage({ params }: Props) {
                 minNights={parseInt(settings.min_booking_days || '1', 10)}
               />
             </div>
-          </div>
           </div>
         </div>
       </div>
