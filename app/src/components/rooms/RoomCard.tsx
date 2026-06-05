@@ -12,7 +12,7 @@ import {
   UtensilsCrossed,
   Wind,
 } from 'lucide-react'
-import { formatMoney, getRoomCapacityBreakdown } from '@/lib/utils'
+import { formatMoney, formatMoneyRange, getRoomCapacityBreakdown } from '@/lib/utils'
 import { RoomImageCarousel } from '@/components/rooms/RoomImageCarousel'
 
 interface Props {
@@ -90,16 +90,12 @@ export function RoomCard({
               <h2 className="font-display text-xl sm:text-2xl font-semibold text-gray-900 leading-snug">{name}</h2>
               <p className="mt-1 text-sm text-gray-500 leading-relaxed">{shortDescription}</p>
             </div>
-            <div className="sm:flex-shrink-0 sm:text-right">
-              <div className="text-xl sm:text-2xl font-bold text-sea-700">
-                {hasPriceRange
-                  ? `${formatMoney(minPrice)}-${formatMoney(maxPrice)}`
-                  : formatMoney(minPrice)}
-              </div>
-              <div className="text-xs text-gray-400 mt-0.5">
-                {hasPriceRange
-                  ? 'выберите период для точной цены'
-                  : 'за сутки'}
+            <div className="sm:flex-shrink-0">
+              <div className="flex items-baseline gap-1 sm:justify-end flex-nowrap">
+                <span className="text-xl sm:text-2xl font-bold text-sea-700 whitespace-nowrap">
+                  {hasPriceRange ? formatMoneyRange(minPrice, maxPrice) : formatMoney(minPrice)}
+                </span>
+                <span className="text-xs text-gray-400 whitespace-nowrap">в сутки</span>
               </div>
             </div>
           </div>

@@ -3,7 +3,7 @@ import { Metadata } from 'next'
 import Link from 'next/link'
 import { prisma } from '@/lib/db'
 import { getSettings, normalizeSiteAddress } from '@/lib/settings'
-import { formatMoney } from '@/lib/utils'
+import { formatMoney, formatMoneyRange } from '@/lib/utils'
 import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
 import { AppImage } from '@/components/ui/AppImage'
 import {
@@ -328,14 +328,12 @@ export default async function HomePage() {
                     <p className="text-xs text-gray-500 mb-3 line-clamp-2 leading-relaxed">{room.shortDescription}</p>
                     <div className="flex items-baseline justify-between">
                       <div>
-                        <span className="text-lg font-bold text-sea-700">
+                        <span className="text-lg font-bold text-sea-700 whitespace-nowrap">
                           {priceRange.hasRange
-                            ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
+                            ? formatMoneyRange(priceRange.minPrice, priceRange.maxPrice)
                             : formatMoney(priceRange.minPrice)}
                         </span>
-                        <span className="text-xs text-gray-400 ml-1">
-                          {priceRange.hasRange ? '/ период' : '/ сут.'}
-                        </span>
+                        <span className="text-xs text-gray-400 ml-1 whitespace-nowrap">/ сут.</span>
                       </div>
                       <span className="text-xs font-semibold text-coral-600 group-hover:underline">Подробнее</span>
                     </div>

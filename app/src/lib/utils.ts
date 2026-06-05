@@ -11,6 +11,12 @@ export function formatMoney(kopecks: number): string {
   return `${(kopecks / 100).toLocaleString('ru-RU')} ₽`
 }
 
+export function formatMoneyRange(minKopecks: number, maxKopecks: number): string {
+  const min = (minKopecks / 100).toLocaleString('ru-RU')
+  const max = (maxKopecks / 100).toLocaleString('ru-RU')
+  return `${min}-${max} ₽`
+}
+
 export function formatDate(date: Date | string, pattern = 'd MMMM yyyy'): string {
   const d = typeof date === 'string' ? parseISO(date) : date
   if (!isValid(d)) return '—'

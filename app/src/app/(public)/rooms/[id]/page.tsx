@@ -18,7 +18,7 @@ import {
 import { prisma } from '@/lib/db'
 import { getSettings } from '@/lib/settings'
 import { getRoomPriceRange, normalizeRoomPricePeriods } from '@/lib/pricing'
-import { formatMoney, getRoomCapacityBreakdown } from '@/lib/utils'
+import { formatMoney, formatMoneyRange, getRoomCapacityBreakdown } from '@/lib/utils'
 import { BookingForm } from '@/components/rooms/BookingForm'
 import { RoomGallery } from '@/components/rooms/RoomGallery'
 
@@ -180,13 +180,13 @@ export default async function RoomDetailPage({ params }: Props) {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="text-3xl font-bold text-sea-700">
-                    {priceRange.hasRange
-                      ? `${formatMoney(priceRange.minPrice)}-${formatMoney(priceRange.maxPrice)}`
-                      : formatMoney(priceRange.minPrice)}
-                  </div>
-                  <div className="text-sm text-gray-400">
-                    {priceRange.hasRange ? 'актуальная цена зависит от периода' : 'за сутки'}
+                  <div className="flex items-baseline gap-1.5 justify-end flex-nowrap">
+                    <span className="text-3xl font-bold text-sea-700 whitespace-nowrap">
+                      {priceRange.hasRange
+                        ? formatMoneyRange(priceRange.minPrice, priceRange.maxPrice)
+                        : formatMoney(priceRange.minPrice)}
+                    </span>
+                    <span className="text-sm text-gray-400 whitespace-nowrap">в сутки</span>
                   </div>
                 </div>
               </div>
