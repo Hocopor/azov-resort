@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader2, Globe, CreditCard, XCircle, ToggleRight, ImageIcon, Trash2 } from 'lucide-react'
+import { Loader2, Globe, CreditCard, XCircle, ToggleRight, ImageIcon, Trash2, Share2 } from 'lucide-react'
 import { useToast } from '@/components/providers/ToastProvider'
 import { AdminFileDropzone } from '@/components/admin/AdminFileDropzone'
 
@@ -262,6 +262,85 @@ export function AdminSettingsForm({ settings }: Props) {
           </div>
 
           <SaveBtn keys={['site_name', 'site_phone', 'site_address', 'check_in_time', 'check_out_time', 'hero_title', 'hero_subtitle', 'about_text', 'seo_title', 'seo_description']} />
+        </div>
+      </div>
+
+      <div className="admin-card">
+        <h2 className="mb-5 flex items-center gap-2 font-semibold text-gray-800">
+          <Share2 className="h-5 w-5 text-sea-600" /> Соцсети в подвале сайта
+        </h2>
+        <p className="mb-4 text-xs text-gray-400">
+          Включите нужные иконки и впишите ссылки. Выключённые иконки не показываются на сайте.
+        </p>
+        <div className="space-y-4">
+          {[
+            { key: 'social_vk', label: 'ВКонтакте', placeholder: 'https://vk.com/ваша_группа' },
+            { key: 'social_whatsapp', label: 'WhatsApp', placeholder: 'https://wa.me/79001234567 или номер 79001234567' },
+            { key: 'social_instagram', label: 'Instagram', placeholder: 'https://instagram.com/ваш_аккаунт' },
+          ].map(({ key, label, placeholder }) => {
+            const enabledKey = `${key}_enabled`
+            const urlKey = `${key}_url`
+            return (
+              <div key={key} className="rounded-xl bg-gray-50 p-4">
+                <div className="mb-2 flex items-center justify-between">
+                  <div className="text-sm font-medium text-gray-800">{label}</div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      toggle(enabledKey)
+                      const newValue = vals[enabledKey] === 'true' ? 'false' : 'true'
+                      await fetch('/api/admin/settings', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ [enabledKey]: newValue }),
+                      })
+                      router.refresh()
+                    }}
+                    className={`relative h-6 w-12 rounded-full transition-colors ${isActive(enabledKey) ? 'bg-sea-600' : 'bg-gray-300'}`}
+                    aria-label={`Показывать ${label}`}
+                  >
+                    <span className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${isActive(enabledKey) ? 'translate-x-6' : 'translate-x-0.5'}`} />
+                  </button>
+                </div>
+                <input
+                  value={vals[urlKey] || ''}
+                  onChange={(e) => set(urlKey, e.target.value)}
+                  placeholder={placeholder}
+                  className="input-field"
+                />
+              </div>
+            )
+          })}
+          <SaveBtn keys={['social_vk_url', 'social_whatsapp_url', 'social_instagram_url']} />
+        </div>
+      </div>
+
+      <div className="admin-card">
+        <h2 className="mb-5 flex items-center gap-2 font-semibold text-gray-800">
+          <Globe className="h-5 w-5 text-sea-600" /> Юридические данные (для документов)
+        </h2>
+        <p className="mb-4 text-xs text-gray-400">
+          Подставляются в Политику конфиденциальности, Пользовательское соглашение, Условия бронирования и Согласие на обработку ПДн.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Полное ФИО оператора</label>
+            <input value={vals.legal_operator_name || ''} onChange={(e) => set('legal_operator_name', e.target.value)} placeholder="Макашенец Ольга Владимировна" className="input-field" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">ИНН (самозанятого)</label>
+            <input value={vals.legal_operator_inn || ''} onChange={(e) => set('legal_operator_inn', e.target.value)} placeholder="00 цифр" className="input-field" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Email для обращений и запросов по ПДн</label>
+            <input value={vals.legal_email || ''} onChange={(e) => set('legal_email', e.target.value)} placeholder="mail@example.ru" className="input-field" />
+          </div>
+          <div>
+            <label className="mb-1 block text-xs text-gray-500">Где хранятся данные</label>
+            <input value={vals.legal_data_location || ''} onChange={(e) => set('legal_data_location', e.target.value)} placeholder="на территории Российской Федерации" className="input-field" />
+            <p className="mt-1 text-xs text-gray-400">По 152-ФЗ данные россиян должны храниться в РФ. Если хостинг российский — оставьте как есть.</p>
+          </div>
+          <SaveBtn keys={['legal_operator_name', 'legal_operator_inn', 'legal_email', 'legal_data_location']} />
         </div>
       </div>
 

@@ -47,6 +47,7 @@ const baseSchema = z.object({
   transferUnknown: z.boolean(),
   comment: z.string().optional(),
   agreeTerms: z.boolean().optional(),
+  agreeConsent: z.boolean().optional(),
 })
 
 type FormData = z.infer<typeof baseSchema>
@@ -140,13 +141,15 @@ export function BookingForm({
   const [successData, setSuccessData] = useState<{ paymentUrl: string | null } | null>(null)
 
   const schema = useMemo(() => {
-    return baseSchema.refine((data) => {
-      if (!data.agreeTerms) return false
-      return true
-    }, {
-      message: 'Для продолжения необходимо принять условия соглашения',
-      path: ['agreeTerms'],
-    })
+    return baseSchema
+      .refine((data) => Boolean(data.agreeTerms), {
+        message: 'Для продолжения необходимо принять условия соглашения',
+        path: ['agreeTerms'],
+      })
+      .refine((data) => Boolean(data.agreeConsent), {
+        message: 'Необходимо дать согласие на обработку персональных данных',
+        path: ['agreeConsent'],
+      })
   }, [])
 
   const normalizedPricePeriods = useMemo(
@@ -311,6 +314,11 @@ export function BookingForm({
 
     if (!data.agreeTerms) {
       showError('Для продолжения необходимо принять условия соглашения')
+      return
+    }
+
+    if (!data.agreeConsent) {
+      showError('Необходимо дать согласие на обработку персональных данных')
       return
     }
 
@@ -618,21 +626,36 @@ export function BookingForm({
                 className="mt-1 h-4 w-4 rounded accent-sea-700 flex-shrink-0"
               />
               <span className="text-xs text-gray-500 leading-relaxed">
-                Соглашаюсь с{' '}
-                <Link href="/legal/privacy" target="_blank" className="text-sea-700 underline">
-                  политикой конфиденциальности
-                </Link>
-                ,{' '}
+                Принимаю{' '}
                 <Link href="/legal/terms" target="_blank" className="text-sea-700 underline">
-                  пользовательским соглашением
+                  пользовательское соглашение
                 </Link>{' '}
                 и{' '}
                 <Link href="/legal/booking-terms" target="_blank" className="text-sea-700 underline">
-                  условиями бронирования
+                  условия бронирования
+                </Link>
+                , ознакомлен(а) с{' '}
+                <Link href="/legal/privacy" target="_blank" className="text-sea-700 underline">
+                  политикой конфиденциальности
                 </Link>
               </span>
             </label>
             {errors.agreeTerms && <p className="text-xs text-red-500">{errors.agreeTerms.message}</p>}
+
+            <label className="flex cursor-pointer select-none items-start gap-3">
+              <input
+                type="checkbox"
+                {...register('agreeConsent')}
+                className="mt-1 h-4 w-4 rounded accent-sea-700 flex-shrink-0"
+              />
+              <span className="text-xs text-gray-500 leading-relaxed">
+                Даю{' '}
+                <Link href="/legal/consent" target="_blank" className="text-sea-700 underline">
+                  согласие на обработку персональных данных
+                </Link>
+              </span>
+            </label>
+            {errors.agreeConsent && <p className="text-xs text-red-500">{errors.agreeConsent.message}</p>}
           </div>
 
           <button

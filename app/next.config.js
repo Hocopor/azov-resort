@@ -12,6 +12,8 @@ const nextConfig = {
   },
   experimental: {
     serverComponentsExternalPackages: ['@prisma/client', 'bcryptjs'],
+    // Тянем из этих пакетов только используемые иконки/функции — меньше JS у пользователя.
+    optimizePackageImports: ['lucide-react', 'date-fns', 'recharts'],
   },
   async headers() {
     return [

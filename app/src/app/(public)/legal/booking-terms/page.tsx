@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { getSettings, normalizeSiteAddress } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress, resolveLegalInfo, LEGAL_SETTING_KEYS } from '@/lib/settings'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Условия бронирования' }
@@ -11,11 +11,13 @@ export default async function BookingTermsPage() {
     'check_in_time', 'check_out_time',
     'cancellation_policy', 'cancellation_partial_days',
     'deposit_type', 'deposit_percent', 'deposit_fixed',
+    ...LEGAL_SETTING_KEYS,
   ])
 
   const siteName = settings.site_name || 'Отдых на Азове'
   const phone = settings.site_phone || '+7 (XXX) XXX-XX-XX'
   const address = normalizeSiteAddress(settings.site_address)
+  const legal = resolveLegalInfo(settings)
   const checkIn = settings.check_in_time || '14:00'
   const checkOut = settings.check_out_time || '12:00'
   const fullRefundDays = settings.cancellation_policy || '14'
@@ -33,7 +35,7 @@ export default async function BookingTermsPage() {
         <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100">
           <h1 className="font-display text-4xl font-bold text-gray-900 mb-2">Условия бронирования</h1>
           <p className="text-gray-400 text-sm mb-1">Гостевой дом «{siteName}»</p>
-          <p className="text-gray-400 text-sm mb-8">Редакция от 03 июня 2025 г.</p>
+          <p className="text-gray-400 text-sm mb-8">Редакция от 05 июня 2026 г.</p>
 
           <div className="space-y-6 text-gray-700 leading-relaxed">
 
@@ -43,7 +45,7 @@ export default async function BookingTermsPage() {
                 Настоящие Условия бронирования (далее — Условия) регулируют порядок бронирования,
                 оплаты, заселения и проживания в гостевом доме <strong>«{siteName}»</strong>,
                 расположенном по адресу: <strong>{address}</strong>, оператором которого является
-                самозанятый <strong>Макашенец О.В.</strong> (далее — Исполнитель).
+                самозанятый <strong>{legal.operatorName}</strong>{legal.inn ? <> (ИНН {legal.inn})</> : null} (далее — Исполнитель).
               </p>
               <p>
                 Оформление заявки на бронирование (в том числе заполнение формы на сайте, устное
@@ -88,13 +90,13 @@ export default async function BookingTermsPage() {
               <ul className="list-disc pl-5 space-y-2">
                 <li>
                   Для подтверждения бронирования Гость вносит депозит в размере <strong>{depositStr}</strong>.
-                  Депозит является обеспечительным платежом и засчитывается в счёт оплаты проживания
-                  при заезде.
+                  Депозит является обеспечительным платежом (ст. 381.1 ГК РФ) и засчитывается в счёт
+                  оплаты проживания при заезде.
                 </li>
                 <li>
-                  Депозит оплачивается онлайн через платёжный сервис ЮКасса. Исполнитель не несёт
-                  ответственности за действия платёжного сервиса, технические сбои при оплате и
-                  задержки зачисления средств, вызванные работой банковской системы.
+                  Способ и реквизиты внесения депозита согласовываются с Исполнителем при подтверждении
+                  бронирования (как правило — переводом на банковскую карту или по реквизитам Исполнителя).
+                  Онлайн-оплата на самом сайте не производится.
                 </li>
                 <li>
                   Оставшаяся часть стоимости проживания оплачивается при заезде наличными денежными
@@ -128,7 +130,7 @@ export default async function BookingTermsPage() {
                   <tbody>
                     <tr className="border-t border-gray-100">
                       <td className="px-4 py-3">{fullRefundDays} суток и более</td>
-                      <td className="px-4 py-3 text-green-700 font-medium">100% (за вычетом комиссии платёжной системы)</td>
+                      <td className="px-4 py-3 text-green-700 font-medium">100%</td>
                     </tr>
                     <tr className="border-t border-gray-100 bg-gray-50">
                       <td className="px-4 py-3">От {partialDays} до {parseInt(fullRefundDays) - 1} суток</td>
@@ -153,17 +155,17 @@ export default async function BookingTermsPage() {
                   Исполнителем, а не время его отправки Гостем.
                 </li>
                 <li>
-                  Возврат производится на банковскую карту, использованную при оплате, в течение
-                  3–10 рабочих дней с момента принятия решения о возврате. Сроки зачисления средств
-                  зависят от банка-эмитента карты Гостя и не зависят от Исполнителя.
+                  Возврат производится тем же способом, которым вносился депозит, либо по реквизитам,
+                  согласованным с Гостем, в течение 10 рабочих дней с момента согласования возврата.
                 </li>
                 <li>
-                  Комиссия платёжной системы (ЮКасса) при возврате депозита удерживается из суммы
-                  возврата вне зависимости от срока отмены.
+                  Удерживаемые при отмене суммы представляют собой компенсацию фактически понесённых
+                  Исполнителем расходов и убытков, связанных с резервированием номера и снятием дат
+                  с продажи на период бронирования.
                 </li>
                 <li>
                   Досрочный выезд Гостя (сокращение срока проживания по его инициативе) не является
-                  основанием для возврата средств за неиспользованные ночи.
+                  основанием для возврата средств за фактически предоставленные и забронированные ночи.
                 </li>
               </ul>
             </section>
@@ -336,6 +338,7 @@ export default async function BookingTermsPage() {
             <section>
               <h2 className="font-display text-2xl font-semibold text-gray-900 mb-3">12. Контакты</h2>
               <p>По всем вопросам бронирования и проживания: <strong>{phone}</strong></p>
+              {legal.email ? <p>E-mail: <strong>{legal.email}</strong></p> : null}
               <p>Адрес: <strong>{address}</strong></p>
             </section>
 

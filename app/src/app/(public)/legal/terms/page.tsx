@@ -1,16 +1,17 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
-import { getSettings, normalizeSiteAddress } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress, resolveLegalInfo, LEGAL_SETTING_KEYS } from '@/lib/settings'
 import { ArrowLeft } from 'lucide-react'
 
 export const metadata: Metadata = { title: 'Пользовательское соглашение' }
 
 export default async function TermsPage() {
-  const settings = await getSettings(['site_name', 'site_phone', 'site_address'])
+  const settings = await getSettings(['site_name', 'site_phone', 'site_address', ...LEGAL_SETTING_KEYS])
   const siteName = settings.site_name || 'Отдых на Азове'
   const phone = settings.site_phone || '+7 (XXX) XXX-XX-XX'
   const address = normalizeSiteAddress(settings.site_address)
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || ''
+  const legal = resolveLegalInfo(settings)
 
   return (
     <div className="min-h-screen bg-sand-50">
@@ -20,7 +21,7 @@ export default async function TermsPage() {
         </Link>
         <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-sm border border-gray-100">
           <h1 className="font-display text-4xl font-bold text-gray-900 mb-2">Пользовательское соглашение</h1>
-          <p className="text-gray-400 text-sm mb-8">Редакция от 03 июня 2025 г.</p>
+          <p className="text-gray-400 text-sm mb-8">Редакция от 05 июня 2026 г.</p>
 
           <div className="space-y-6 text-gray-700 leading-relaxed">
 
@@ -29,9 +30,10 @@ export default async function TermsPage() {
               <p>
                 Настоящее Пользовательское соглашение (далее — Соглашение) заключается между физическим
                 лицом, применяющим специальный налоговый режим «Налог на профессиональный доход»
-                (самозанятым), — <strong>Макашенец О.В.</strong>, осуществляющим деятельность под
-                наименованием <strong>«{siteName}»</strong> (далее — Администрация), и любым лицом,
-                получающим доступ к сайту <strong>{siteUrl}</strong> (далее — Пользователь).
+                (самозанятым), — <strong>{legal.operatorName}</strong>{legal.inn ? <> (ИНН {legal.inn})</> : null},
+                осуществляющим деятельность под наименованием <strong>«{siteName}»</strong> (далее —
+                Администрация), и любым лицом, получающим доступ к сайту <strong>{siteUrl}</strong>
+                (далее — Пользователь).
               </p>
               <p>
                 Доступ к сайту, просмотр его содержимого или заполнение любой формы означают полное и
@@ -183,7 +185,7 @@ export default async function TermsPage() {
             </section>
 
             <section>
-              <h2 className="font-display text-2xl font-semibond text-gray-900 mb-3">9. Интеллектуальная собственность</h2>
+              <h2 className="font-display text-2xl font-semibold text-gray-900 mb-3">9. Интеллектуальная собственность</h2>
               <p>
                 Все объекты, размещённые на сайте, включая тексты, фотографии, графику, логотипы,
                 программный код и структуру сайта, являются объектами интеллектуальной собственности
@@ -241,6 +243,7 @@ export default async function TermsPage() {
               </p>
               <ul className="list-disc pl-5 space-y-1">
                 <li>Телефон: <strong>{phone}</strong></li>
+                {legal.email ? <li>E-mail: <strong>{legal.email}</strong></li> : null}
                 <li>Адрес: <strong>{address}</strong></li>
               </ul>
             </section>

@@ -1,12 +1,13 @@
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
-import { getSettings, normalizeSiteAddress } from '@/lib/settings'
+import { getSettings, normalizeSiteAddress, buildFooterSocials, SOCIAL_SETTING_KEYS } from '@/lib/settings'
 import { Tracker } from '@/components/analytics/Tracker'
 
 export const dynamic = 'force-dynamic'
 
 export default async function PublicLayout({ children }: { children: React.ReactNode }) {
-  const settings = await getSettings(['site_name', 'site_phone', 'site_address'])
+  const settings = await getSettings(['site_name', 'site_phone', 'site_address', ...SOCIAL_SETTING_KEYS])
+  const socials = buildFooterSocials(settings)
 
   return (
     <>
@@ -20,6 +21,7 @@ export default async function PublicLayout({ children }: { children: React.React
         siteName={settings.site_name || 'Отдых на Азове'}
         sitePhone={settings.site_phone || '+7 (XXX) XXX-XX-XX'}
         siteAddress={normalizeSiteAddress(settings.site_address)}
+        socials={socials}
       />
     </>
   )
