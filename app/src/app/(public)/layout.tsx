@@ -2,6 +2,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { getSettings, normalizeSiteAddress, buildFooterSocials, SOCIAL_SETTING_KEYS } from '@/lib/settings'
 import { Tracker } from '@/components/analytics/Tracker'
+import { YandexMetrika } from '@/components/analytics/YandexMetrika'
 
 export const dynamic = 'force-dynamic'
 
@@ -11,6 +12,7 @@ export default async function PublicLayout({ children }: { children: React.React
 
   return (
     <>
+      <YandexMetrika />
       <Tracker />
       <Header
         siteName={settings.site_name || 'Отдых на Азове'}

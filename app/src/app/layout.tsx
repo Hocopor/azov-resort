@@ -52,10 +52,8 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [{ url: ogImage, width: 1200, height: 630 }],
     },
     robots: { index: true, follow: true },
-    icons: {
-      icon: '/images/icons/favicon.ico',
-      apple: '/images/icons/apple-touch-icon.png',
-    },
+    // Иконки (favicon.ico / icon.png / apple-icon.png) подхватываются Next по конвенции
+    // из src/app/ — отдельно объявлять не нужно (иначе появляются дубли в <head>).
     manifest: '/images/icons/site.webmanifest',
   }
 }
@@ -70,12 +68,6 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="ru" className={`${displayFont.variable} ${bodyFont.variable}`} suppressHydrationWarning>
-      <head>
-        <link rel="icon" href="/images/icons/favicon.ico" sizes="any" />
-        <link rel="icon" href="/images/icons/icon-192.png" type="image/png" sizes="192x192" />
-        <link rel="apple-touch-icon" href="/images/icons/apple-touch-icon.png" />
-        <link rel="manifest" href="/images/icons/site.webmanifest" />
-      </head>
       <body>
         <ToastProvider>{children}</ToastProvider>
       </body>

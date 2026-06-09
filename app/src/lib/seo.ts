@@ -8,7 +8,7 @@ export const SITE_REGION = 'Краснодарский край'
 export const SITE_STREET = 'ул. Зелёная, 26'
 
 export function getSiteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'http://localhost:3000'
+  return process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '') || 'https://azov.mak-o.ru'
 }
 
 // Alt-текст для фото номера: «{название}, гостевой дом в Кучугурах — фото N».
