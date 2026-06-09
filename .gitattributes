@@ -1,0 +1,15 @@
+# Бинарные файлы — никаких текстовых преобразований (CRLF/UTF-8),
+# иначе картинки/шрифты портятся (был случай: PNG превращались в мусор).
+*.png   binary
+*.jpg   binary
+*.jpeg  binary
+*.gif   binary
+*.ico   binary
+*.webp  binary
+*.avif  binary
+*.woff  binary
+*.woff2 binary
+*.ttf   binary
+*.otf   binary
+*.eot   binary
+*.pdf   binary
